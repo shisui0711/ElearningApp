@@ -1,0 +1,407 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = [""]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_PRISMA_URL_NON_POOLING")
+}
+
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id             String          @id @default(cuid())
+  username       String          @unique
+  displayName    String
+  firstName      String
+  lastName       String
+  email          String?         @unique
+  passwordHash   String?
+  avatarUrl      String?
+  location       String?
+  bio            String?
+  role           UserRole
+  session        Session[]
+  teacher        Teacher?
+  student        Student?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime?       @updatedAt
+  lessonComments LessonComment[]
+  forumTopics    ForumTopic[]
+  forumPosts     ForumPost[]
+  forumLikes     ForumLike[]
+  courseComments CourseComment[]
+
+  @@index([username])
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+
+  @@map("sessions")
+}
+
+model Teacher {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  degree    String?
+  courses   Course[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("teachers")
+}
+
+model Student {
+  id                    String                 @id @default(cuid())
+  userId                String                 @unique
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classId               String?
+  class                 Class?                 @relation(fields: [classId], references: [id])
+  enrolledCourses       Course[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime?              @updatedAt
+  completedLessons      CompletedLesson[]
+  enrollments           Enrollment[]
+  attempts              ExamAttempt[]
+  assignmentSubmissions AssignmentSubmission[]
+
+  @@map("students")
+}
+
+model Course {
+  id           String          @id @default(cuid())
+  name         String
+  imageUrl     String?
+  description  String?
+  teacherId    String
+  teacher      Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  departmentId String
+  department   Department      @relation(fields: [departmentId], references: [id])
+  students     Student[]
+  lessons      Lesson[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  documents    Document[]
+  enrollments  Enrollment[]
+  attempts     ExamAttempt[]
+  comments     CourseComment[]
+  assignments  Assignment[]
+
+  @@map("courses")
+}
+
+model Department {
+  id      String   @id @default(cuid())
+  name    String
+  courses Course[]
+  Class   Class[]
+
+  @@map("departments")
+}
+
+model Lesson {
+  id               String            @id @default(cuid())
+  title            String
+  description      String?
+  position         Int
+  videoUrl         String?
+  courseId         String
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  documents        Document[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  completedLessons CompletedLesson[]
+  comments         LessonComment[]   @relation("LessonComments")
+
+  @@map("lessons")
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  fileUrl     String
+  type        String
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId    String?
+  lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("documents")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@map("enrollments")
+}
+
+model CompletedLesson {
+  id        String  @id @default(cuid())
+  studentId String
+  lessonId  String
+  student   Student @relation(fields: [studentId], references: [id])
+  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+
+  @@map("completed_lessons")
+}
+
+model Class {
+  id           String        @id @default(cuid())
+  name         String
+  department   Department    @relation(fields: [departmentId], references: [id])
+  departmentId String
+  students     Student[]
+  attempts     ExamAttempt[]
+  assignments  Assignment[]
+
+  @@map("classes")
+}
+
+model Exam {
+  id               String         @id @default(cuid())
+  title            String
+  duration         Int
+  showCorrectAfter Boolean        @default(false)
+  questions        ExamQuestion[]
+  attempts         ExamAttempt[]
+  assignments      Assignment[]
+
+  @@map("exams")
+}
+
+model ExamQuestion {
+  id         String   @id @default(cuid())
+  examId     String
+  exam       Exam     @relation(fields: [examId], references: [id])
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  order      Int?
+
+  @@map("exam_questions")
+}
+
+model Question {
+  id             String          @id @default(cuid())
+  content        String
+  points         Int
+  imageUrl       String?
+  videoUrl       String?
+  answers        Answer[]
+  exams          ExamQuestion[]
+  studentAnswers StudentAnswer[]
+
+  @@map("questions")
+}
+
+model Answer {
+  id             String          @id @default(cuid())
+  content        String
+  isCorrect      Boolean
+  questionId     String
+  question       Question        @relation(fields: [questionId], references: [id])
+  studentAnswers StudentAnswer[]
+
+  @@map("answers")
+}
+
+model ExamAttempt {
+  id              String                @id @default(cuid())
+  studentId       String?
+  student         Student?              @relation(fields: [studentId], references: [id])
+  examId          String
+  exam            Exam                  @relation(fields: [examId], references: [id])
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  expirateAt      DateTime?
+  score           Int?
+  courseId        String?
+  course          Course?               @relation(fields: [courseId], references: [id])
+  classId         String
+  class           Class                 @relation(fields: [classId], references: [id])
+  answers         StudentAnswer[]
+  markedQuestions MarkedQuestion[]
+  submission      AssignmentSubmission?
+
+  @@map("exam_attempts")
+}
+
+model StudentAnswer {
+  id        String      @id @default(cuid())
+  attempt   ExamAttempt @relation(fields: [attemptId], references: [id])
+  attemptId String
+
+  question   Question @relation(fields: [questionId], references: [id])
+  questionId String
+
+  answer   Answer @relation(fields: [answerId], references: [id])
+  answerId String
+
+  @@map("student_answers")
+}
+
+model MarkedQuestion {
+  id         String      @id @default(cuid())
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id])
+  attemptId  String
+  questionId String
+  createdAt  DateTime    @default(now())
+
+  @@unique([attemptId, questionId])
+  @@map("marked_questions")
+}
+
+model LessonComment {
+  id        String   @id @default(cuid())
+  content   String
+  lessonId  String
+  lesson    Lesson   @relation("LessonComments", fields: [lessonId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studentId String?
+
+  @@map("comments")
+}
+
+model CourseComment {
+  id        String          @id @default(cuid())
+  content   String
+  courseId  String
+  course    Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    CourseComment?  @relation("CourseReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   CourseComment[] @relation("CourseReplies")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@map("course_comments")
+}
+
+model ForumCategory {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  topics      ForumTopic[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("forum_categories")
+}
+
+model ForumTopic {
+  id         String        @id @default(cuid())
+  title      String
+  content    String
+  userId     String
+  user       User          @relation(fields: [userId], references: [id])
+  categoryId String
+  category   ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  posts      ForumPost[]
+  views      Int           @default(0)
+  isPinned   Boolean       @default(false)
+  isLocked   Boolean       @default(false)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@map("forum_topics")
+}
+
+model ForumPost {
+  id        String      @id @default(cuid())
+  content   String
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  topicId   String
+  topic     ForumTopic  @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  likes     ForumLike[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("forum_posts")
+}
+
+model ForumLike {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  postId    String
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, postId])
+  @@map("forum_likes")
+}
+
+enum AssignmentType {
+  EXAM // Bài tập trắc nghiệm
+  FILE_UPLOAD // Bài tập nộp file
+}
+
+model Assignment {
+  id          String                 @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  type        AssignmentType
+  courseId    String
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classId     String? // Nếu giao cho cả lớp
+  class       Class?                 @relation(fields: [classId], references: [id])
+  examId      String? // Cho bài tập trắc nghiệm
+  exam        Exam?                  @relation(fields: [examId], references: [id])
+  fileType    String? // Loại file chấp nhận cho bài tập nộp file
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  submissions AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id            String       @id @default(cuid())
+  assignmentId  String
+  assignment    Assignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student      @relation(fields: [studentId], references: [id])
+  fileUrl       String? // URL của file đã nộp (cho bài tập nộp file)
+  examAttemptId String?      @unique
+  examAttempt   ExamAttempt? @relation(fields: [examAttemptId], references: [id])
+  grade         Float? // Điểm số
+  feedback      String? // Phản hồi của giáo viên
+  submittedAt   DateTime     @default(now())
+  gradedBy       String?
+  gradedAt      DateTime?
+
+  @@unique([assignmentId, studentId])
+  @@map("assignment_submissions")
+}
