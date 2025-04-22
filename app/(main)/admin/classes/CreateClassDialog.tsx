@@ -34,6 +34,7 @@ import { createClassSchema, CreateClassValues } from "@/lib/validation";
 import { useCreateClassMutation } from "./mutations";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { PaginationResponse } from "@/types";
 
 // Define department interface
 interface Department {
@@ -53,10 +54,17 @@ export default function CreateClassDialog({
   const { isPending, mutate } = useCreateClassMutation();
 
   // Fetch departments for the dropdown
-  const { data: departments, isLoading: loadingDepartments } = useQuery<Department[]>({
+  const { data: departments, isLoading: loadingDepartments } = useQuery<
+    PaginationResponse<Department>
+  >({
     queryKey: ["departments-all"],
     queryFn: async () => {
-      const response = await axios.get("/api/departments/all");
+      const response = await axios.get("/api/departments", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
       return response.data;
     },
   });
@@ -122,7 +130,7 @@ export default function CreateClassDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {departments?.map((department) => (
+                      {departments?.data && departments?.data?.map((department) => (
                         <SelectItem key={department.id} value={department.id}>
                           {department.name}
                         </SelectItem>

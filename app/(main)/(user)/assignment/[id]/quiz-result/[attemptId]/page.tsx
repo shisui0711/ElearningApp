@@ -12,14 +12,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 interface QuizResultPageProps {
-  params: {
+  params: Promise< {
     id: string;
     attemptId: string;
-  };
+  }>;
 }
 
 export default async function QuizResultPage({ params }: QuizResultPageProps) {
-  const { id: assignmentId, attemptId } = params;
+  const { id: assignmentId, attemptId } = await params;
   const { user } = await validateRequest();
 
   if (!user || !user.student) {

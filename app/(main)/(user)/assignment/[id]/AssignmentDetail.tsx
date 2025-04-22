@@ -454,14 +454,14 @@ export default function AssignmentDetail({
                     </Button>
                   )}
                 </div>
-              ) : (
+              ) : submission ? (
                 <div className="space-y-6">
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center gap-2">
                       <CalendarIcon className="h-5 w-5 text-muted-foreground" />
                       <span className="font-medium">Thời gian nộp:</span>
                       <span>
-                        {format(
+                        {submission && format(
                           new Date(submission.submittedAt),
                           "dd/MM/yyyy HH:mm",
                           {
@@ -644,7 +644,7 @@ export default function AssignmentDetail({
                     </Card>
                   )}
                 </div>
-              )}
+              ) : null}
             </CardContent>
           </TabsContent>
         </Tabs>

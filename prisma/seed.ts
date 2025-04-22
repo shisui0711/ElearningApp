@@ -192,7 +192,8 @@ async function main() {
             name: `Course ${courseNumber}`,
             description: `Description for course ${courseNumber}`,
             teacherId: teacher.id,
-            departmentId: deptId
+            departmentId: deptId,
+            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(Math.random() * 1000)}`,
           }
         });
       }
@@ -332,7 +333,7 @@ async function main() {
         const question = await prisma.question.create({
           data: {
             content: `Câu ${i + 1} for ${exam.title}`,
-            imageUrl: null,
+            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(Math.random() * 1000)}`,
             points: Math.floor(Math.random() * 5) + 1 // 1-5 điểm
           }
         });

@@ -82,7 +82,7 @@ export async function PUT(
 
     // Validate answers if provided
     if (answers) {
-      const hasCorrectAnswer = answers.some(answer => answer.isCorrect);
+      const hasCorrectAnswer = answers.some((answer: any) => answer.isCorrect);
       if (!hasCorrectAnswer) {
         return new NextResponse(JSON.stringify({ error: "At least one answer must be correct" }), {
           status: 400,
@@ -116,7 +116,7 @@ export async function PUT(
 
         // Create new answers
         const newAnswers = await Promise.all(
-          answers.map(answer =>
+          answers.map((answer: any) =>
             tx.quizAnswer.create({
               data: {
                 questionId: id,
