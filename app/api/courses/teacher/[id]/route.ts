@@ -2,12 +2,14 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(request: Request, { params: { id } }: { params: { id: string } }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { user } = await validateRequest();
     if (!user) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const { id } = await params;
 
     const url = new URL(request.url);
     const pageNumber = parseInt(url.searchParams.get("pageNumber") || "1");

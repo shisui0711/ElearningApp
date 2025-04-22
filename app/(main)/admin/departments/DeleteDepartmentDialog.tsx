@@ -27,7 +27,7 @@ export default function DeleteDepartmentDialog({
   onClose: () => void;
 }) {
   
-  const {  isPending, mutate} = useDeleteDepartmentMutation(department)
+  const {  isPending, mutate} = useDeleteDepartmentMutation()
 
   const handleOpenChange = (open: boolean) => {
     if (!open || !isPending) {

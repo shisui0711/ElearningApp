@@ -5,10 +5,10 @@ import { validateRequest } from "@/auth";
 // Get specific category with topics
 export async function GET(
   request: NextRequest,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
-    const { categoryId } = params;
+    const { categoryId } = await params;
 
     if (!categoryId) {
       return new NextResponse("Category ID is required", { status: 400 });
@@ -57,7 +57,7 @@ export async function GET(
 // Update a category (admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -66,7 +66,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { categoryId } = params;
+    const { categoryId } = await params;
     const { name, description } = await request.json();
 
     if (!categoryId) {
@@ -97,7 +97,7 @@ export async function PATCH(
 // Delete a category (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { categoryId: string } }
+  { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -106,7 +106,7 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { categoryId } = params;
+    const { categoryId } = await params;
 
     if (!categoryId) {
       return new NextResponse("Category ID is required", { status: 400 });

@@ -35,7 +35,7 @@ interface UserInfo {
   id: string;
   username: string;
   displayName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   role?: string;
   createdAt: Date;
 }
@@ -166,7 +166,7 @@ export const PostItem = ({
               <div className="flex flex-col items-center text-center">
                 <Avatar className="h-20 w-20">
                   <AvatarImage
-                    src={postData.user.avatarUrl}
+                    src={postData.user.avatarUrl || undefined}
                     alt={postData.user.displayName}
                   />
                   <AvatarFallback>
@@ -199,7 +199,7 @@ export const PostItem = ({
               <div className="flex items-center gap-3 mb-2 md:hidden">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={postData.user.avatarUrl}
+                    src={postData.user.avatarUrl || undefined}
                     alt={postData.user.displayName}
                   />
                   <AvatarFallback>

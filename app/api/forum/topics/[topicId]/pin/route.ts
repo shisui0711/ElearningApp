@@ -5,7 +5,7 @@ import { validateRequest } from "@/auth";
 // Toggle pin status of a topic (admin only)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { topicId: string } }
+  { params }: { params: Promise<{ topicId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -14,7 +14,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { topicId } = params;
+    const { topicId } = await params;
 
     if (!topicId) {
       return new NextResponse("Topic ID is required", { status: 400 });

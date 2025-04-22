@@ -18,8 +18,8 @@ import {
   YAxis
 } from 'recharts'
 
-// Example data - These would typically come from API calls
-const barData = [
+// Dữ liệu mẫu mặc định - sẽ được sử dụng nếu không có dữ liệu từ API
+const defaultBarData = [
   { name: 'Jan', total: 92 },
   { name: 'Feb', total: 132 },
   { name: 'Mar', total: 147 },
@@ -34,7 +34,7 @@ const barData = [
   { name: 'Dec', total: 365 }
 ]
 
-const lineData = [
+const defaultLineData = [
   { name: 'Week 1', completion: 45 },
   { name: 'Week 2', completion: 52 },
   { name: 'Week 3', completion: 49 },
@@ -47,7 +47,7 @@ const lineData = [
   { name: 'Week 10', completion: 85 }
 ]
 
-const pieData = [
+const defaultPieData = [
   { name: 'Computer Science', value: 540 },
   { name: 'Business', value: 620 },
   { name: 'Engineering', value: 480 },
@@ -57,10 +57,16 @@ const pieData = [
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
-export const BarChart = () => {
+interface BarChartProps {
+  customData?: { name: string; total: number }[];
+}
+
+export const BarChart = ({ customData }: BarChartProps) => {
+  const data = customData || defaultBarData;
+  
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <RechartsBarChart data={barData}>
+      <RechartsBarChart data={data}>
         <XAxis
           dataKey="name"
           stroke="#888888"
@@ -94,10 +100,16 @@ export const BarChart = () => {
   )
 }
 
-export const LineChart = () => {
+interface LineChartProps {
+  customData?: { name: string; completion: number }[];
+}
+
+export const LineChart = ({ customData }: LineChartProps) => {
+  const data = customData || defaultLineData;
+  
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <RechartsLineChart data={lineData}>
+      <RechartsLineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
         <XAxis 
           dataKey="name" 
@@ -132,12 +144,18 @@ export const LineChart = () => {
   )
 }
 
-export const PieChart = () => {
+interface PieChartProps {
+  customData?: { name: string; value: number }[];
+}
+
+export const PieChart = ({ customData }: PieChartProps) => {
+  const data = customData || defaultPieData;
+  
   return (
     <ResponsiveContainer width="100%" height={300}>
       <RechartsPieChart>
         <Pie
-          data={pieData}
+          data={data}
           cx="50%"
           cy="50%"
           labelLine={false}
@@ -146,7 +164,7 @@ export const PieChart = () => {
           fill="#8884d8"
           dataKey="value"
         >
-          {pieData.map((entry, index) => (
+          {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

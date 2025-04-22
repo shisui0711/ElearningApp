@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 // API để lấy danh sách bài tập của khóa học
 export async function GET(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { courseId } = params;
+    const { courseId } = await params;
 
     // Kiểm tra quyền truy cập khóa học
     const course = await prisma.course.findUnique({
@@ -86,7 +86,7 @@ export async function GET(
 // API để tạo bài tập mới cho khóa học
 export async function POST(
   request: NextRequest,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -99,7 +99,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { courseId } = params;
+    const { courseId } = await params;
 
     // Kiểm tra khóa học có tồn tại và người dùng có quyền
     const course = await prisma.course.findUnique({

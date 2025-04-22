@@ -32,7 +32,7 @@ import { formatDistanceToNow, isPast, format } from "date-fns";
 import { vi } from "date-fns/locale";
 
 interface CoursePageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 const CoursePage = async ({ params }: CoursePageProps) => {

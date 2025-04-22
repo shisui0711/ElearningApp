@@ -2,7 +2,7 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req:Request, { params }: { params: { id: string } }){
+export async function GET(req:Request, { params }: { params: Promise<{ id: string }> }){
     const { user: signedInUser } = await validateRequest();
     if (!signedInUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

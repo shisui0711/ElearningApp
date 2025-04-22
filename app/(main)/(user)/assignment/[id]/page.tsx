@@ -4,11 +4,62 @@ import { notFound } from "next/navigation";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import AssignmentDetail from "./AssignmentDetail";
+import { Assignment, AssignmentSubmission, AssignmentType, ExamAttempt, QuizAttempt } from "@prisma/client";
 
 interface AssignmentPageProps {
-  params: {
+  params: Promise<{ id: string }>;
+}
+
+// Define types for the formatted assignment output
+interface FormattedAssignment {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string;
+  type: AssignmentType;
+  fileType: string | null;
+  examId: string | null;
+  quizId: string | null;
+  course: {
     id: string;
+    name: string;
+    teacher: {
+      user: {
+        displayName: string;
+      };
+    };
+    enrollments: any[];
   };
+  exam: {
+    id: string;
+    title: string;
+    duration: number;
+  } | null;
+  quiz: {
+    id: string;
+    title: string;
+    timeLimit: number | null;
+  } | null;
+  submissions: Array<{
+    id: string;
+    fileUrl: string | null;
+    examAttemptId: string | null;
+    quizAttemptId: string | null;
+    grade: number | null;
+    submittedAt: string;
+    examAttempt: {
+      id: string;
+      score: number | null;
+      startedAt: string | null;
+      finishedAt: string | null;
+    } | null;
+    quizAttempt: {
+      id: string;
+      score: number | null;
+      startedAt: string | null;
+      finishedAt: string | null;
+    } | null;
+  }>;
 }
 
 export default async function AssignmentPage({ params }: AssignmentPageProps) {
@@ -57,12 +108,20 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           duration: true,
         },
       },
+      quiz: {
+        select: {
+          id: true,
+          title: true,
+          timeLimit: true,
+        },
+      },
       submissions: {
         where: {
           studentId: user.student.id,
         },
         include: {
           examAttempt: true,
+          quizAttempt: true,
         },
       },
     },
@@ -87,7 +146,7 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
   }
 
   // Convert the Date object to string before passing to the client component
-  const formattedAssignment = {
+  const formattedAssignment: FormattedAssignment = {
     ...assignment,
     dueDate: assignment.dueDate.toISOString(),
     submissions: assignment.submissions.map(submission => ({
@@ -98,6 +157,13 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
             ...submission.examAttempt,
             startedAt: submission.examAttempt.startedAt?.toISOString() || null,
             finishedAt: submission.examAttempt.finishedAt?.toISOString() || null,
+          }
+        : null,
+      quizAttempt: submission.quizAttempt
+        ? {
+            ...submission.quizAttempt,
+            startedAt: submission.quizAttempt.startedAt?.toISOString() || null,
+            finishedAt: submission.quizAttempt.finishedAt?.toISOString() || null,
           }
         : null,
     })),

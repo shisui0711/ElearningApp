@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -20,7 +20,7 @@ export async function POST(
       });
     }
 
-    const { id: examId } = params;
+    const { id: examId } = await params;
     if (!examId) {
       return new NextResponse(JSON.stringify({ error: "Missing exam ID" }), {
         status: 400,

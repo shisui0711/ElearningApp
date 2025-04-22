@@ -17,11 +17,11 @@ import { ScrollArea } from "./ui/scroll-area";
 import { ThemeToggle } from "./ThemeToggle";
 import CourseProgress from "./CourseProgress";
 import { Accordion } from "./ui/accordion";
-import { CourseWithDetails } from "@/types";
+import { CourseManageWithDetails, CourseWithDetails } from "@/types";
 import { CompletedLesson } from "@prisma/client";
 
 interface SidebarProps {
-  course: CourseWithDetails;
+  course: CourseManageWithDetails;
   completedLessons: CompletedLesson[];
 }
 

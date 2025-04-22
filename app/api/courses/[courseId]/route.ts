@@ -4,13 +4,14 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params: { courseId } }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const { user: signedInUser } = await validateRequest();
     if (!signedInUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const { courseId } = await params;
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -41,14 +42,14 @@ export async function GET(
 
 export async function DELETE(
   request: Request,
-  { params: { courseId } }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const { courseId } = await params;
     // Get the course to verify permissions
     const course = await prisma.course.findUnique({
       where: { id: courseId },

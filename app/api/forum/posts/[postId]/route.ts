@@ -5,7 +5,7 @@ import { validateRequest } from "@/auth";
 // Update a post (owner or admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -14,7 +14,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { postId } = params;
+    const { postId } = await params;
     const { content } = await request.json();
 
     if (!postId) {
@@ -68,7 +68,7 @@ export async function PATCH(
 // Delete a post (owner or admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -77,7 +77,7 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { postId } = params;
+    const { postId } = await params;
 
     if (!postId) {
       return new NextResponse("Post ID is required", { status: 400 });

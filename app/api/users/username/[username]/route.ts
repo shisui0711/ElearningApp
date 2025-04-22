@@ -4,12 +4,14 @@ import { getUserDataSelect } from "@/types";
 
 export async function GET(
   req: Request,
-  { params: { username } }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
     const { user: signedInUser } = await validateRequest();
     if (!signedInUser)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { username } = await params;
 
     const user = await prisma.user.findFirst({
       where: {

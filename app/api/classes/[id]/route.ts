@@ -4,14 +4,14 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params: { id } }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user: signedInUser } = await validateRequest();
     if (!signedInUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    
+    const { id } = await params;
     const classData = await prisma.class.findUnique({
       where: { id },
       include: {

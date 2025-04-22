@@ -4,7 +4,7 @@ import { validateRequest } from "@/auth";
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -17,7 +17,7 @@ export async function DELETE(
       return new NextResponse("Forbidden - Only teachers can delete lessons", { status: 403 });
     }
     
-    const id = params.id;
+    const {id} = await params;
     
     if (!id) {
       return new NextResponse("Lesson ID is required", { status: 400 });

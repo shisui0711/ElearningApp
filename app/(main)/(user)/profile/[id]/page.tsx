@@ -13,12 +13,12 @@ import prisma from '@/lib/prisma';
 export default async function ProfilePage({
   params,
 }: {
-  params: { id?: string };
+  params: Promise<{ id?: string }>;
 }) {
   const { user: currentUser } = await validateRequest();
   
   // If no ID provided, use the current user's profile
-  const userId = params.id || currentUser?.id;
+  const userId = (await params).id || currentUser?.id;
   
   if (!userId) {
     notFound();

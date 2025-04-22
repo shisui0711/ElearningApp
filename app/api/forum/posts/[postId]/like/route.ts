@@ -5,7 +5,7 @@ import { validateRequest } from "@/auth";
 // Toggle like on a post
 export async function POST(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -14,7 +14,7 @@ export async function POST(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { postId } = params;
+    const { postId } = await params;
 
     if (!postId) {
       return new NextResponse("Post ID is required", { status: 400 });

@@ -5,10 +5,10 @@ import { validateRequest } from "@/auth";
 // Get specific topic with posts
 export async function GET(
   request: NextRequest,
-  { params }: { params: { topicId: string } }
+  { params }: { params: Promise<{ topicId: string }> }
 ) {
   try {
-    const { topicId } = params;
+    const { topicId } = await params;
 
     if (!topicId) {
       return new NextResponse("Topic ID is required", { status: 400 });
@@ -63,7 +63,7 @@ export async function GET(
 
     // Get current user's likes
     const { user } = await validateRequest();
-    let userLikes = [];
+    let userLikes: any[] = [];
     
     if (user) {
       userLikes = await prisma.forumLike.findMany({
@@ -92,7 +92,7 @@ export async function GET(
 // Update a topic (owner or admin only)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { topicId: string } }
+  { params }: { params: Promise<{ topicId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -101,7 +101,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { topicId } = params;
+    const { topicId } = await params;
     const { title, content } = await request.json();
 
     if (!topicId) {
@@ -144,7 +144,7 @@ export async function PATCH(
 // Delete a topic (owner or admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { topicId: string } }
+  { params }: { params: Promise<{ topicId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -153,7 +153,7 @@ export async function DELETE(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { topicId } = params;
+    const { topicId } = await params;
 
     if (!topicId) {
       return new NextResponse("Topic ID is required", { status: 400 });

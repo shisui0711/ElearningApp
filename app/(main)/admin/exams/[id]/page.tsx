@@ -4,9 +4,9 @@ import ExamEditor from "@/components/admin/exams/ExamEditor";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ExamDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function ExamDetailPage({ params }: ExamDetailPageProps) {

@@ -5,10 +5,10 @@ import { redirect, notFound } from "next/navigation";
 import ManageLessons from "../ManageLessons";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     courseId: string;
     lessonId: string;
-  };
+  }>;
 }
 
 async function getLessonDetails(

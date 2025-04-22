@@ -18,203 +18,269 @@ export async function GET(req: NextRequest) {
   try {
     // Get query parameters for filtering
     const { searchParams } = new URL(req.url);
-    const startDate = searchParams.get("startDate");
-    const endDate = searchParams.get("endDate");
     const departmentId = searchParams.get("departmentId");
 
-    // Parse dates if provided
-    const startDateTime = startDate ? new Date(startDate) : new Date(new Date().setDate(new Date().getDate() - 30));
-    const endDateTime = endDate ? new Date(endDate) : new Date();
+    // Department filtering condition
+    const departmentFilter = departmentId ? { departmentId } : {};
 
-    // Base filter for date range
-    const dateFilter = {
-      finishedAt: {
-        gte: startDateTime,
-        lte: endDateTime
-      }
-    };
-
-    // Department filter if specified
-    const departmentFilter = departmentId ? {
-      course: {
-        departmentId
-      }
-    } : {};
-
-    // Combine filters
-    const whereFilter = {
-      ...dateFilter,
-      ...departmentFilter
-    };
-
-    // Get overall exam statistics
-    const examAttempts = await prisma.examAttempt.count({
-      where: whereFilter
-    });
-
-    const examScores = await prisma.examAttempt.aggregate({
-      where: {
-        ...whereFilter,
-        score: {
-          not: null
-        }
-      },
+    // Get exam analytics
+    const totalExams = await prisma.exam.count();
+    const totalAttempts = await prisma.examAttempt.count();
+    
+    // Get average score
+    const avgScoreData = await prisma.examAttempt.aggregate({
       _avg: {
         score: true
       }
     });
-
-    // Calculate passing rate (score >= 60)
+    const avgScore = Math.round(avgScoreData._avg.score || 0);
+    
+    // Calculate passing rate (attempts with score >= 60%)
     const passingAttempts = await prisma.examAttempt.count({
       where: {
-        ...whereFilter,
         score: {
           gte: 60
         }
       }
     });
+    const passingRate = totalAttempts > 0 
+      ? Math.round((passingAttempts / totalAttempts) * 100)
+      : 0;
     
-    const passingRate = examAttempts > 0 ? (passingAttempts / examAttempts) * 100 : 0;
-
-    // Get top exams by score
-    const topExams = await prisma.exam.findMany({
+    // Get monthly changes
+    const previousMonth = new Date();
+    previousMonth.setMonth(previousMonth.getMonth() - 1);
+    
+    const previousMonthAvgScore = await prisma.examAttempt.aggregate({
+      _avg: {
+        score: true
+      },
+      where: {
+        createdAt: {
+          lt: previousMonth
+        }
+      }
+    });
+    const avgScoreChange = Math.round((avgScoreData._avg.score || 0) - (previousMonthAvgScore._avg.score || 0));
+    
+    const previousMonthAttempts = await prisma.examAttempt.count({
+      where: {
+        createdAt: {
+          lt: previousMonth
+        }
+      }
+    });
+    const attemptsChange = totalAttempts - previousMonthAttempts;
+    
+    // Get recent exams with statistics
+    const examDetails = await prisma.exam.findMany({
       select: {
         id: true,
         title: true,
         attempts: {
           select: {
+            id: true,
             score: true
-          },
-          where: {
-            finishedAt: {
-              gte: startDateTime,
-              lte: endDateTime
-            },
-            score: {
-              not: null
-            }
           }
         }
       },
-      where: {
+      orderBy: {
         attempts: {
-          some: {
-            finishedAt: {
-              gte: startDateTime,
-              lte: endDateTime
-            }
-          }
+          _count: 'desc'
         }
-      }
+      },
+      take: 5
     });
-
-    // Calculate average scores for each exam
-    const examsWithAvgScores = topExams.map(exam => {
-      const totalScore = exam.attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
-      const avgScore = exam.attempts.length > 0 ? totalScore / exam.attempts.length : 0;
-      const passingCount = exam.attempts.filter(attempt => (attempt.score || 0) >= 60).length;
-      const passingRate = exam.attempts.length > 0 ? (passingCount / exam.attempts.length) * 100 : 0;
-      
+    
+    // Format exam details with statistics
+    const formattedExamDetails = examDetails.map(exam => {
+      const attemptCount = exam.attempts.length;
+      const avgExamScore = attemptCount > 0
+        ? Math.round(exam.attempts.reduce((sum, attempt) => sum + (attempt.score || 1) , 0) / attemptCount)
+        : 0;
+      const passingAttempts = exam.attempts.filter(attempt => (attempt.score || 1) >= 60).length;
+      const examPassingRate = attemptCount > 0
+        ? Math.round((passingAttempts / attemptCount) * 100)
+        : 0;
+        
       return {
         id: exam.id,
-        title: exam.title,
-        attempts: exam.attempts.length,
-        avgScore: Math.round(avgScore),
-        passingRate: Math.round(passingRate)
+        name: exam.title,
+        avgScore: avgExamScore,
+        attempts: attemptCount,
+        passingRate: examPassingRate
       };
     });
-
-    // Sort by average score
-    const sortedExams = examsWithAvgScores.sort((a, b) => b.avgScore - a.avgScore);
-
-    // Get challenging questions (lowest success rate)
-    const questions = await prisma.question.findMany({
+    
+    // Get score distribution
+    const scoreDistribution = [
+      { range: "0-20", count: 0 },
+      { range: "21-40", count: 0 },
+      { range: "41-60", count: 0 },
+      { range: "61-80", count: 0 },
+      { range: "81-100", count: 0 }
+    ];
+    
+    // Count attempts by score range
+    const attemptsByScore = await prisma.examAttempt.findMany({
       select: {
-        id: true,
-        content: true,
-        points: true,
-        studentAnswers: {
+        score: true
+      }
+    });
+    
+    attemptsByScore.forEach(attempt => {
+      const score = attempt.score;
+      if(!score) return;
+      if (score <= 20) scoreDistribution[0].count++;
+      else if (score <= 40) scoreDistribution[1].count++;
+      else if (score <= 60) scoreDistribution[2].count++;
+      else if (score <= 80) scoreDistribution[3].count++;
+      else scoreDistribution[4].count++;
+    });
+    
+    // Get student answers to analyze question difficulty
+    const studentAnswerData = await prisma.studentAnswer.findMany({
+      include: {
+        answer: {
           select: {
-            answer: {
-              select: {
-                isCorrect: true
-              }
-            }
-          },
-          where: {
-            attempt: {
-              finishedAt: {
-                gte: startDateTime,
-                lte: endDateTime
-              }
-            }
+            isCorrect: true
           }
         },
-        exams: {
+        question: {
           select: {
-            exam: {
-              select: {
-                title: true
-              }
-            }
-          },
-          take: 1
-        }
-      },
-      where: {
-        studentAnswers: {
-          some: {
-            attempt: {
-              finishedAt: {
-                gte: startDateTime,
-                lte: endDateTime
-              }
-            }
+            id: true,
+            content: true
           }
         }
       }
     });
-
-    // Calculate success rate for each question
-    const questionsWithSuccessRate = questions.map(question => {
-      const totalAnswers = question.studentAnswers.length;
-      const correctAnswers = question.studentAnswers.filter(sa => sa.answer.isCorrect).length;
-      const successRate = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0;
+    
+    // Process data to find difficult questions
+    const questionStats = new Map();
+    
+    studentAnswerData.forEach(answer => {
+      const { questionId } = answer;
+      const isCorrect = answer.answer.isCorrect ? 1 : 0;
       
-      return {
-        id: question.id,
-        content: question.content,
-        exam: question.exams[0]?.exam.title || "Unknown Exam",
-        successRate: Math.round(successRate),
-        difficulty: getQuestionDifficulty(successRate)
-      };
+      if (!questionStats.has(questionId)) {
+        questionStats.set(questionId, { 
+          correct: 0, 
+          total: 0, 
+          content: answer.question.content
+        });
+      }
+      
+      const stats = questionStats.get(questionId);
+      stats.correct += isCorrect;
+      stats.total += 1;
+      questionStats.set(questionId, stats);
     });
+    
+    // Convert to array, calculate rates and sort
+    const difficultQuestions = Array.from(questionStats.entries())
+      .map(([questionId, stats]) => ({
+        questionId,
+        text: stats.content,
+        correctRate: stats.total > 0 ? Math.round((stats.correct / stats.total) * 100) : 0,
+        total: stats.total
+      }))
+      .filter(q => q.total >= 5) // Only questions with at least 5 attempts
+      .sort((a, b) => a.correctRate - b.correctRate)
+      .slice(0, 5);
+    
+    // Get exam titles for difficult questions
+    const questionsWithExams = await Promise.all(
+      difficultQuestions.map(async (question) => {
+        const examQuestion = await prisma.examQuestion.findFirst({
+          where: { questionId: question.questionId },
+          include: { exam: true }
+        });
+        
+        return {
+          ...question,
+          exam: examQuestion?.exam?.title || "Unknown",
+          difficulty: question.correctRate < 50 ? "Hard" : question.correctRate < 70 ? "Medium" : "Easy"
+        };
+      })
+    );
+    
+    // Get performance trend over time (last 10 weeks)
+    const now = new Date();
+    const tenWeeksAgo = new Date(now);
+    tenWeeksAgo.setDate(now.getDate() - 70);
+    
+    // Initialize weeks array
+    const weeks: Array<{
+      week: string;
+      startDate: Date;
+      endDate: Date;
+      completion: number;
+      count: number;
+    }> = [];
+    
+    for (let i = 0; i < 10; i++) {
+      const week = new Date(tenWeeksAgo);
+      week.setDate(week.getDate() + (i * 7));
+      const endDate = new Date(week);
+      endDate.setDate(week.getDate() + 6);
+      
+      weeks.push({
+        week: `Week ${i + 1}`,
+        startDate: new Date(week),
+        endDate: endDate,
+        completion: 0,
+        count: 0
+      });
+    }
+    
+    // Get exam attempts by week
+    const weeklyAttempts = await prisma.examAttempt.findMany({
+      where: {
+        createdAt: {
+          gte: tenWeeksAgo
+        }
+      },
+      select: {
+        createdAt: true,
+        score: true
+      }
+    });
+    
+    // Process weekly data
+    weeklyAttempts.forEach(attempt => {
+      const date = new Date(attempt.createdAt);
+      const weekIndex = weeks.findIndex(w => 
+        date >= w.startDate && date <= w.endDate
+      );
+      
+      if (weekIndex !== -1 && attempt.score) {
+        // Add score to weekly total
+        weeks[weekIndex].completion += attempt.score;
+        weeks[weekIndex].count++;
+      }
+    });
+    
+    const performanceTrend = weeks.map(w => ({
+      name: w.week,
+      completion: w.count > 0 ? Math.round(w.completion / w.count) : 0
+    }));
 
-    // Get questions with lowest success rates
-    const challengingQuestions = questionsWithSuccessRate
-      .sort((a, b) => a.successRate - b.successRate)
-      .slice(0, 10);
-
-    // Return analytics data
     return NextResponse.json({
       overview: {
-        examAttempts,
-        avgScore: Math.round(examScores._avg.score || 0),
-        passingRate: Math.round(passingRate)
+        avgScore,
+        totalExams,
+        totalAttempts,
+        passingRate,
+        avgScoreChange,
+        attemptsChange
       },
-      topExams: sortedExams.slice(0, 10),
-      challengingQuestions
+      examDetails: formattedExamDetails,
+      scoreDistribution,
+      difficultQuestions: questionsWithExams,
+      performanceTrend
     });
   } catch (error) {
-    console.error("[EXAM_ANALYTICS_GET]", error);
+    console.error("[EXAMS_ANALYTICS_GET]", error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-}
-
-// Helper function to determine question difficulty based on success rate
-function getQuestionDifficulty(successRate: number): string {
-  if (successRate >= 80) return "Easy";
-  if (successRate >= 60) return "Medium";
-  if (successRate >= 40) return "Hard";
-  return "Very Hard";
 } 

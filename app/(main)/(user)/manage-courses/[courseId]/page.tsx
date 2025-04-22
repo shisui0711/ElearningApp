@@ -18,9 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import CreateAssignmentDialog from "./CreateAssignmentDialog";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     courseId: string;
-  };
+  }>;
 }
 
 async function getCourseDetails(courseId: string, userId: string) {

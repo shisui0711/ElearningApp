@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } =  await validateRequest();
@@ -19,7 +19,7 @@ export async function PUT(
       });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return new NextResponse(JSON.stringify({ error: "Missing question ID" }), {
@@ -152,7 +152,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -168,7 +168,7 @@ export async function DELETE(
       });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return new NextResponse(

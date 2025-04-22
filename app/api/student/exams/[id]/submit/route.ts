@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    const { id: attemptId } = params;
+    const { id: attemptId } = await params;
 
     // Check if the attempt exists and belongs to the student
     const attempt = await prisma.examAttempt.findUnique({

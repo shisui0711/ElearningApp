@@ -6,30 +6,27 @@ import {
   Eye,
   Pin,
   Lock,
-  PlusCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatDistanceToNow } from "date-fns";
 
 import prisma from "@/lib/prisma";
 import { cn, formatTimeAgo } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { CreateTopicButton } from "../components/CreateTopicButton";
 import { AdminTopicActions } from "../components/AdminTopicActions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface CategoryPageProps {
-  params: {
+  params: Promise<{
     categoryId: string;
-  };
+  }>;
 }
 
 const CategoryPage = async ({ params }: CategoryPageProps) => {
-  const { categoryId } = params;
+  const { categoryId } = await params;
   const { user } = await validateRequest();
   const isAdmin = user?.role === "ADMIN";
 

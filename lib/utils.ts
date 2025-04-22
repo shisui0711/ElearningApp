@@ -25,7 +25,7 @@ export function formatDateToString(date:Date) {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
-export function parseStringify(data:any) {
+export function parseStringify(data:object) {
   return JSON.parse(JSON.stringify(data))
 }
 

@@ -40,11 +40,11 @@ const menuItems = [
         label: "Kiểm tra",
         href: "/admin/exams"
       },
-      // {
-      //   icon: "/images/assignment.png",
-      //   label: "Bài tập",
-      //   href: "/admin/assignments"
-      // },
+      {
+        icon: "/images/assignment.png",
+        label: "Khóa học",
+        href: "/admin/courses"
+      },
       // {
       //   icon: "/images/calendar.png",
       //   label: "Sự kiện",

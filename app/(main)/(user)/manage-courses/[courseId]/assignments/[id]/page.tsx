@@ -51,6 +51,21 @@ import GradeSubmissionDialog from "./GradeSubmissionDialog";
 import { toast } from "sonner";
 import { SubmissionWithDetails } from "@/types";
 
+export const assignmentTypes = [
+  {
+    value: "FILE_UPLOAD",
+    label: "Bài tập nộp file",
+  },
+  {
+    value: "EXAM",
+    label: "Bài kiểm tra trắc nghiệm",
+  },
+  {
+    value: "QUIZ",
+    label: "Bài tập trắc nghiệm",
+  },
+];
+
 export default function AssignmentDetailPage() {
   const params = useParams();
   const router = useRouter();

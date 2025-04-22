@@ -23,6 +23,8 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
+  ArrowRight,
+  Eye,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -36,9 +38,10 @@ interface AssignmentDetailProps {
     title: string;
     description: string | null;
     dueDate: string;
-    type: "EXAM" | "FILE_UPLOAD";
+    type: "EXAM" | "FILE_UPLOAD" | "QUIZ";
     fileType: string | null;
     examId: string | null;
+    quizId: string | null;
     course: {
       id: string;
       name: string;
@@ -53,13 +56,25 @@ interface AssignmentDetailProps {
       title: string;
       duration: number;
     } | null;
+    quiz?: {
+      id: string;
+      title: string;
+      timeLimit: number | null;
+    } | null;
     submissions: Array<{
       id: string;
       fileUrl: string | null;
       examAttemptId: string | null;
+      quizAttemptId: string | null;
       grade: number | null;
       submittedAt: string;
       examAttempt?: {
+        id: string;
+        score: number | null;
+        startedAt: string | null;
+        finishedAt: string | null;
+      } | null;
+      quizAttempt?: {
         id: string;
         score: number | null;
         startedAt: string | null;
@@ -81,7 +96,7 @@ export default function AssignmentDetail({
 
   const dueDate = new Date(assignment.dueDate);
   const isDueDatePassed = isPast(dueDate);
-  const hasSubmission = assignment.submissions.some((x) => x.fileUrl);
+  const hasSubmission = assignment.submissions.some((x) => x.fileUrl || x.examAttemptId || x.quizAttemptId);
   const submission = hasSubmission ? assignment.submissions[0] : null;
   const isGraded = submission && submission.grade !== null;
 
@@ -188,6 +203,48 @@ export default function AssignmentDetail({
     }
   };
 
+  const startQuiz = async () => {
+    if (!assignment.quizId) {
+      toast.error("Không tìm thấy bài tập trắc nghiệm");
+      return;
+    }
+
+    try {
+      // Tạo lần làm bài mới
+      const response = await fetch(`/api/quizzes/${assignment.quizId}/start`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Có lỗi xảy ra khi bắt đầu làm bài");
+      }
+
+      const data = await response.json();
+
+      // Liên kết lần làm với bài tập
+      await fetch(`/api/assignments/${assignment.id}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          quizAttemptId: data.id,
+        }),
+      });
+
+      // Chuyển hướng đến trang làm bài
+      router.push(`/assignment/${assignment.id}/quiz/${data.id}`);
+    } catch (error) {
+      console.error("Error starting quiz:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Có lỗi xảy ra khi bắt đầu làm bài"
+      );
+    }
+  };
+
   const getFileTypeLabel = (fileType: string | null) => {
     if (!fileType || fileType === "*") return "Tất cả các loại file";
     if (fileType === "application/pdf") return "PDF";
@@ -249,260 +306,346 @@ export default function AssignmentDetail({
             </TabsList>
           </div>
 
-          <TabsContent value="details" className="p-6 pt-4">
-            <div className="space-y-4">
+          <TabsContent value="details" className="mt-0">
+            <CardContent className="pt-6">
               {assignment.description && (
-                <div className="prose max-w-none">
-                  <p>{assignment.description}</p>
+                <div className="mb-6 prose max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: assignment.description }} />
                 </div>
               )}
 
-              <div className="bg-muted/40 rounded-lg p-4">
-                <h3 className="font-medium mb-2">Thông tin bài tập</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-center text-sm">
-                    <span className="font-medium mr-2">Loại bài tập:</span>
-                    {assignment.type === "EXAM"
-                      ? "Bài tập trắc nghiệm"
-                      : "Bài tập nộp file"}
-                  </li>
-
-                  {assignment.type === "EXAM" && assignment.exam && (
-                    <>
-                      <li className="flex items-center text-sm">
-                        <span className="font-medium mr-2">Bài kiểm tra:</span>
-                        {assignment.exam.title}
-                      </li>
-                      <li className="flex items-center text-sm">
-                        <span className="font-medium mr-2">
-                          Thời gian làm bài:
-                        </span>
-                        {assignment.exam.duration} phút
-                      </li>
-                    </>
-                  )}
-
-                  {assignment.type === "FILE_UPLOAD" && (
-                    <li className="flex items-center text-sm">
-                      <span className="font-medium mr-2">
-                        Loại file chấp nhận:
-                      </span>
-                      {getFileTypeLabel(assignment.fileType)}
-                    </li>
-                  )}
-
-                  <li className="flex items-center text-sm">
-                    <span className="font-medium mr-2">Giáo viên:</span>
-                    {assignment.course.teacher.user.displayName}
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="submission" className="p-6 pt-4">
-            {hasSubmission ? (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-lg">Bài đã nộp</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Nộp lúc:{" "}
-                      {format(
-                        new Date(submission!.submittedAt),
-                        "dd/MM/yyyy HH:mm",
-                        { locale: vi }
-                      )}
-                    </p>
-                  </div>
-
-                  {isGraded && (
-                    <div className="flex items-center bg-green-50 text-green-700 px-3 py-1.5 rounded-full">
-                      <Award className="mr-2 h-5 w-5" />
-                      <span className="font-medium">
-                        {submission!.grade} điểm
-                      </span>
-                    </div>
-                  )}
+              <div className="mt-4 space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">Loại bài tập:</span>
+                  <span>
+                    {assignment.type === "FILE_UPLOAD"
+                      ? "Nộp tập tin"
+                      : assignment.type === "EXAM"
+                      ? "Bài kiểm tra trắc nghiệm"
+                      : "Bài tập trắc nghiệm"}
+                  </span>
                 </div>
 
-                {assignment.type === "FILE_UPLOAD" && submission!.fileUrl && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="mr-3 h-10 w-10 text-primary" />
-                        <div>
-                          <h4 className="font-medium">File đã nộp</h4>
-                          <p className="text-sm text-muted-foreground truncate max-w-md">
-                            {submission!.fileUrl.split("/").pop()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Link href={submission!.fileUrl} target="_blank">
-                        <Button variant="outline" size="sm">
-                          <Download className="mr-2 h-4 w-4" />
-                          Tải xuống
-                        </Button>
-                      </Link>
-                    </div>
+                {assignment.type === "FILE_UPLOAD" && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Loại file yêu cầu:</span>
+                    <span>{getFileTypeLabel(assignment.fileType)}</span>
                   </div>
                 )}
 
-                {assignment.type === "EXAM" && submission!.examAttempt && (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <FileText className="mr-3 h-10 w-10 text-primary" />
-                        <div>
-                          <h4 className="font-medium">Bài kiểm tra đã nộp</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {submission!.examAttempt.finishedAt
-                              ? `Hoàn thành lúc: ${format(
-                                  new Date(submission!.examAttempt.finishedAt),
-                                  "dd/MM/yyyy HH:mm",
-                                  { locale: vi }
-                                )}`
-                              : "Chưa hoàn thành"}
-                          </p>
-                        </div>
-                      </div>
-
-                      <Link
-                        href={`/assignment/${assignment.id}/view/${
-                          submission!.examAttemptId
-                        }`}
-                      >
-                        <Button variant="outline" size="sm">
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Xem kết quả
-                        </Button>
-                      </Link>
-                    </div>
-
-                    {submission!.examAttempt.score !== null && (
-                      <div className="mt-4 flex items-center text-green-700">
-                        <Award className="mr-2 h-5 w-5" />
-                        <span className="font-medium">
-                          Điểm số: {submission!.examAttempt.score}
-                        </span>
-                      </div>
-                    )}
+                {assignment.type === "EXAM" && assignment.exam && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Thời gian làm bài:</span>
+                    <span>{assignment.exam.duration} phút</span>
                   </div>
                 )}
 
-                {!isDueDatePassed && (
-                  <div className="border-t pt-4 mt-4">
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Bạn có thể nộp lại bài tập trước khi hết hạn
-                    </p>
-
-                    {assignment.type === "FILE_UPLOAD" ? (
-                      <div className="flex items-center">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                        <Button
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={uploading}
-                        >
-                          {uploading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Đang tải lên...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="mr-2 h-4 w-4" />
-                              Nộp lại
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button onClick={startExam}>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Làm lại bài kiểm tra
-                      </Button>
-                    )}
+                {assignment.type === "QUIZ" && assignment.quiz && assignment.quiz.timeLimit && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">Thời gian làm bài:</span>
+                    <span>{assignment.quiz.timeLimit} phút</span>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="text-center py-12">
-                {isDueDatePassed ? (
-                  <div className="flex flex-col items-center">
-                    <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-                    <h3 className="text-lg font-medium mb-1">
-                      Bạn chưa nộp bài và đã hết hạn
-                    </h3>
-                    <p className="text-muted-foreground">
-                      Bài tập đã hết hạn vào{" "}
-                      {format(dueDate, "dd/MM/yyyy HH:mm", { locale: vi })}
-                    </p>
+            </CardContent>
+            <CardFooter className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+              <div className="grid gap-2 flex-1 w-full">
+                {assignment.type === "EXAM" && (
+                  <Button
+                    onClick={startExam}
+                    disabled={isDueDatePassed}
+                    className="w-full"
+                  >
+                    {submission?.examAttempt?.finishedAt ? (
+                      "Bài đã nộp, xem lại kết quả"
+                    ) : submission?.examAttempt?.startedAt ? (
+                      "Tiếp tục làm bài"
+                    ) : (
+                      <>
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Bắt đầu làm bài kiểm tra
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {assignment.type === "QUIZ" && (
+                  <Button
+                    onClick={startQuiz}
+                    disabled={isDueDatePassed}
+                    className="w-full"
+                  >
+                    {submission?.quizAttempt?.finishedAt ? (
+                      "Bài đã nộp, xem lại kết quả"
+                    ) : submission?.quizAttempt?.startedAt ? (
+                      "Tiếp tục làm bài"
+                    ) : (
+                      <>
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Bắt đầu làm bài
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {assignment.type === "FILE_UPLOAD" && (
+                  <>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isDueDatePassed}
+                      className="w-full"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Đang tải lên...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="mr-2 h-4 w-4" />
+                          {hasSubmission ? "Nộp lại bài tập" : "Nộp bài tập"}
+                        </>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </CardFooter>
+          </TabsContent>
+
+          <TabsContent value="submission" className="mt-0">
+            <CardContent className="pt-6">
+              {!hasSubmission ? (
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">Bạn chưa nộp bài</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    Bạn chưa nộp bài tập này
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    Hãy nộp bài trước thời hạn{" "}
+                    {format(dueDate, "dd/MM/yyyy HH:mm", { locale: vi })}.
+                  </p>
+                  {assignment.type === "FILE_UPLOAD" ? (
+                    <Button onClick={() => fileInputRef.current?.click()}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Nộp bài tập
+                    </Button>
+                  ) : assignment.type === "EXAM" ? (
+                    <Button onClick={startExam}>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Bắt đầu làm bài
+                    </Button>
+                  ) : (
+                    <Button onClick={startQuiz}>
+                      <ArrowRight className="mr-2 h-4 w-4" />
+                      Bắt đầu làm bài
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+                      <span className="font-medium">Thời gian nộp:</span>
+                      <span>
+                        {format(
+                          new Date(submission.submittedAt),
+                          "dd/MM/yyyy HH:mm",
+                          {
+                            locale: vi,
+                          }
+                        )}
+                      </span>
+                    </div>
 
-                    {assignment.type === "FILE_UPLOAD" ? (
-                      <div className="border-2 border-dashed rounded-lg p-8 max-w-md mx-auto">
-                        <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
+                    {isGraded && (
+                      <div className="flex items-center gap-2 text-lg">
+                        <Award className="h-5 w-5 text-yellow-500" />
+                        <span className="font-medium">Điểm số:</span>
+                        <span className="font-bold">{submission.grade}</span>
+                      </div>
+                    )}
+                  </div>
 
-                        {uploading ? (
-                          <div className="flex flex-col items-center">
-                            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-                            <p className="text-muted-foreground">
-                              Đang tải lên...
-                            </p>
+                  {assignment.type === "FILE_UPLOAD" && submission.fileUrl && (
+                    <Card className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="border-t border-border p-4 flex justify-between items-center">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-medium">File đã nộp</span>
                           </div>
-                        ) : (
-                          <div className="flex flex-col items-center">
-                            <FileText className="h-16 w-16 text-muted-foreground mb-4" />
-                            <p className="text-muted-foreground mb-6">
-                              Kéo và thả file vào đây, hoặc
-                            </p>
+                          <a
+                            href={submission.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Tải xuống
+                          </a>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {assignment.type === "EXAM" && submission.examAttempt && (
+                    <Card className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="border-t border-border p-4">
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                              <span className="font-medium">
+                                Kết quả bài kiểm tra
+                              </span>
+                            </div>
+                            {submission.examAttempt.score !== null && (
+                              <div className="flex items-center gap-2">
+                                <Award className="h-5 w-5 text-yellow-500" />
+                                <span className="font-medium">Điểm: </span>
+                                <span className="font-bold">
+                                  {submission.examAttempt.score}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Thời gian bắt đầu:
+                              </span>
+                              <span>
+                                {submission.examAttempt.startedAt
+                                  ? format(
+                                      new Date(submission.examAttempt.startedAt),
+                                      "dd/MM/yyyy HH:mm",
+                                      { locale: vi }
+                                    )
+                                  : "Chưa bắt đầu"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Thời gian kết thúc:
+                              </span>
+                              <span>
+                                {submission.examAttempt.finishedAt
+                                  ? format(
+                                      new Date(submission.examAttempt.finishedAt),
+                                      "dd/MM/yyyy HH:mm",
+                                      { locale: vi }
+                                    )
+                                  : "Chưa hoàn thành"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
                             <Button
-                              onClick={() => fileInputRef.current?.click()}
+                              variant="outline"
+                              className="w-full"
+                              onClick={() =>
+                                router.push(
+                                  `/assignment/${assignment.id}/view/${submission.examAttempt?.id}`
+                                )
+                              }
                             >
-                              <Upload className="mr-2 h-4 w-4" />
-                              Chọn file
+                              <Eye className="mr-2 h-4 w-4" />
+                              Xem chi tiết bài làm
                             </Button>
                           </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="max-w-md mx-auto">
-                        <div className="border rounded-lg p-6 text-center mb-4">
-                          <h4 className="font-medium mb-2">
-                            {assignment.exam?.title || "Bài kiểm tra"}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mb-6">
-                            Thời gian làm bài: {assignment.exam?.duration} phút
-                          </p>
-                          <Button onClick={startExam}>
-                            Bắt đầu làm bài
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                          </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          Lưu ý: Sau khi bắt đầu làm bài, bạn phải hoàn thành
-                          trong thời gian quy định.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {assignment.type === "QUIZ" && submission.quizAttempt && (
+                    <Card className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="border-t border-border p-4">
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                              <span className="font-medium">
+                                Kết quả bài tập trắc nghiệm
+                              </span>
+                            </div>
+                            {submission.quizAttempt.score !== null && (
+                              <div className="flex items-center gap-2">
+                                <Award className="h-5 w-5 text-yellow-500" />
+                                <span className="font-medium">Điểm: </span>
+                                <span className="font-bold">
+                                  {submission.quizAttempt.score}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Thời gian bắt đầu:
+                              </span>
+                              <span>
+                                {submission.quizAttempt.startedAt
+                                  ? format(
+                                      new Date(submission.quizAttempt.startedAt),
+                                      "dd/MM/yyyy HH:mm",
+                                      { locale: vi }
+                                    )
+                                  : "Chưa bắt đầu"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground">
+                                Thời gian kết thúc:
+                              </span>
+                              <span>
+                                {submission.quizAttempt.finishedAt
+                                  ? format(
+                                      new Date(submission.quizAttempt.finishedAt),
+                                      "dd/MM/yyyy HH:mm",
+                                      { locale: vi }
+                                    )
+                                  : "Chưa hoàn thành"}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <Button
+                              variant="outline"
+                              className="w-full"
+                              onClick={() =>
+                                router.push(
+                                  `/assignment/${assignment.id}/quiz-result/${submission.quizAttempt?.id}`
+                                )
+                              }
+                            >
+                              <Eye className="mr-2 h-4 w-4" />
+                              Xem chi tiết bài làm
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </CardContent>
           </TabsContent>
         </Tabs>
       </Card>

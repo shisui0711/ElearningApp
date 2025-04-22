@@ -36,6 +36,7 @@ import * as z from "zod";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/DatePicker";
+import { Loader2, CheckCircle } from "lucide-react";
 
 interface EditAssignmentDialogProps {
   assignment: any;
@@ -43,21 +44,19 @@ interface EditAssignmentDialogProps {
 }
 
 const formSchema = z.object({
-  title: z.string().min(1, "Vui lòng nhập tiêu đề bài tập"),
+  title: z
+    .string()
+    .min(3, "Tiêu đề phải có ít nhất 3 ký tự")
+    .max(100, "Tiêu đề không được quá 100 ký tự"),
   description: z.string().optional(),
+  type: z.enum(["FILE_UPLOAD", "EXAM", "QUIZ"]),
   dueDate: z.date({
-    required_error: "Vui lòng chọn hạn nộp bài",
-  }),
-  type: z.enum(["EXAM", "FILE_UPLOAD"], {
-    required_error: "Vui lòng chọn loại bài tập",
+    required_error: "Vui lòng chọn thời hạn nộp bài",
   }),
   fileType: z.string().optional(),
   examId: z.string().optional(),
-  assignFor: z.enum(["CLASS", "STUDENTS"], {
-    required_error: "Vui lòng chọn đối tượng giao bài",
-  }),
+  quizId: z.string().optional(),
   classId: z.string().optional(),
-  studentIds: z.array(z.string()).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -71,6 +70,7 @@ export default function EditAssignmentDialog({
   const [exams, setExams] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<{ id: string; title: string; timeLimit: number | null }[]>([]);
 
   // Fetch necessary data when dialog opens
   useEffect(() => {
@@ -99,6 +99,13 @@ export default function EditAssignmentDialog({
           const studentsData = await studentsResponse.json();
           setStudents(studentsData);
         }
+
+        // Fetch quizzes
+        const quizzesResponse = await fetch("/api/quizzes");
+        if (quizzesResponse.ok) {
+          const quizzesData = await quizzesResponse.json();
+          setQuizzes(quizzesData);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
@@ -119,17 +126,18 @@ export default function EditAssignmentDialog({
       title: assignment.title,
       description: assignment.description || "",
       dueDate: new Date(assignment.dueDate),
-      type: assignment.type as "EXAM" | "FILE_UPLOAD",
-      fileType: assignment.fileType || "application/pdf",
+      type: assignment.type as "FILE_UPLOAD" | "EXAM" | "QUIZ",
+      fileType: assignment.fileType || "",
       examId: assignment.examId || "",
-      assignFor: assignFor,
+      quizId: assignment.quizId || "",
       classId: assignment.classId || "",
-      studentIds: [],
     },
   });
 
-  const assignmentType = form.watch("type");
-  const currentAssignFor = form.watch("assignFor");
+  const selectedType = form.watch("type");
+  const selectedExamId = form.watch("examId");
+  const selectedQuizId = form.watch("quizId");
+  const selectedClass = form.watch("classId");
 
   // Handle form submission
   const onSubmit = async (values: FormValues) => {
@@ -143,8 +151,8 @@ export default function EditAssignmentDialog({
         type: values.type,
         fileType: values.type === "FILE_UPLOAD" ? values.fileType : null,
         examId: values.type === "EXAM" ? values.examId : null,
-        classId: values.assignFor === "CLASS" ? values.classId : null,
-        studentIds: values.assignFor === "STUDENTS" ? values.studentIds : [],
+        quizId: values.type === "QUIZ" ? values.quizId : null,
+        classId: values.classId || null,
       };
 
       const response = await fetch(`/api/assignments/${assignment.id}`, {
@@ -161,7 +169,7 @@ export default function EditAssignmentDialog({
       }
 
       const updatedAssignment = await response.json();
-      
+
       toast.success("Đã cập nhật bài tập thành công");
       onSuccess(updatedAssignment);
       setIsOpen(false);
@@ -206,7 +214,6 @@ export default function EditAssignmentDialog({
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="description"
@@ -256,6 +263,7 @@ export default function EditAssignmentDialog({
                         <SelectContent>
                           <SelectItem value="FILE_UPLOAD">Nộp file</SelectItem>
                           <SelectItem value="EXAM">Trắc nghiệm</SelectItem>
+                          <SelectItem value="QUIZ">Bài tập trắc nghiệm</SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -265,7 +273,7 @@ export default function EditAssignmentDialog({
               />
             </div>
 
-            {assignmentType === "FILE_UPLOAD" && (
+            {selectedType === "FILE_UPLOAD" && (
               <FormField
                 control={form.control}
                 name="fileType"
@@ -292,7 +300,9 @@ export default function EditAssignmentDialog({
                           <SelectItem value="application/zip,application/x-zip-compressed">
                             Tệp nén (.zip)
                           </SelectItem>
-                          <SelectItem value="*">Tất cả các loại file</SelectItem>
+                          <SelectItem value="*">
+                            Tất cả các loại file
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -302,7 +312,7 @@ export default function EditAssignmentDialog({
               />
             )}
 
-            {assignmentType === "EXAM" && (
+            {selectedType === "EXAM" && (
               <FormField
                 control={form.control}
                 name="examId"
@@ -333,9 +343,40 @@ export default function EditAssignmentDialog({
               />
             )}
 
+            {selectedType === "QUIZ" && (
+              <FormField
+                control={form.control}
+                name="quizId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Chọn bài tập trắc nghiệm</FormLabel>
+                    <FormControl>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value || ""}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn bài tập trắc nghiệm" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {quizzes.map((quiz) => (
+                            <SelectItem key={quiz.id} value={quiz.id}>
+                              {quiz.title} {quiz.timeLimit ? `(${quiz.timeLimit} phút)` : '(Không giới hạn thời gian)'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <FormField
               control={form.control}
-              name="assignFor"
+              name="classId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Giao bài tập cho</FormLabel>
@@ -361,7 +402,7 @@ export default function EditAssignmentDialog({
               )}
             />
 
-            {currentAssignFor === "CLASS" && (
+            {selectedClass === "CLASS" && (
               <FormField
                 control={form.control}
                 name="classId"
@@ -392,57 +433,6 @@ export default function EditAssignmentDialog({
               />
             )}
 
-            {currentAssignFor === "STUDENTS" && (
-              <FormField
-                control={form.control}
-                name="studentIds"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Chọn sinh viên</FormLabel>
-                    <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
-                      {students.map((student) => (
-                        <div key={student.id} className="flex items-center space-x-2 mb-2">
-                          <Checkbox
-                            checked={field.value?.includes(student.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                field.onChange([
-                                  ...(field.value || []),
-                                  student.id,
-                                ]);
-                              } else {
-                                field.onChange(
-                                  field.value?.filter((id) => id !== student.id) || []
-                                );
-                              }
-                            }}
-                            id={`student-${student.id}`}
-                          />
-                          <label
-                            htmlFor={`student-${student.id}`}
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {student.user.displayName}
-                            {student.class && (
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({student.class.name})
-                              </span>
-                            )}
-                          </label>
-                        </div>
-                      ))}
-                      {students.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                          Không có sinh viên nào đăng ký khóa học này
-                        </p>
-                      )}
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
             <DialogFooter>
               <Button
                 type="button"
@@ -452,7 +442,17 @@ export default function EditAssignmentDialog({
                 Hủy
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Đang xử lý
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Lưu thay đổi
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </form>
@@ -460,4 +460,4 @@ export default function EditAssignmentDialog({
       </DialogContent>
     </Dialog>
   );
-} 
+}

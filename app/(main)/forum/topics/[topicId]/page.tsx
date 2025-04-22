@@ -15,13 +15,13 @@ import { PostItem } from "../components/PostItem";
 import { TopicAdminActions } from "../components/TopicAdminActions";
 
 interface TopicPageProps {
-  params: {
+  params: Promise<{
     topicId: string;
-  };
+  }>;
 }
 
 const TopicPage = async ({ params }: TopicPageProps) => {
-  const { topicId } = params;
+  const { topicId } = await params;
   const { user } = await validateRequest();
   const isAdmin = user?.role === "ADMIN";
 
@@ -77,7 +77,7 @@ const TopicPage = async ({ params }: TopicPageProps) => {
   }
 
   // Get current user's likes
-  let userLikes = [];
+  let userLikes: any[] = [];
 
   if (user) {
     const likes = await prisma.forumLike.findMany({

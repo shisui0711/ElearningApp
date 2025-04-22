@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 // API để lấy thông tin chi tiết bài tập
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Lấy thông tin chi tiết bài tập và các bài nộp
     const assignment = await prisma.assignment.findUnique({
@@ -88,7 +88,7 @@ export async function GET(
 // API để cập nhật thông tin bài tập
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -101,7 +101,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Lấy thông tin hiện tại của bài tập
     const existingAssignment = await prisma.assignment.findUnique({
@@ -163,7 +163,7 @@ export async function PUT(
         where: {
           assignmentId: id,
           fileUrl: null,
-          score: null,
+          grade: null,
         },
       });
 
@@ -212,7 +212,7 @@ export async function PUT(
 // API để xóa bài tập
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -225,7 +225,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Lấy thông tin hiện tại của bài tập
     const existingAssignment = await prisma.assignment.findUnique({

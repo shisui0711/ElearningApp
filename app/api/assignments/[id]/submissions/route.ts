@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 // API để lấy danh sách bài nộp của một bài tập
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Lấy thông tin bài tập để kiểm tra quyền
     const assignment = await prisma.assignment.findUnique({
@@ -83,7 +83,7 @@ export async function GET(
 // API để cập nhật điểm số cho bài nộp
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -96,7 +96,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const { submissionId, grade, feedback } = await request.json();
 
     if (!submissionId || grade === undefined) {

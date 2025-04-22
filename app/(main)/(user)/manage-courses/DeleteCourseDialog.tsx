@@ -11,8 +11,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { CourseWithDetails } from "./hooks";
 import { useDeleteCourseMutation } from "./mutations";
+import { CourseWithDetails } from "@/types";
 
 interface DeleteCourseDialogProps {
   open: boolean;
