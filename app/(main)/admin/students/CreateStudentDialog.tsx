@@ -32,11 +32,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createStudentSchema, CreateStudentValues } from "@/lib/validation";
 import { useCreateStudentMutation } from "./mutations";
+import { PaginationResponse } from "@/types";
 
 type CreateStudentDialogProps = {
   open: boolean;
   onClose: () => void;
 };
+
+interface Class {
+  id: string;
+  name: string;
+}
 
 export default function CreateStudentDialog({
   open,
@@ -45,10 +51,15 @@ export default function CreateStudentDialog({
   const { isPending, mutate } = useCreateStudentMutation();
   
   // Fetch all classes
-  const { data: classes, isLoading: isLoadingClasses } = useQuery({
+  const { data: classes, isLoading: isLoadingClasses } = useQuery<PaginationResponse<Class>>({
     queryKey: ["classes-all"],
     queryFn: async () => {
-      const response = await axios.get("/api/classes/all");
+      const response = await axios.get("/api/classes", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        }
+      });
       return response.data;
     },
   });
@@ -184,7 +195,7 @@ export default function CreateStudentDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {classes?.map((classItem: any) => (
+                      {classes?.data && classes.data?.map((classItem: any) => (
                         <SelectItem key={classItem.id} value={classItem.id}>
                           {classItem.name}
                         </SelectItem>

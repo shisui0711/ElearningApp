@@ -6,14 +6,14 @@ import prisma from "@/lib/prisma";
 import QuizAttemptClient from "./QuizAttemptClient";
 
 interface QuizPageProps {
-  params: {
+  params: Promise<{
     id: string;
     attemptId: string;
-  };
+  }>;
 }
 
 export default async function QuizPage({ params }: QuizPageProps) {
-  const { id: assignmentId, attemptId } = params;
+  const { id: assignmentId, attemptId } = await params;
   const { user } = await validateRequest();
 
   if (!user || !user.student) {

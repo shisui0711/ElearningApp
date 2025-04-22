@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # Next.js application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - POSTGRES_PRISMA_URL=postgresql://postgres:123@db:5432/elearning?schema=public
+      - POSTGRES_PRISMA_URL_NON_POOLING=postgresql://postgres:123@db:5432/elearning?schema=public
+    depends_on:
+      - db
+    volumes:
+      - ./public/uploads:/app/public/uploads
+    restart: unless-stopped
+    networks:
+      - elearning-network
+
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123
+      - POSTGRES_DB=elearning
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - elearning-network
+
+volumes:
+  postgres-data:
+    driver: local
+
+networks:
+  elearning-network:
+    driver: bridge

@@ -51,7 +51,7 @@ import GradeSubmissionDialog from "./GradeSubmissionDialog";
 import { toast } from "sonner";
 import { SubmissionWithDetails } from "@/types";
 
-export const assignmentTypes = [
+const assignmentTypes = [
   {
     value: "FILE_UPLOAD",
     label: "Bài tập nộp file",
@@ -102,7 +102,7 @@ export default function AssignmentDetailPage() {
         }
       } catch (error) {
         console.error("Error fetching assignment details:", error);
-        toast.error("Không thể tải thông tin bài tập. Vui lòng thử lại sau.")
+        toast.error("Không thể tải thông tin bài tập. Vui lòng thử lại sau.");
       } finally {
         setLoading(false);
       }
@@ -155,7 +155,7 @@ export default function AssignmentDetailPage() {
     );
   }
 
-  console.log(submissions)
+  console.log(submissions);
 
   return (
     <div className="container py-8 mx-auto px-4">

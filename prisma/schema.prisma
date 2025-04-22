@@ -247,7 +247,7 @@ model ExamAttempt {
   course          Course?               @relation(fields: [courseId], references: [id])
   classId         String
   class           Class                 @relation(fields: [classId], references: [id])
-  createdAt DateTime
+  createdAt DateTime          @default(now())
   answers         StudentAnswer[]
   markedQuestions MarkedQuestion[]
   submission      AssignmentSubmission?
