@@ -60,6 +60,7 @@ export default function QuestionForm({
       setAnswers([...question.answers]);
       setImageUrl(question.imageUrl);
       setVideoUrl(question.videoUrl);
+      // Set multiple choice mode if there are multiple correct answers
       setAllowMultipleCorrect(question.answers.filter(a => a.isCorrect).length > 1);
     } else {
       // Initialize with two empty answers for convenience
@@ -106,7 +107,9 @@ export default function QuestionForm({
 
   const handleCorrectChange = (id: string, isCorrect: boolean) => {
     if (allowMultipleCorrect) {
+      // In multiple choice mode, allow multiple correct answers
       if (!isCorrect) {
+        // When unchecking, make sure at least one answer remains correct
         const otherCorrect = answers.some((a) => a.id !== id && a.isCorrect);
         if (!otherCorrect) {
           toast.error("Ít nhất một câu trả lời phải đúng");
@@ -114,12 +117,14 @@ export default function QuestionForm({
         }
       }
       
+      // Toggle this answer's correct status
       setAnswers(
         answers.map((answer) =>
           answer.id === id ? { ...answer, isCorrect } : answer
         )
       );
     } else {
+      // In single choice mode, only one answer can be correct
       if (isCorrect) {
         setAnswers(
           answers.map((answer) =>
@@ -129,6 +134,7 @@ export default function QuestionForm({
           )
         );
       } else {
+        // Don't allow unchecking if it's the only correct answer
         toast.error("Ít nhất một câu trả lời phải đúng");
         return;
       }
@@ -415,6 +421,8 @@ export default function QuestionForm({
                       checked={allowMultipleCorrect}
                       onCheckedChange={(checked) => {
                         setAllowMultipleCorrect(checked);
+                        // If switching from multiple to single and multiple are selected,
+                        // keep only the first correct answer
                         if (!checked) {
                           const correctAnswers = answers.filter(a => a.isCorrect);
                           if (correctAnswers.length > 1) {
