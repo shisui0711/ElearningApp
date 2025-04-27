@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 import {
   Dialog,
@@ -30,13 +29,13 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { updateSubjectSchema, UpdateSubjectValues } from "@/lib/validation";
 import { useUpdateSubjectMutation } from "./mutations";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { PaginationResponse } from "@/types";
 
-// Define department interface
+// Define interfaces
 interface Department {
   id: string;
   name: string;
@@ -45,11 +44,8 @@ interface Department {
 interface Subject {
   id: string;
   name: string;
+  description?: string;
   departmentId: string;
-  department: {
-    id: string;
-    name: string;
-  };
 }
 
 type EditSubjectDialogProps = {
@@ -60,23 +56,14 @@ type EditSubjectDialogProps = {
 
 export default function EditSubjectDialog({
   open,
-  onClose,
   subject,
+  onClose,
 }: EditSubjectDialogProps) {
-  const { isPending, mutate } = useUpdateSubjectMutation();
-
   // Fetch departments for the dropdown
-  const { data: departments, isLoading: loadingDepartments } = useQuery<
-    PaginationResponse<Department>
-  >({
+  const { data: departments, isLoading: loadingDepartments } = useQuery<Department[]>({
     queryKey: ["departments-all"],
     queryFn: async () => {
-      const response = await axios.get("/api/departments", {
-        params: {
-          pageSize: 100,
-          pageNumber: 1,
-        },
-      });
+      const response = await axios.get("/api/departments/all");
       return response.data;
     },
   });
@@ -86,18 +73,20 @@ export default function EditSubjectDialog({
     defaultValues: {
       id: subject.id,
       name: subject.name,
+      description: subject.description || "",
       departmentId: subject.departmentId,
     },
   });
 
+  const { isPending, mutate } = useUpdateSubjectMutation();
+  
   useEffect(() => {
-    if (subject) {
-      form.reset({
-        id: subject.id,
-        name: subject.name,
-        departmentId: subject.departmentId,
-      });
-    }
+    form.reset({
+      id: subject.id,
+      name: subject.name,
+      description: subject.description || "",
+      departmentId: subject.departmentId,
+    });
   }, [subject, form]);
 
   const onSubmit = async (values: UpdateSubjectValues) => {
@@ -114,9 +103,9 @@ export default function EditSubjectDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Cập nhật môn học</DialogTitle>
+          <DialogTitle>Chỉnh sửa môn học</DialogTitle>
           <DialogDescription>
-            Chỉnh sửa thông tin chi tiết cho môn học.
+            Chỉnh sửa thông tin cho môn học.
           </DialogDescription>
         </DialogHeader>
 
@@ -138,6 +127,24 @@ export default function EditSubjectDialog({
 
             <FormField
               control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mô tả</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Nhập mô tả môn học" 
+                      className="resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="departmentId"
               render={({ field }) => (
                 <FormItem>
@@ -146,6 +153,7 @@ export default function EditSubjectDialog({
                     disabled={loadingDepartments}
                     onValueChange={field.onChange}
                     defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -153,7 +161,7 @@ export default function EditSubjectDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {departments?.data && departments?.data?.map((department) => (
+                      {departments?.map((department) => (
                         <SelectItem key={department.id} value={department.id}>
                           {department.name}
                         </SelectItem>
@@ -167,7 +175,7 @@ export default function EditSubjectDialog({
 
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "Đang cập nhật..." : "Cập nhật"}
+                {isPending ? "Đang cập nhật..." : "Cập nhật môn học"}
               </Button>
             </DialogFooter>
           </form>

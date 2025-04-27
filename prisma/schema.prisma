@@ -82,7 +82,6 @@ model Student {
   completedLessons      CompletedLesson[]
   enrollments           Enrollment[]
   attempts              ExamAttempt[]
-  quizAttempts          QuizAttempt[]
   assignmentSubmissions AssignmentSubmission[]
 
   @@map("students")
@@ -106,15 +105,18 @@ model Course {
   attempts     ExamAttempt[]
   comments     CourseComment[]
   assignments  Assignment[]
+  Subject      Subject?        @relation(fields: [subjectId], references: [id])
+  subjectId    String?
 
   @@map("courses")
 }
 
 model Department {
-  id      String   @id @default(cuid())
+  id      String    @id @default(cuid())
   name    String
   courses Course[]
   Class   Class[]
+  Subject Subject[]
 
   @@map("departments")
 }
@@ -164,11 +166,11 @@ model Enrollment {
 }
 
 model CompletedLesson {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   studentId String
   lessonId  String
-  student   Student @relation(fields: [studentId], references: [id])
-  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id])
+  lesson    Lesson   @relation(fields: [lessonId], references: [id])
   createdAt DateTime @default(now())
 
   @@map("completed_lessons")
@@ -186,14 +188,24 @@ model Class {
   @@map("classes")
 }
 
+model Subject {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  courses      Course[]
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime?  @updatedAt
+
+  @@map("subjects")
+}
+
 model Exam {
-  id               String         @id @default(cuid())
-  title            String
-  duration         Int
-  showCorrectAfter Boolean        @default(false)
-  questions        ExamQuestion[]
-  attempts         ExamAttempt[]
-  assignments      Assignment[]
+  id        String         @id @default(cuid())
+  title     String
+  questions ExamQuestion[]
+  attempts  ExamAttempt[]
 
   @@map("exams")
 }
@@ -215,6 +227,7 @@ model Question {
   points         Int
   imageUrl       String?
   videoUrl       String?
+  difficulty     String          @default("MEDIUM") // EASY, MEDIUM, HARD
   answers        Answer[]
   exams          ExamQuestion[]
   studentAnswers StudentAnswer[]
@@ -234,23 +247,26 @@ model Answer {
 }
 
 model ExamAttempt {
-  id              String                @id @default(cuid())
-  studentId       String?
-  student         Student?              @relation(fields: [studentId], references: [id])
-  examId          String
-  exam            Exam                  @relation(fields: [examId], references: [id])
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  expirateAt      DateTime?
-  score           Int?
-  courseId        String?
-  course          Course?               @relation(fields: [courseId], references: [id])
-  classId         String
-  class           Class                 @relation(fields: [classId], references: [id])
-  createdAt DateTime          @default(now())
-  answers         StudentAnswer[]
-  markedQuestions MarkedQuestion[]
-  submission      AssignmentSubmission?
+  id                String           @id @default(cuid())
+  studentId         String?
+  student           Student?         @relation(fields: [studentId], references: [id])
+  examId            String
+  exam              Exam             @relation(fields: [examId], references: [id])
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  expirateAt        DateTime?
+  score             Int?
+  duration          Int              @default(60) // in minutes
+  showCorrectAfter  Boolean          @default(false)
+  courseId          String?
+  course            Course?          @relation(fields: [courseId], references: [id])
+  classId           String
+  class             Class            @relation(fields: [classId], references: [id])
+  createdAt         DateTime         @default(now())
+  answers           StudentAnswer[]
+  markedQuestions   MarkedQuestion[]
+  assignments       Assignment[]
+  selectedQuestions String[] // Array of question IDs to include in this attempt
 
   @@map("exam_attempts")
 }
@@ -366,128 +382,44 @@ model ForumLike {
 }
 
 enum AssignmentType {
-  EXAM        // Bài tập trắc nghiệm (bài kiểm tra)
+  EXAM // Bài tập trắc nghiệm (bài kiểm tra)
   FILE_UPLOAD // Bài tập nộp file
-  QUIZ        // Bài tập trắc nghiệm (không phải bài kiểm tra)
+  QUIZ // Bài tập trắc nghiệm (không phải bài kiểm tra)
 }
 
 model Assignment {
-  id          String                 @id @default(cuid())
-  title       String
-  description String?
-  dueDate     DateTime
-  type        AssignmentType
-  courseId    String
-  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  classId     String? // Nếu giao cho cả lớp
-  class       Class?                 @relation(fields: [classId], references: [id])
-  examId      String? // Cho bài tập trắc nghiệm (bài kiểm tra)
-  exam        Exam?                  @relation(fields: [examId], references: [id])
-  quizId      String? // Cho bài tập trắc nghiệm (không phải bài kiểm tra)
-  quiz        Quiz?                  @relation(fields: [quizId], references: [id])
-  fileType    String? // Loại file chấp nhận cho bài tập nộp file
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-  submissions AssignmentSubmission[]
+  id            String                 @id @default(cuid())
+  title         String
+  description   String?
+  dueDate       DateTime
+  type          AssignmentType
+  courseId      String
+  course        Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classId       String? // Nếu giao cho cả lớp
+  class         Class?                 @relation(fields: [classId], references: [id])
+  examAttemptId String?
+  examAttempt   ExamAttempt?           @relation(fields: [examAttemptId], references: [id])
+  fileType      String? // Loại file chấp nhận cho bài tập nộp file
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  submissions   AssignmentSubmission[]
 
   @@map("assignments")
 }
 
 model AssignmentSubmission {
-  id            String       @id @default(cuid())
-  assignmentId  String
-  assignment    Assignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  studentId     String
-  student       Student      @relation(fields: [studentId], references: [id])
-  fileUrl       String? // URL của file đã nộp (cho bài tập nộp file)
-  examAttemptId String?      @unique
-  examAttempt   ExamAttempt? @relation(fields: [examAttemptId], references: [id])
-  quizAttemptId String?      @unique
-  quizAttempt   QuizAttempt? @relation(fields: [quizAttemptId], references: [id])
-  grade         Float? // Điểm số
-  feedback      String? // Phản hồi của giáo viên
-  submittedAt   DateTime     @default(now())
-  gradedBy      String?
-  gradedAt      DateTime?
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student    @relation(fields: [studentId], references: [id])
+  fileUrl      String? // URL của file đã nộp (cho bài tập nộp file)
+  grade        Float? // Điểm số
+  feedback     String? // Phản hồi của giáo viên
+  submittedAt  DateTime   @default(now())
+  gradedBy     String?
+  gradedAt     DateTime?
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
-}
-
-model Quiz {
-  id               String         @id @default(cuid())
-  title            String
-  showCorrectAfter Boolean        @default(false)
-  timeLimit        Int?           // Thời gian làm bài (phút), null nếu không giới hạn
-  questions        QuizQuestion[]
-  attempts         QuizAttempt[]
-  assignments      Assignment[]
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-
-  @@map("quizzes")
-}
-
-model QuizQuestion {
-  id         String   @id @default(cuid())
-  quizId     String
-  quiz       Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  content    String
-  points     Int      @default(1)
-  imageUrl   String?
-  order      Int?
-  answers    QuizAnswer[]
-  attempts   QuizQuestionAttempt[]
-
-  @@map("quiz_questions")
-}
-
-model QuizAnswer {
-  id           String   @id @default(cuid())
-  content      String
-  isCorrect    Boolean
-  questionId   String
-  question     QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  attempts     QuizAnswerAttempt[]
-
-  @@map("quiz_answers")
-}
-
-model QuizAttempt {
-  id              String                @id @default(cuid())
-  studentId       String
-  student         Student               @relation(fields: [studentId], references: [id])
-  quizId          String
-  quiz            Quiz                  @relation(fields: [quizId], references: [id])
-  startedAt       DateTime              @default(now())
-  finishedAt      DateTime?
-  score           Int?
-  questionAttempts QuizQuestionAttempt[]
-  submission      AssignmentSubmission?
-
-  @@map("quiz_attempts")
-}
-
-model QuizQuestionAttempt {
-  id             String          @id @default(cuid())
-  attemptId      String
-  attempt        QuizAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  questionId     String
-  question       QuizQuestion    @relation(fields: [questionId], references: [id])
-  answerAttempts QuizAnswerAttempt[]
-
-  @@unique([attemptId, questionId])
-  @@map("quiz_question_attempts")
-}
-
-model QuizAnswerAttempt {
-  id                 String              @id @default(cuid())
-  questionAttemptId  String
-  questionAttempt    QuizQuestionAttempt @relation(fields: [questionAttemptId], references: [id], onDelete: Cascade)
-  answerId           String
-  answer             QuizAnswer          @relation(fields: [answerId], references: [id])
-  isSelected         Boolean             @default(false)
-
-  @@unique([questionAttemptId, answerId])
-  @@map("quiz_answer_attempts")
 }

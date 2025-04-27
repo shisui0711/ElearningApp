@@ -32,11 +32,9 @@ export async function GET(
             name: true,
           },
         },
-        exam: {
-          select: {
-            id: true,
-            title: true,
-            duration: true,
+        examAttempt: {
+          include: {
+            exam: true,
           },
         },
         submissions: {
@@ -151,7 +149,6 @@ export async function PUT(
         dueDate: dueDate ? new Date(dueDate) : undefined,
         type,
         classId: classId || null,
-        examId: examId || null,
         fileType: fileType || null,
       },
     });

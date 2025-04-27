@@ -2,6 +2,12 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+type DifficultyConfig = {
+  easy: number;
+  medium: number;
+  hard: number;
+};
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,6 +36,13 @@ export async function POST(
     // Verify the exam exists
     const exam = await prisma.exam.findUnique({
       where: { id: examId },
+      include: {
+        questions: {
+          include: {
+            question: true
+          }
+        }
+      }
     });
 
     if (!exam) {
@@ -39,7 +52,12 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { type } = body;
+    const { 
+      type, 
+      difficultyConfig = { easy: 0, medium: 0, hard: 0 }, 
+      duration = 60, 
+      showCorrectAnswers = false 
+    } = body;
 
     if (!type || !["department", "class", "course", "students"].includes(type)) {
       return new NextResponse(JSON.stringify({ error: "Invalid assignment type" }), {
@@ -72,7 +90,7 @@ export async function POST(
         // Create exam attempts for all students in all classes of the department
         await Promise.all(
           departmentClasses.map(async (classItem) => {
-            await createExamAttemptsForClass(examId, classItem.id);
+            await createExamAttemptsForClass(examId, classItem.id, difficultyConfig, duration, showCorrectAnswers);
           })
         );
 
@@ -89,7 +107,7 @@ export async function POST(
           });
         }
 
-        await createExamAttemptsForClass(examId, classId);
+        await createExamAttemptsForClass(examId, classId, difficultyConfig, duration, showCorrectAnswers);
 
         return NextResponse.json({
           message: "Bài kiểm tra đã được giao cho lớp thành công.",
@@ -128,6 +146,9 @@ export async function POST(
           });
         }
 
+        // Get selected questions based on difficulty configuration
+        const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+
         // Create exam attempts for all enrolled students
         await Promise.all(
           enrollments.map(async (enrollment) => {
@@ -137,6 +158,9 @@ export async function POST(
                 studentId: enrollment.studentId,
                 courseId,
                 classId: firstStudent.classId!, // Use the class of the first student (should be the same for course students)
+                duration,
+                showCorrectAfter: showCorrectAnswers,
+                selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
               },
             });
           })
@@ -167,6 +191,9 @@ export async function POST(
           });
         }
 
+        // Get selected questions based on difficulty configuration
+        const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+
         // Create exam attempts for selected students
         await Promise.all(
           studentIds.map(async (studentId) => {
@@ -175,6 +202,9 @@ export async function POST(
                 examId,
                 studentId,
                 classId: firstStudent.classId!, // Use the class of the first student
+                duration,
+                showCorrectAfter: showCorrectAnswers,
+                selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
               },
             });
           })
@@ -198,8 +228,66 @@ export async function POST(
   }
 }
 
+// Helper function to select questions based on difficulty configuration
+async function selectQuestionsByDifficulty(examId: string, difficultyConfig: DifficultyConfig) {
+  // If all difficulty configs are 0, return empty array (use all questions)
+  if (difficultyConfig.easy === 0 && difficultyConfig.medium === 0 && difficultyConfig.hard === 0) {
+    return [];
+  }
+
+  // Get all questions from the exam
+  const examQuestions = await prisma.examQuestion.findMany({
+    where: { examId },
+    include: {
+      question: true
+    }
+  });
+
+  // Group questions by difficulty
+  const questionsByDifficulty = {
+    EASY: examQuestions.filter(q => q.question.difficulty === 'EASY').map(q => q.questionId),
+    MEDIUM: examQuestions.filter(q => q.question.difficulty === 'MEDIUM').map(q => q.questionId),
+    HARD: examQuestions.filter(q => q.question.difficulty === 'HARD').map(q => q.questionId)
+  };
+
+  // Select random questions based on difficulty configuration
+  const selectedQuestions: string[] = [];
+
+  // Helper function to randomly select n items from an array
+  const getRandomItems = (arr: string[], n: number) => {
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, n);
+  };
+
+  // Select easy questions
+  if (difficultyConfig.easy > 0 && questionsByDifficulty.EASY.length > 0) {
+    const count = Math.min(difficultyConfig.easy, questionsByDifficulty.EASY.length);
+    selectedQuestions.push(...getRandomItems(questionsByDifficulty.EASY, count));
+  }
+
+  // Select medium questions
+  if (difficultyConfig.medium > 0 && questionsByDifficulty.MEDIUM.length > 0) {
+    const count = Math.min(difficultyConfig.medium, questionsByDifficulty.MEDIUM.length);
+    selectedQuestions.push(...getRandomItems(questionsByDifficulty.MEDIUM, count));
+  }
+
+  // Select hard questions
+  if (difficultyConfig.hard > 0 && questionsByDifficulty.HARD.length > 0) {
+    const count = Math.min(difficultyConfig.hard, questionsByDifficulty.HARD.length);
+    selectedQuestions.push(...getRandomItems(questionsByDifficulty.HARD, count));
+  }
+
+  return selectedQuestions;
+}
+
 // Helper function to create exam attempts for all students in a class
-async function createExamAttemptsForClass(examId: string, classId: string) {
+async function createExamAttemptsForClass(
+  examId: string, 
+  classId: string, 
+  difficultyConfig: DifficultyConfig,
+  duration: number,
+  showCorrectAnswers: boolean
+) {
   // Get all students in the class
   const students = await prisma.student.findMany({
     where: { classId },
@@ -211,6 +299,9 @@ async function createExamAttemptsForClass(examId: string, classId: string) {
     return;
   }
 
+  // Get selected questions based on difficulty configuration
+  const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+
   // Create exam attempts for all students in the class
   await Promise.all(
     students.map(async (student) => {
@@ -219,6 +310,9 @@ async function createExamAttemptsForClass(examId: string, classId: string) {
           examId,
           studentId: student.id,
           classId,
+          duration,
+          showCorrectAfter: showCorrectAnswers,
+          selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
         },
       });
     })

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -21,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface AssignExamButtonProps {
   examId: string;
@@ -53,6 +56,18 @@ type StudentData = {
   classId: string | null;
 };
 
+type DifficultyConfig = {
+  easy: number;
+  medium: number;
+  hard: number;
+};
+
+type ExamQuestion = {
+  id: string;
+  content: string;
+  difficulty: "EASY" | "MEDIUM" | "HARD";
+};
+
 export default function AssignExamButton({
   examId,
   examTitle,
@@ -69,6 +84,21 @@ export default function AssignExamButton({
   const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<StudentData[]>([]);
+  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
+  const [totalQuestions, setTotalQuestions] = useState({
+    easy: 0,
+    medium: 0,
+    hard: 0,
+  });
+
+  // Exam configuration
+  const [difficultyConfig, setDifficultyConfig] = useState<DifficultyConfig>({
+    easy: 0,
+    medium: 0,
+    hard: 0,
+  });
+  const [duration, setDuration] = useState(60); // in minutes
+  const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
   // Selected values
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
@@ -99,6 +129,33 @@ export default function AssignExamButton({
         const studentResponse = await fetch("/api/students");
         const studentData = await studentResponse.json();
         setStudents(studentData.data || []);
+
+        // Fetch exam questions to get difficulty counts
+        const questionsResponse = await fetch(`/api/exams/${examId}/questions`);
+        const questionsData = await questionsResponse.json();
+        setQuestions(questionsData || []);
+
+        // Count questions by difficulty
+        const counts = {
+          easy: 0,
+          medium: 0,
+          hard: 0,
+        };
+
+        questionsData.forEach(({ question }: { question: ExamQuestion }) => {
+          if (question.difficulty === "EASY") counts.easy++;
+          else if (question.difficulty === "MEDIUM") counts.medium++;
+          else if (question.difficulty === "HARD") counts.hard++;
+        });
+
+        setTotalQuestions(counts);
+
+        // Set default difficulty config to use all available questions
+        setDifficultyConfig({
+          easy: counts.easy,
+          medium: counts.medium,
+          hard: counts.hard,
+        });
       } catch (error) {
         console.error("Error fetching data:", error);
         toast.error("Failed to load data");
@@ -106,7 +163,7 @@ export default function AssignExamButton({
     };
 
     fetchData();
-  }, []);
+  }, [examId]);
 
   // Filter classes by department
   useEffect(() => {
@@ -142,6 +199,28 @@ export default function AssignExamButton({
     }
   }, [selectedClassId, students]);
 
+  const handleDifficultyChange = (
+    difficulty: keyof DifficultyConfig,
+    value: string
+  ) => {
+    const numValue = parseInt(value, 10) || 0;
+    const max = totalQuestions[difficulty];
+
+    setDifficultyConfig((prev) => ({
+      ...prev,
+      [difficulty]: Math.min(numValue, max),
+    }));
+  };
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    setDuration(isNaN(value) ? 60 : Math.max(1, value));
+  };
+
+  const handleShowCorrectAnswersChange = (checked: boolean) => {
+    setShowCorrectAnswers(checked);
+  };
+
   const handleAssignToDepartment = async () => {
     if (!selectedDepartmentId) {
       toast.error("Vui lòng chọn khoa.");
@@ -158,6 +237,9 @@ export default function AssignExamButton({
         body: JSON.stringify({
           type: "department",
           departmentId: selectedDepartmentId,
+          difficultyConfig,
+          duration,
+          showCorrectAnswers,
         }),
       });
 
@@ -191,6 +273,9 @@ export default function AssignExamButton({
         body: JSON.stringify({
           type: "class",
           classId: selectedClassId,
+          difficultyConfig,
+          duration,
+          showCorrectAnswers,
         }),
       });
 
@@ -224,6 +309,9 @@ export default function AssignExamButton({
         body: JSON.stringify({
           type: "course",
           courseId: selectedCourseId,
+          difficultyConfig,
+          duration,
+          showCorrectAnswers,
         }),
       });
 
@@ -257,6 +345,9 @@ export default function AssignExamButton({
         body: JSON.stringify({
           type: "students",
           studentIds: selectedStudents,
+          difficultyConfig,
+          duration,
+          showCorrectAnswers,
         }),
       });
 
@@ -305,18 +396,123 @@ export default function AssignExamButton({
     });
   };
 
+  // Calculate total questions to be included in the exam
+  const totalSelectedQuestions =
+    difficultyConfig.easy + difficultyConfig.medium + difficultyConfig.hard;
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <Users className="h-4 w-4 mr-1" />
-          <span className="hidden md:block" >Giao bài</span>
+          <span className="hidden md:block">Giao bài</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Giao bài kiểm tra: {examTitle}</DialogTitle>
         </DialogHeader>
+
+        <div className="space-y-4 mb-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium">
+                  Cấu hình câu hỏi theo mức độ khó
+                </h3>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="easy-count" className="block mb-1">
+                      Dễ ({totalQuestions.easy} câu)
+                    </Label>
+                    <Input
+                      id="easy-count"
+                      type="number"
+                      min="0"
+                      max={totalQuestions.easy}
+                      value={difficultyConfig.easy}
+                      onChange={(e) =>
+                        handleDifficultyChange("easy", e.target.value)
+                      }
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="medium-count" className="block mb-1">
+                      Trung bình ({totalQuestions.medium} câu)
+                    </Label>
+                    <Input
+                      id="medium-count"
+                      type="number"
+                      min="0"
+                      max={totalQuestions.medium}
+                      value={difficultyConfig.medium}
+                      onChange={(e) =>
+                        handleDifficultyChange("medium", e.target.value)
+                      }
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="hard-count" className="block mb-1">
+                      Khó ({totalQuestions.hard} câu)
+                    </Label>
+                    <Input
+                      id="hard-count"
+                      type="number"
+                      min="0"
+                      max={totalQuestions.hard}
+                      value={difficultyConfig.hard}
+                      onChange={(e) =>
+                        handleDifficultyChange("hard", e.target.value)
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-sm text-muted-foreground">
+                  Tổng số câu hỏi: {totalSelectedQuestions}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="duration" className="block mb-1">
+                      Thời gian làm bài (phút)
+                    </Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      min="1"
+                      value={duration}
+                      onChange={handleDurationChange}
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="show-answers" className="block mb-1">
+                      Hiển thị đáp án sau khi làm
+                    </Label>
+                    <div className="flex items-center space-x-2 mt-2">
+                      <Switch
+                        id="show-answers"
+                        checked={showCorrectAnswers}
+                        onCheckedChange={handleShowCorrectAnswersChange}
+                      />
+                      <Label htmlFor="show-answers" className="cursor-pointer">
+                        {showCorrectAnswers ? "Có" : "Không"}
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-4 mb-4">
@@ -502,7 +698,10 @@ export default function AssignExamButton({
         </Tabs>
 
         <div className="flex justify-end mt-4">
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || totalSelectedQuestions === 0}
+          >
             {loading ? "Đang tiến hành..." : "Giao bài kiểm tra"}
           </Button>
         </div>

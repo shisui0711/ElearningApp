@@ -17,11 +17,11 @@ interface ExamAttempt {
   startedAt: string;
   finishedAt: string | null;
   score: number | null;
+  duration: number;
+  showCorrectAfter: boolean;
   exam: {
     id: string;
     title: string;
-    description: string;
-    duration: number;
   };
   answers: {
     question: {
@@ -151,7 +151,7 @@ export default function AssignmentPage() {
                     <div className="flex items-center text-sm">
                       <TimerIcon className="mr-2 h-4 w-4" />
                       <span className="text-muted-foreground">
-                        Thời gian: {assignment.exam.duration} phút
+                        Thời gian: {assignment.duration} phút
                       </span>
                     </div>
                     <div className="flex items-center">

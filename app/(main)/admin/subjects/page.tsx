@@ -25,6 +25,7 @@ import DepartmentCombobox from "@/components/DepartmentCombobox";
 interface Subject {
   id: string;
   name: string;
+  description?: string;
   departmentId: string;
   department: {
     id: string;
@@ -74,11 +75,6 @@ export default function SubjectsPage() {
     setPageNumber(1);
   };
 
-  const handleReset = () => {
-    setSearchQuery("");
-    setDepartmentId("");
-  }
-
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -93,7 +89,7 @@ export default function SubjectsPage() {
           Thêm môn học mới
         </Button>
       </div>
-      <div className="flex gap-4 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative">
           <Input
             placeholder="Tìm theo tên môn học"
@@ -103,30 +99,24 @@ export default function SubjectsPage() {
           />
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         </div>
-        <DepartmentCombobox value={departmentId} onSelect={setDepartmentId} />
-        <Button variant="outline" onClick={handleReset}>Đặt lại</Button>
+        <DepartmentCombobox onSelect={setDepartmentId} />
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-40">
-          <p>Đang tải...</p>
-        </div>
-      ) : subjects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-40 bg-muted/30 rounded-md">
-          <p className="text-muted-foreground mb-4">Không tìm thấy môn học nào thỏa mãn điều kiện.</p>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Đang tải dữ liệu...</p>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-md shadow mt-4">
+          <div className="rounded-md border mt-6 overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[80px]">STT</TableHead>
+                  <TableHead className="w-[50px]">STT</TableHead>
                   <TableHead>Tên môn học</TableHead>
+                  <TableHead>Mô tả</TableHead>
                   <TableHead>Khoa</TableHead>
-                  <TableHead className="text-right w-[180px]">
-                    Thao tác
-                  </TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -136,6 +126,9 @@ export default function SubjectsPage() {
                       {(pageNumber - 1) * pageSize + index + 1}
                     </TableCell>
                     <TableCell>{subject.name}</TableCell>
+                    <TableCell className="max-w-[300px] truncate">
+                      {subject.description}
+                    </TableCell>
                     <TableCell>{subject.department?.name}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -170,6 +163,7 @@ export default function SubjectsPage() {
               </TableBody>
             </Table>
           </div>
+          
           <PaginationControls
             pagination={pagination}
             onPageChange={setPageNumber}

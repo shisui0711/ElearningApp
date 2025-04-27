@@ -11,6 +11,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Trash2, Save, Image, Video, X, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Answer {
   id: string;
@@ -25,6 +32,7 @@ interface Question {
   answers: Answer[];
   imageUrl?: string;
   videoUrl?: string;
+  difficulty?: string;
 }
 
 interface QuestionFormProps {
@@ -46,6 +54,7 @@ export default function QuestionForm({
   const [loading, setLoading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
   const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
+  const [difficulty, setDifficulty] = useState("MEDIUM");
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [activeTab, setActiveTab] = useState("content");
   const [allowMultipleCorrect, setAllowMultipleCorrect] = useState(false);
@@ -60,6 +69,7 @@ export default function QuestionForm({
       setAnswers([...question.answers]);
       setImageUrl(question.imageUrl);
       setVideoUrl(question.videoUrl);
+      setDifficulty(question.difficulty || "MEDIUM");
       setAllowMultipleCorrect(question.answers.filter(a => a.isCorrect).length > 1);
     } else {
       // Initialize with two empty answers for convenience
@@ -69,6 +79,7 @@ export default function QuestionForm({
       ]);
       setImageUrl(undefined);
       setVideoUrl(undefined);
+      setDifficulty("MEDIUM");
       setAllowMultipleCorrect(false);
     }
   }, [question]);
@@ -248,13 +259,12 @@ export default function QuestionForm({
     }
 
     if (!answers.some((answer) => answer.isCorrect)) {
-      toast.error("Ít nhất một câu trả lời phải đúng.");
+      toast.error("Phải có ít nhất một câu trả lời đúng.");
       return false;
     }
 
-    const emptyAnswers = answers.some((answer) => !answer.content.trim());
-    if (emptyAnswers) {
-      toast.error("Tất cả các câu trả lời phải có nội dung.");
+    if (answers.some((answer) => !answer.content.trim())) {
+      toast.error("Câu trả lời không được để trống.");
       return false;
     }
 
@@ -267,53 +277,43 @@ export default function QuestionForm({
     try {
       setLoading(true);
 
+      const payload = {
+        content: questionText,
+        points,
+        answers: answers.map(({ content, isCorrect }) => ({
+          content,
+          isCorrect,
+        })),
+        imageUrl,
+        videoUrl,
+        difficulty,
+      };
+
+      let url, method;
+
       if (isEditing) {
-        // Update existing question
-        const res = await fetch(`/api/questions/${question!.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            content: questionText,
-            points,
-            imageUrl,
-            videoUrl,
-            answers: answers.map((answer) => ({
-              id: answer.id,
-              content: answer.content,
-              isCorrect: answer.isCorrect,
-            })),
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to update question");
-
-        toast.success("Câu hỏi đã được chỉnh sửa thành công.");
+        url = `/api/questions/${question!.id}`;
+        method = "PATCH";
       } else {
-        // Create new question and link to exam
-        const res = await fetch(`/api/exams/${examId}/questions`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            content: questionText,
-            points,
-            imageUrl,
-            videoUrl,
-            answers: answers.map((answer) => ({
-              content: answer.content,
-              isCorrect: answer.isCorrect,
-            })),
-          }),
-        });
-
-        if (!res.ok) throw new Error("Failed to add question");
-
-        toast.success("Câu hỏi đã được thêm thành công.");
+        url = `/api/exams/${examId}/questions`;
+        method = "POST";
       }
 
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save question");
+      }
+
+      toast.success(
+        isEditing ? "Câu hỏi đã được cập nhật" : "Câu hỏi đã được thêm"
+      );
       onSaved();
     } catch (error) {
       console.error(error);
@@ -324,279 +324,287 @@ export default function QuestionForm({
   };
 
   return (
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle>
-          {isEditing ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi"}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="space-y-6"
-        >
-          <TabsList>
-            <TabsTrigger value="content">Nội dung</TabsTrigger>
-            <TabsTrigger value="image">Hình ảnh</TabsTrigger>
-            <TabsTrigger value="video">Video</TabsTrigger>
-          </TabsList>
+    <div className="space-y-4 mt-8">
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {isEditing ? "Chỉnh sửa câu hỏi" : "Thêm câu hỏi mới"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+            <TabsList className="mb-4">
+              <TabsTrigger value="content">Nội dung</TabsTrigger>
+              <TabsTrigger value="media">Phương tiện</TabsTrigger>
+              <TabsTrigger value="settings">Cài đặt</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="content" className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="question-text">Câu hỏi</Label>
-              <Input
-                id="question-text"
-                placeholder="Nhập câu hỏi"
-                value={questionText}
-                onChange={(e) => setQuestionText(e.target.value)}
-                disabled={loading}
-              />
-            </div>
-
-            {imageUrl && (
-              <div className="relative border rounded-md p-2 mt-4">
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={removeImage}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <p className="text-sm font-medium mb-2">Hình ảnh đính kèm:</p>
-                <img
-                  src={imageUrl}
-                  alt="Question attachment"
-                  className="max-h-[200px] object-contain"
-                />
-              </div>
-            )}
-
-            {videoUrl && (
-              <div className="relative border rounded-md p-2 mt-4">
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  className="absolute top-2 right-2 h-6 w-6"
-                  onClick={removeVideo}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <p className="text-sm font-medium mb-2">Video đính kèm:</p>
-                <video
-                  src={videoUrl}
-                  controls
-                  className="max-h-[200px] w-full"
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="points">Điểm cho câu hỏi này</Label>
-              <Input
-                id="points"
-                type="number"
-                min={1}
-                value={points}
-                onChange={(e) => setPoints(parseInt(e.target.value) || 1)}
-                disabled={loading}
-                className="w-24"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <Label>Các câu trả lời</Label>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="multiple-correct"
-                      checked={allowMultipleCorrect}
-                      onCheckedChange={(checked) => {
-                        setAllowMultipleCorrect(checked);
-                        if (!checked) {
-                          const correctAnswers = answers.filter(a => a.isCorrect);
-                          if (correctAnswers.length > 1) {
-                            const firstCorrectId = correctAnswers[0].id;
-                            setAnswers(
-                              answers.map(answer => 
-                                answer.id === firstCorrectId 
-                                  ? { ...answer, isCorrect: true }
-                                  : { ...answer, isCorrect: false }
-                              )
-                            );
-                            toast.info("Chuyển sang chế độ đơn lựa chọn. Chỉ giữ một đáp án đúng.");
-                          }
-                        }
-                      }}
-                      disabled={loading}
-                    />
-                    <Label htmlFor="multiple-correct" className="text-sm">
-                      Cho phép nhiều đáp án đúng
-                    </Label>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleAddAnswer}
-                    disabled={loading}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Thêm câu trả lời
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {answers.map((answer, index) => (
-                  <div key={answer.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`answer-correct-${answer.id}`}
-                      checked={answer.isCorrect}
-                      onCheckedChange={(checked) =>
-                        handleCorrectChange(answer.id, checked === true)
-                      }
-                      disabled={loading}
-                    />
+            <TabsContent value="content" className="space-y-6">
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="question-points">Điểm số</Label>
                     <Input
-                      placeholder={`Đáp án ${index + 1}`}
-                      value={answer.content}
-                      onChange={(e) =>
-                        handleAnswerChange(answer.id, e.target.value)
-                      }
-                      disabled={loading}
-                      className="flex-1"
+                      id="question-points"
+                      type="number"
+                      min="1"
+                      value={points}
+                      onChange={(e) => setPoints(parseInt(e.target.value) || 1)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question-difficulty">Mức độ khó</Label>
+                    <Select
+                      value={difficulty}
+                      onValueChange={setDifficulty}
+                    >
+                      <SelectTrigger id="question-difficulty">
+                        <SelectValue placeholder="Chọn mức độ khó" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EASY">Dễ</SelectItem>
+                        <SelectItem value="MEDIUM">Trung bình</SelectItem>
+                        <SelectItem value="HARD">Khó</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="question-text">Câu hỏi</Label>
+                  <Input
+                    id="question-text"
+                    value={questionText}
+                    onChange={(e) => setQuestionText(e.target.value)}
+                    className="h-10"
+                  />
+                </div>
+
+                {imageUrl && (
+                  <div className="relative mt-2">
+                    <img
+                      src={imageUrl}
+                      alt="Question"
+                      className="max-h-60 object-contain rounded-md border"
                     />
                     <Button
-                      variant="ghost"
+                      variant="destructive"
                       size="icon"
-                      onClick={() => handleRemoveAnswer(answer.id)}
-                      disabled={loading}
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={removeImage}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
+                )}
 
-          <TabsContent value="image" className="space-y-6">
-            <div className="border-2 border-dashed rounded-lg p-10 text-center">
-              <input
-                type="file"
-                ref={imageInputRef}
-                onChange={handleImageUpload}
-                accept="image/*"
-                className="hidden"
-              />
+                {videoUrl && (
+                  <div className="relative mt-2">
+                    <video
+                      src={videoUrl}
+                      controls
+                      className="max-h-60 w-full rounded-md border"
+                    />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={removeVideo}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
 
-              {uploadingMedia ? (
-                <div className="flex flex-col items-center justify-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
-                  <p>Đang tải lên hình ảnh...</p>
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-md font-medium">Danh sách câu trả lời</h3>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="multiple-correct"
+                        checked={allowMultipleCorrect}
+                        onCheckedChange={setAllowMultipleCorrect}
+                      />
+                      <Label htmlFor="multiple-correct">Cho phép nhiều đáp án đúng</Label>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    {answers.map((answer, index) => (
+                      <div
+                        key={answer.id}
+                        className="flex items-center gap-2 border p-3 rounded-md"
+                      >
+                        <Checkbox
+                          id={`answer-${answer.id}`}
+                          checked={answer.isCorrect}
+                          onCheckedChange={(checked) =>
+                            handleCorrectChange(answer.id, checked === true)
+                          }
+                        />
+                        <Input
+                          id={`answer-content-${answer.id}`}
+                          value={answer.content}
+                          onChange={(e) =>
+                            handleAnswerChange(answer.id, e.target.value)
+                          }
+                          className="flex-1 h-9"
+                          placeholder={`Câu trả lời ${index + 1}`}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveAnswer(answer.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      variant="outline"
+                      onClick={handleAddAnswer}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Thêm câu trả lời
+                    </Button>
+                  </div>
                 </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="media" className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="question-image">Hình ảnh</Label>
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      id="question-image"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      ref={imageInputRef}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingMedia}
+                      className="w-full p-8 h-auto border-dashed flex flex-col items-center justify-center gap-2"
+                    >
+                      {uploadingMedia ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Image className="h-6 w-6" />
+                      )}
+                      <span>
+                        {uploadingMedia
+                          ? "Đang tải lên..."
+                          : "Tải lên hình ảnh"}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="question-video">Video</Label>
+                  <div className="mt-2">
+                    <input
+                      type="file"
+                      id="question-video"
+                      className="hidden"
+                      accept="video/*"
+                      onChange={handleVideoUpload}
+                      ref={videoInputRef}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={uploadingMedia}
+                      className="w-full p-8 h-auto border-dashed flex flex-col items-center justify-center gap-2"
+                    >
+                      {uploadingMedia ? (
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      ) : (
+                        <Video className="h-6 w-6" />
+                      )}
+                      <span>
+                        {uploadingMedia ? "Đang tải lên..." : "Tải lên video"}
+                      </span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="settings" className="space-y-6">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="question-points-settings">Điểm số</Label>
+                    <Input
+                      id="question-points-settings"
+                      type="number"
+                      min="1"
+                      value={points}
+                      onChange={(e) => setPoints(parseInt(e.target.value) || 1)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="question-difficulty-settings">Mức độ khó</Label>
+                    <Select
+                      value={difficulty}
+                      onValueChange={setDifficulty}
+                    >
+                      <SelectTrigger id="question-difficulty-settings">
+                        <SelectValue placeholder="Chọn mức độ khó" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EASY">Dễ</SelectItem>
+                        <SelectItem value="MEDIUM">Trung bình</SelectItem>
+                        <SelectItem value="HARD">Khó</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="multiple-correct-settings"
+                    checked={allowMultipleCorrect}
+                    onCheckedChange={setAllowMultipleCorrect}
+                  />
+                  <Label htmlFor="multiple-correct-settings">
+                    Cho phép nhiều đáp án đúng
+                  </Label>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={onCancel}>
+              Hủy
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Đang lưu...
+                </>
               ) : (
-                <div className="flex flex-col items-center justify-center">
-                  <Image className="h-16 w-16 text-gray-400 mb-4" />
-                  <p className="mb-4">Kéo và thả hình ảnh vào đây, hoặc</p>
-                  <Button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={loading}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Chọn hình ảnh
-                  </Button>
-                </div>
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  {isEditing ? "Cập nhật" : "Lưu"}
+                </>
               )}
-            </div>
-
-            {imageUrl && (
-              <div className="border rounded-md p-4 mt-4">
-                <p className="text-sm font-medium mb-2">Hình ảnh hiện tại:</p>
-                <img
-                  src={imageUrl}
-                  alt="Question attachment"
-                  className="max-h-[300px] object-contain"
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="mt-4"
-                  onClick={removeImage}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Xóa hình ảnh
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="video" className="space-y-6">
-            <div className="border-2 border-dashed rounded-lg p-10 text-center">
-              <input
-                type="file"
-                ref={videoInputRef}
-                onChange={handleVideoUpload}
-                accept="video/*"
-                className="hidden"
-              />
-
-              {uploadingMedia ? (
-                <div className="flex flex-col items-center justify-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary mb-2" />
-                  <p>Đang tải lên video...</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center">
-                  <Video className="h-16 w-16 text-gray-400 mb-4" />
-                  <p className="mb-4">Kéo và thả video vào đây, hoặc</p>
-                  <Button
-                    type="button"
-                    onClick={() => videoInputRef.current?.click()}
-                    disabled={loading}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Chọn video
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {videoUrl && (
-              <div className="border rounded-md p-4 mt-4">
-                <p className="text-sm font-medium mb-2">Video hiện tại:</p>
-                <video
-                  src={videoUrl}
-                  controls
-                  className="w-full max-h-[300px]"
-                />
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="mt-4"
-                  onClick={removeVideo}
-                >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  Xóa video
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={onCancel} disabled={loading}>
-            Hủy
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {isEditing ? "Cập nhật" : "Lưu"} câu hỏi
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

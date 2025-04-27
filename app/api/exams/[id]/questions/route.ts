@@ -2,6 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { user } = await validateRequest();
+    if (!user) {
+      return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+      });
+    }
+
+    const { id: examId } = await params;
+
+    const questions = await prisma.examQuestion.findMany({
+      where: { examId },
+      include: {
+        question: true,
+      },
+    });
+
+    return NextResponse.json(questions);
+  } catch (error) {
+    console.error("[EXAM_QUESTIONS_GET]", error);
+    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), {
+      status: 500,
+    });
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -40,7 +70,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content, points: rawPoints, answers, imageUrl, videoUrl } = body;
+    const { content, points: rawPoints, answers, imageUrl, videoUrl, difficulty = "MEDIUM" } = body;
     const points = Math.max(rawPoints || 1, 1);
 
     if (!content || typeof content !== "string") {
@@ -63,6 +93,13 @@ export async function POST(
       });
     }
 
+    // Validate difficulty
+    if (!["EASY", "MEDIUM", "HARD"].includes(difficulty)) {
+      return new NextResponse(JSON.stringify({ error: "Invalid difficulty level" }), {
+        status: 400,
+      });
+    }
+
     // Transaction to create question, answers, and link to exam
     const result = await prisma.$transaction(async (tx) => {
       // Create the question
@@ -72,6 +109,7 @@ export async function POST(
           points,
           imageUrl,
           videoUrl,
+          difficulty,
           answers: {
             create: answers.map(answer => ({
               content: answer.content,

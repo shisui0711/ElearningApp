@@ -253,3 +253,20 @@ export const profileSchema = z.object({
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
+
+export const createSubjectSchema = z.object({
+  name: z.string().trim().min(1, "Tên môn học không được để trống"),
+  description: z.string().trim().optional(),
+  departmentId: z.string().trim().min(1, "Khoa không được để trống"),
+});
+
+export type CreateSubjectValues = z.infer<typeof createSubjectSchema>;
+
+export const updateSubjectSchema = z.object({
+  id: z.string().trim().min(1, "ID không được để trống"),
+  name: z.string().trim().min(1, "Tên môn học không được để trống"),
+  description: z.string().trim().optional(),
+  departmentId: z.string().trim().min(1, "Khoa không được để trống"),
+});
+
+export type UpdateSubjectValues = z.infer<typeof updateSubjectSchema>;

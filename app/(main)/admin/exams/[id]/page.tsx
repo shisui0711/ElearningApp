@@ -40,7 +40,11 @@ function ExamEditorSkeleton() {
         <div className="space-y-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rounded-lg border p-6 space-y-4">
-              <Skeleton className="h-8 w-full" />
+              <div className="flex items-center space-x-2">
+                <Skeleton className="h-8 w-full max-w-[60%]" />
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-12 rounded-full" />
+              </div>
               <div className="space-y-2">
                 {Array.from({ length: 4 }).map((_, j) => (
                   <div key={j} className="flex items-center space-x-2">

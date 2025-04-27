@@ -45,11 +45,11 @@ const menuItems = [
         label: "Khóa học",
         href: "/admin/courses"
       },
-      // {
-      //   icon: "/images/calendar.png",
-      //   label: "Sự kiện",
-      //   href: "/admin/events"
-      // },
+      {
+        icon: "/images/calendar.png",
+        label: "Môn học",
+        href: "/admin/subjects"
+      },
       // {
       //   icon: "/images/announcement.png",
       //   label: "Thông báo",

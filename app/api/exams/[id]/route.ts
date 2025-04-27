@@ -84,7 +84,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, duration, showCorrectAfter } = body;
+    const { title } = body;
 
     if (!title || typeof title !== "string") {
       return new NextResponse(JSON.stringify({ error: "Invalid title" }), {
@@ -92,27 +92,7 @@ export async function PATCH(
       });
     }
 
-    const updateData: any = { title };
-    
-    // Add duration if provided and valid
-    if (duration !== undefined) {
-      if (typeof duration !== 'number' || duration <= 0) {
-        return new NextResponse(JSON.stringify({ error: "Invalid duration" }), {
-          status: 400,
-        });
-      }
-      updateData.duration = duration;
-    }
-    
-    // Add showCorrectAfter if provided and valid
-    if (showCorrectAfter !== undefined) {
-      if (typeof showCorrectAfter !== 'boolean') {
-        return new NextResponse(JSON.stringify({ error: "Invalid showCorrectAfter value" }), {
-          status: 400,
-        });
-      }
-      updateData.showCorrectAfter = showCorrectAfter;
-    }
+    const updateData = { title };
 
     const exam = await prisma.exam.update({
       where: { id },

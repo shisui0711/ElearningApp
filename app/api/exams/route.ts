@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, duration } = body;
+    const { title } = body;
 
     if (!title || typeof title !== "string") {
       return new NextResponse(JSON.stringify({ error: "Invalid title" }), {
@@ -102,7 +102,6 @@ export async function POST(request: NextRequest) {
     const exam = await prisma.exam.create({
       data: {
         title,
-        duration
       },
     });
 

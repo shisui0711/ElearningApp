@@ -22,6 +22,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import QuestionForm from "./QuestionForm";
 import ImportQuestionsButton from "./ImportQuestionsButton";
+import { QuestionBankWithDetail } from "@/types";
 
 interface Answer {
   id: string;
@@ -34,10 +35,9 @@ interface Question {
   content: string;
   points: number;
   answers: Answer[];
-  difficulty?: string;
 }
 
-interface ExamWithQuestions {
+interface QuestionBankWithQuestions {
   id: string;
   title: string;
   questions: {
@@ -48,87 +48,94 @@ interface ExamWithQuestions {
   }[];
 }
 
-interface ExamEditorProps {
-  examId: string;
+interface QuestionBankEditorProps {
+  questionBankId: string;
 }
 
-export default function ExamEditor({ examId }: ExamEditorProps) {
+export default function QuestionBankEditor({ questionBankId }: QuestionBankEditorProps) {
   const router = useRouter();
-  const [exam, setExam] = useState<ExamWithQuestions | null>(null);
+  const [questionBank, setQuestionBank] = useState<QuestionBankWithDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
-  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
+  const [duration, setDuration] = useState(60); // Default 60 minutes
+  const [showCorrectAfter, setShowCorrectAfter] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
   useEffect(() => {
-    fetchExam();
-  }, [examId]);
+    fetchQuestionBank();
+  }, [questionBankId]);
 
-  const fetchExam = async () => {
+  const fetchQuestionBank = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/exams/${examId}`);
+      const res = await fetch(`/api/question-banks/${questionBankId}`);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch exam");
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error("Ngân hàng câu hỏi không tồn tại");
+          router.push("/admin/question-banks");
+          return;
+        }
+        throw new Error("Failed to fetch question bank");
       }
 
-      const data = await response.json();
-      setExam(data);
+      const data = await res.json();
+      console.log(data);
+      setQuestionBank(data);
       setTitle(data.title);
     } catch (error) {
       console.error(error);
-      setError("Không thể tải bài kiểm tra");
+      toast.error("Failed to load question bank");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdateExam = async () => {
+  const handleUpdateQuestionBank = async () => {
+    if (!title.trim()) {
+      toast.error("Vui lòng nhập tiêu đề");
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/exams/${examId}`, {
+      const res = await fetch(`/api/question-banks/${questionBankId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+        body: JSON.stringify({ 
           title,
+          duration,
+          showCorrectAfter
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update exam");
-      }
+      if (!res.ok) throw new Error("Có lỗi xảy ra. Vui lòng thử lại.");
 
-      await fetchExam();
+      toast.success("Ngân hàng câu hỏi đã được cập nhật");
       setIsEditing(false);
-      toast.success("Đã cập nhật bài kiểm tra thành công");
+      fetchQuestionBank();
     } catch (error) {
       console.error(error);
-      toast.error("Không thể cập nhật bài kiểm tra");
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     }
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
     try {
-      const response = await fetch(
-        `/api/exams/${examId}/questions/${questionId}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const res = await fetch(`/api/questions/${questionId}`, {
+        method: "DELETE",
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to delete question");
-      }
+      if (!res.ok) throw new Error("Failed to delete question");
 
-      await fetchExam();
-      toast.success("Đã xóa câu hỏi thành công");
+      toast.success("Đã xóa câu hỏi");
+      fetchQuestionBank();
     } catch (error) {
       console.error(error);
-      toast.error("Không thể xóa câu hỏi");
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     }
   };
 
@@ -143,22 +150,13 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
   };
 
   const handleQuestionSaved = () => {
-    setIsAddingQuestion(false);
     setEditingQuestion(null);
-    fetchExam();
+    setIsAddingQuestion(false);
+    fetchQuestionBank();
   };
 
-  if (loading) {
-    return <p>Đang tải...</p>;
-  }
-
-  if (error) {
-    return (
-      <div>
-        <p className="text-destructive">{error}</p>
-        <Button onClick={() => router.push("/admin/exams")}>Quay lại</Button>
-      </div>
-    );
+  if (loading && !questionBank) {
+    return <div className="text-center py-10">Đang tải...</div>;
   }
 
   return (
@@ -166,7 +164,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
       <div className="flex justify-between items-center">
         <Button
           variant="ghost"
-          onClick={() => router.push("/admin/exams")}
+          onClick={() => router.push("/admin/question-banks")}
           className="gap-1"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -188,9 +186,32 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                 />
               </div>
             </div>
-
+            
+            <div className="flex gap-2 items-center">
+              <div className="space-y-2 flex-1">
+                <Label htmlFor="duration">Thời gian làm bài (phút)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  value={duration}
+                  onChange={(e) => setDuration(parseInt(e.target.value) || 60)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-correct"
+                checked={showCorrectAfter}
+                onCheckedChange={setShowCorrectAfter}
+              />
+              <Label htmlFor="show-correct">Hiện đáp án đúng sau khi làm bài xong</Label>
+            </div>
+            
             <div className="flex gap-2 mt-4">
-              <Button onClick={handleUpdateExam}>
+              <Button onClick={handleUpdateQuestionBank}>
                 <Save className="h-4 w-4 mr-1" />
                 Lưu thay đổi
               </Button>
@@ -198,8 +219,8 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                 variant="ghost"
                 onClick={() => {
                   setIsEditing(false);
-                  if (exam) {
-                    setTitle(exam.title);
+                  if (questionBank) {
+                    setTitle(questionBank.title);
                   }
                 }}
               >
@@ -209,14 +230,14 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
           </div>
         ) : (
           <div className="w-full">
-            <h1 className="text-3xl font-bold">{exam?.title}</h1>
+            <h1 className="text-3xl font-bold">{questionBank?.title}</h1>
             <div className="flex justify-between items-center mt-2">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  Số câu hỏi: {exam?.questions.length || 0}
-                </p>
               </div>
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+              >
                 <Pencil className="h-4 w-4 mr-1" />
                 Chỉnh sửa
               </Button>
@@ -230,10 +251,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold">Các câu hỏi</h2>
             <div className="flex gap-2">
-              <ImportQuestionsButton
-                examId={examId}
-                onImportComplete={fetchExam}
-              />
+              <ImportQuestionsButton questionBankId={questionBankId} onImportComplete={fetchQuestionBank} />
               <Button onClick={handleAddQuestion}>
                 <Plus className="h-4 w-4 mr-1" />
                 Thêm câu hỏi
@@ -241,7 +259,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
             </div>
           </div>
 
-          {exam?.questions.length === 0 ? (
+          {questionBank?.questions?.length === 0 ? (
             <div className="text-center py-10 border rounded-lg">
               <p className="text-muted-foreground">
                 Chưa có câu hỏi nào được thêm vào. Thêm câu hỏi đầu tiên của
@@ -250,36 +268,21 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              {exam?.questions.map(({ question, id: examQuestionId }) => (
-                <Card key={examQuestionId} className="overflow-hidden">
+              {questionBank?.questions.map(({ content, points, answers, id: questionBankQuestionId }) => (
+                <Card key={questionBankQuestionId} className="overflow-hidden">
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="space-y-4 flex-1">
                         <div className="flex items-center gap-2">
                           <h3 className="text-lg font-medium">
-                            {question.content}
+                            {content}
                           </h3>
                           <span className="text-sm text-muted-foreground">
-                            ({question.points} điểm)
-                          </span>
-                          <span
-                            className={`text-sm px-2 py-0.5 rounded-full ${
-                              question.difficulty === "EASY"
-                                ? "bg-green-100 text-green-800"
-                                : question.difficulty === "MEDIUM"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {question.difficulty === "EASY"
-                              ? "Dễ"
-                              : question.difficulty === "MEDIUM"
-                              ? "Trung bình"
-                              : "Khó"}
+                            ({points} điểm)
                           </span>
                         </div>
                         <div className="space-y-2 pl-5">
-                          {question.answers.map((answer) => (
+                          {answers?.map((answer: Answer) => (
                             <div
                               key={answer.id}
                               className="flex items-center gap-2"
@@ -306,7 +309,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleEditQuestion(question)}
+                          onClick={() => handleEditQuestion({ content, points, answers, id: questionBankQuestionId })}
                         >
                           <Pencil className="h-4 w-4 mr-1" />
                           Chỉnh sửa
@@ -333,7 +336,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                               <AlertDialogCancel>Hủy</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() =>
-                                  handleDeleteQuestion(question.id)
+                                  handleDeleteQuestion(questionBankQuestionId)
                                 }
                               >
                                 Xóa
@@ -353,7 +356,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
 
       {(isAddingQuestion || editingQuestion) && (
         <QuestionForm
-          examId={examId}
+          questionBankId={questionBankId}
           question={editingQuestion}
           onCancel={() => {
             setIsAddingQuestion(false);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
+import { createSubjectSchema } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { user } = await validateRequest();
@@ -74,6 +75,46 @@ export async function GET(req: NextRequest) {
     };
 
     return NextResponse.json(response);
+  } catch (error: any) {
+    return new NextResponse(
+      JSON.stringify({ error: error.message || "Internal Server Error" }),
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const { user } = await validateRequest();
+  if (!user) {
+    return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+    });
+  }
+
+  try {
+    const body = await req.json();
+    const { name, description, departmentId } = createSubjectSchema.parse(body);
+
+    // Check if department exists
+    const department = await prisma.department.findUnique({
+      where: { id: departmentId },
+    });
+    
+    if (!department) {
+      return new NextResponse(JSON.stringify({ error: "Khoa không tồn tại" }), {
+        status: 404,
+      });
+    }
+
+    const newSubject = await prisma.subject.create({
+      data: {
+        name,
+        description,
+        departmentId,
+      },
+    });
+
+    return NextResponse.json(newSubject);
   } catch (error: any) {
     return new NextResponse(
       JSON.stringify({ error: error.message || "Internal Server Error" }),

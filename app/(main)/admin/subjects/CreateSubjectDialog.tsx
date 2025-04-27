@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { createSubjectSchema, CreateSubjectValues } from "@/lib/validation";
 import { useCreateSubjectMutation } from "./mutations";
 import { useQuery } from "@tanstack/react-query";
@@ -73,6 +74,7 @@ export default function CreateSubjectDialog({
     resolver: zodResolver(createSubjectSchema),
     defaultValues: {
       name: "",
+      description: "",
       departmentId: "",
     },
   });
@@ -107,6 +109,24 @@ export default function CreateSubjectDialog({
                   <FormLabel>Tên môn học</FormLabel>
                   <FormControl>
                     <Input placeholder="Nhập tên môn học" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mô tả</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Nhập mô tả môn học" 
+                      className="resize-none" 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

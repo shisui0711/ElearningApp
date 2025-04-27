@@ -34,8 +34,7 @@ export async function GET(request: NextRequest) {
         exam: {
           select: {
             id: true,
-            title: true,
-            duration: true,
+            title: true
           },
         },
         answers: {

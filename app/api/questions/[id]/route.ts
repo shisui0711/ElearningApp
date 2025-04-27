@@ -1,7 +1,8 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-export async function PUT(
+
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -28,7 +29,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { content, points, answers } = body;
+    const { content, points, answers, imageUrl, videoUrl, difficulty } = body;
 
     if (!content || typeof content !== "string") {
       return new NextResponse(
@@ -60,6 +61,14 @@ export async function PUT(
       );
     }
 
+    // Validate difficulty if provided
+    if (difficulty && !["EASY", "MEDIUM", "HARD"].includes(difficulty)) {
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid difficulty level" }),
+        { status: 400 }
+      );
+    }
+
     // Check if question exists
     const existingQuestion = await prisma.question.findUnique({
       where: { id },
@@ -83,6 +92,9 @@ export async function PUT(
         data: {
           content,
           points,
+          imageUrl,
+          videoUrl,
+          difficulty,
         },
       });
 
@@ -142,7 +154,7 @@ export async function PUT(
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("[QUESTION_PUT]", error);
+    console.error("[QUESTION_PATCH]", error);
     return new NextResponse(
       JSON.stringify({ error: "Internal Server Error" }),
       { status: 500 }

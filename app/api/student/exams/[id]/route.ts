@@ -41,8 +41,6 @@ export async function GET(
           select: {
             id: true,
             title: true,
-            duration: true,
-            showCorrectAfter: true,
             questions: {
               include: {
                 question: {
@@ -136,8 +134,8 @@ export async function GET(
       finishedAt: examAttempt.finishedAt,
       score: examAttempt.score,
       title: examAttempt.exam.title,
-      duration: examAttempt.exam.duration,
-      showCorrectAfter: examAttempt.exam.showCorrectAfter,
+      duration: examAttempt.duration,
+      showCorrectAfter: examAttempt.showCorrectAfter,
       questions: questions,
       savedAnswers: savedAnswers,
       markedQuestions: markedQuestions.map(mq => mq.questionId),

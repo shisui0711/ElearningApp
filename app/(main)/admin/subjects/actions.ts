@@ -13,7 +13,7 @@ export async function createSubject(input: CreateSubjectValues) {
   const { user } = await validateRequest();
   if (!user) throw Error("Bạn chưa xác thực");
 
-  const { name, departmentId } = createSubjectSchema.parse(input);
+  const { name, description, departmentId } = createSubjectSchema.parse(input);
 
   // Check if department exists
   const department = await prisma.department.findUnique({
@@ -24,6 +24,7 @@ export async function createSubject(input: CreateSubjectValues) {
   const newSubject = await prisma.subject.create({
     data: {
       name,
+      description,
       departmentId,
     },
   });
@@ -35,12 +36,13 @@ export async function updateSubject(input: UpdateSubjectValues) {
   const { user } = await validateRequest();
   if (!user) throw Error("Bạn chưa xác thực");
 
-  const { id, name, departmentId } = updateSubjectSchema.parse(input);
+  const { id, name, description, departmentId } = updateSubjectSchema.parse(input);
 
-  const existSubject = await prisma.subject.findUnique({
+  // Check if subject exists
+  const existingSubject = await prisma.subject.findUnique({
     where: { id },
   });
-  if (!existSubject) throw new Error("Môn học không tồn tại");
+  if (!existingSubject) throw new Error("Môn học không tồn tại");
 
   // Check if department exists
   const department = await prisma.department.findUnique({
@@ -52,6 +54,7 @@ export async function updateSubject(input: UpdateSubjectValues) {
     where: { id },
     data: {
       name,
+      description,
       departmentId,
     },
   });
@@ -63,27 +66,18 @@ export async function deleteSubject(id: string) {
   const { user } = await validateRequest();
   if (!user) throw Error("Bạn chưa xác thực");
 
-  const existSubject = await prisma.subject.findUnique({
+  // Check if subject exists
+  const existingSubject = await prisma.subject.findUnique({
     where: { id },
   });
-  if (!existSubject) throw new Error("Môn học không tồn tại");
+  if (!existingSubject) throw new Error("Môn học không tồn tại");
 
-  // Check if there are courses associated with this subject
-  const coursesCount = await prisma.course.count({
+  // Check if subject has related courses
+  const courseCount = await prisma.course.count({
     where: { subjectId: id },
   });
-
-  // Check if there are exams associated with this subject
-  const examsCount = await prisma.exam.count({
-    where: { subjectId: id },
-  });
-
-  if (coursesCount > 0) {
-    throw new Error("Không thể xóa môn học này vì có khóa học đang tham chiếu");
-  }
-
-  if (examsCount > 0) {
-    throw new Error("Không thể xóa môn học này vì có bài thi đang tham chiếu");
+  if (courseCount > 0) {
+    throw new Error("Không thể xóa môn học này vì đã có khóa học liên kết");
   }
 
   const deletedSubject = await prisma.subject.delete({

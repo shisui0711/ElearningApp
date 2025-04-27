@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Pencil, PlusCircle, Trash2, Users } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -18,27 +18,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import PaginationControls from "@/components/PaginationControls";
-import AssignExamButton from "./AssignExamButton";
 import { Input } from "@/components/ui/input";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
-import { ExamWithDetail, PaginationResponse } from "@/types";
-import CreateExamButton from "./CreateExamButton";
+import { QuestionBankWithDetail, PaginationResponse } from "@/types";
+import CreateQuestionBankButton from "./CreateQuestionBankButton";
 import { useRouter } from "next/navigation";
 
-export default function ExamsList() {
+export default function QuestionBankList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const router = useRouter();
 
   const { data, isLoading, error } = useQuery<
-    PaginationResponse<ExamWithDetail>
+    PaginationResponse<QuestionBankWithDetail>
   >({
-    queryKey: ["departments", pageNumber, pageSize],
+    queryKey: ["question-banks", pageNumber, pageSize, searchQuery],
     queryFn: async () => {
       const response = await axios.get(
-        `/api/exams?page=${pageNumber}&pageSize=${pageSize}&search=${searchQuery}`
+        `/api/question-banks?page=${pageNumber}&pageSize=${pageSize}&search=${searchQuery}`
       );
       return response.data;
     },
@@ -54,7 +53,8 @@ export default function ExamsList() {
       </div>
     );
 
-  const exams = data?.data || [];
+  const questionBanks = data?.data || [];
+  console.log(questionBanks);
   const pagination = data?.pagination || {
     pageNumber: 1,
     pageSize: 10,
@@ -71,18 +71,20 @@ export default function ExamsList() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/exams/${id}`, {
+      const res = await fetch(`/api/question-banks/${id}`, {
         method: "DELETE",
       });
 
-      if (!res.ok) throw new Error("Không thể xóa bài kiểm tra");
+      if (!res.ok) throw new Error("Không thể xóa ngân hàng câu hỏi");
 
-      toast.success("Đã xóa thành công bài kiểm tra");
+      toast.success("Ngân hàng câu hỏi đã được xóa thành công");
     } catch (error) {
       console.error(error);
-      toast.error("Không thể xóa bài kiểm tra");
+      toast.error("Không thể xóa ngân hàng câu hỏi");
     }
   };
+
+  console.log(questionBanks);
 
   return (
     <div className="space-y-4">
@@ -98,28 +100,26 @@ export default function ExamsList() {
         <div className="flex justify-center items-center h-40">
           <p>Đang tải...</p>
         </div>
-      ) : !exams.length ? (
+      ) : !questionBanks.length ? (
         <div className="flex flex-col items-center justify-center h-40 bg-muted/30 rounded-md">
           <p className="text-muted-foreground mb-4">
-            Chưa có bài kiểm tra nào được tạo
+            Không tìm thấy ngân hàng câu hỏi nào
           </p>
-          <CreateExamButton />
         </div>
       ) : (
         <div className="space-y-4">
-          {exams.map((exam) => (
-            <Card key={exam.id}>
+          {questionBanks.map((questionBank) => (
+            <Card key={questionBank.id}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-center">
-                  <CardTitle>{exam.title}</CardTitle>
+                  <CardTitle>{questionBank.title}</CardTitle>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/admin/exams/${exam.id}`}>
+                      <Link href={`/admin/question-banks/${questionBank.id}`}>
                         <Pencil className="h-4 w-4 mr-1" />
                         <span className="hidden md:block">Chỉnh sửa</span>
                       </Link>
                     </Button>
-                    <AssignExamButton examId={exam.id} examTitle={exam.title} />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm">
@@ -137,7 +137,7 @@ export default function ExamsList() {
                         <AlertDialogFooter>
                           <AlertDialogCancel>Hủy</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDelete(exam.id)}
+                            onClick={() => handleDelete(questionBank.id)}
                           >
                             Xóa
                           </AlertDialogAction>
@@ -149,7 +149,7 @@ export default function ExamsList() {
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground">
-                  {exam.questions.length} câu hỏi
+                  {questionBank.questions?.length || 0} câu hỏi
                 </div>
               </CardContent>
             </Card>
@@ -159,7 +159,7 @@ export default function ExamsList() {
             pagination={pagination}
             onPageChange={setPageNumber}
             onPageSizeChange={handlePageSizeChange}
-            itemCount={exams.length}
+            itemCount={questionBanks.length}
             itemName="bài kiểm tra"
           />
         </div>
