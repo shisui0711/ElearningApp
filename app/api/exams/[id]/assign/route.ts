@@ -1,5 +1,6 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
+import { User } from "lucia";
 import { NextRequest, NextResponse } from "next/server";
 
 type DifficultyConfig = {
@@ -39,10 +40,10 @@ export async function POST(
       include: {
         questions: {
           include: {
-            question: true
-          }
-        }
-      }
+            question: true,
+          },
+        },
+      },
     });
 
     if (!exam) {
@@ -52,17 +53,32 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { 
-      type, 
-      difficultyConfig = { easy: 0, medium: 0, hard: 0 }, 
-      duration = 60, 
-      showCorrectAnswers = false 
+    const {
+      type,
+      difficultyConfig = { easy: 0, medium: 0, hard: 0 },
+      duration = 60,
+      showCorrectAnswers = false,
+      expirateAt,
+      courseId,
+      name,
     } = body;
 
-    if (!type || !["department", "class", "course", "students"].includes(type)) {
-      return new NextResponse(JSON.stringify({ error: "Invalid assignment type" }), {
+    if (!name) {
+      return new NextResponse(JSON.stringify({ error: "Missing exam name" }), {
         status: 400,
       });
+    }
+
+    if (
+      !type ||
+      !["department", "class", "course", "students"].includes(type)
+    ) {
+      return new NextResponse(
+        JSON.stringify({ error: "Invalid assignment type" }),
+        {
+          status: 400,
+        }
+      );
     }
 
     // Handle different assignment types
@@ -70,9 +86,12 @@ export async function POST(
       case "department": {
         const { departmentId } = body;
         if (!departmentId) {
-          return new NextResponse(JSON.stringify({ error: "Department ID is required" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({ error: "Department ID is required" }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Get all classes in the department
@@ -82,15 +101,28 @@ export async function POST(
         });
 
         if (departmentClasses.length === 0) {
-          return new NextResponse(JSON.stringify({ error: "No classes found in this department" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({ error: "No classes found in this department" }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Create exam attempts for all students in all classes of the department
         await Promise.all(
           departmentClasses.map(async (classItem) => {
-            await createExamAttemptsForClass(examId, classItem.id, difficultyConfig, duration, showCorrectAnswers);
+            await createExamAttemptsForClass(
+              examId,
+              classItem.id,
+              difficultyConfig,
+              duration,
+              showCorrectAnswers,
+              user,
+              name,
+              expirateAt,
+              courseId
+            );
           })
         );
 
@@ -102,12 +134,25 @@ export async function POST(
       case "class": {
         const { classId } = body;
         if (!classId) {
-          return new NextResponse(JSON.stringify({ error: "Mã lớp là bắt buộc" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({ error: "Mã lớp là bắt buộc" }),
+            {
+              status: 400,
+            }
+          );
         }
 
-        await createExamAttemptsForClass(examId, classId, difficultyConfig, duration, showCorrectAnswers);
+        await createExamAttemptsForClass(
+          examId,
+          classId,
+          difficultyConfig,
+          duration,
+          showCorrectAnswers,
+          user,
+          name,
+          expirateAt,
+          courseId
+        );
 
         return NextResponse.json({
           message: "Bài kiểm tra đã được giao cho lớp thành công.",
@@ -117,9 +162,12 @@ export async function POST(
       case "course": {
         const { courseId } = body;
         if (!courseId) {
-          return new NextResponse(JSON.stringify({ error: "Mã khóa học là bắt buộc" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({ error: "Mã khóa học là bắt buộc" }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Find all students enrolled in the course
@@ -129,9 +177,14 @@ export async function POST(
         });
 
         if (enrollments.length === 0) {
-          return new NextResponse(JSON.stringify({ error: "Không có sinh viên nào đăng ký khóa học này" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({
+              error: "Không có sinh viên nào đăng ký khóa học này",
+            }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Get first student to determine class
@@ -141,13 +194,21 @@ export async function POST(
         });
 
         if (!firstStudent?.classId) {
-          return new NextResponse(JSON.stringify({ error: "Không thể xác định lớp cho sinh viên trong khóa học." }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({
+              error: "Không thể xác định lớp cho sinh viên trong khóa học.",
+            }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Get selected questions based on difficulty configuration
-        const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+        const selectedQuestions = await selectQuestionsByDifficulty(
+          examId,
+          difficultyConfig
+        );
 
         // Create exam attempts for all enrolled students
         await Promise.all(
@@ -155,28 +216,43 @@ export async function POST(
             await prisma.examAttempt.create({
               data: {
                 examId,
+                name,
                 studentId: enrollment.studentId,
                 courseId,
                 classId: firstStudent.classId!, // Use the class of the first student (should be the same for course students)
                 duration,
                 showCorrectAfter: showCorrectAnswers,
-                selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
+                examAttemptQuestions: {
+                  create: selectedQuestions.map(questionId => ({
+                    questionId
+                  }))
+                },
+                createdBy: user.id,
+                expirateAt,
               },
             });
           })
         );
 
         return NextResponse.json({
-          message: "Đã giao bài kiểm tra cho sinh viên trong khóa học thành công",
+          message:
+            "Đã giao bài kiểm tra cho sinh viên trong khóa học thành công",
         });
       }
 
       case "students": {
         const { studentIds } = body;
-        if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
-          return new NextResponse(JSON.stringify({ error: "Cần phải có ID sinh viên" }), {
-            status: 400,
-          });
+        if (
+          !studentIds ||
+          !Array.isArray(studentIds) ||
+          studentIds.length === 0
+        ) {
+          return new NextResponse(
+            JSON.stringify({ error: "Cần phải có ID sinh viên" }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Get first student to determine class
@@ -186,13 +262,21 @@ export async function POST(
         });
 
         if (!firstStudent?.classId) {
-          return new NextResponse(JSON.stringify({ error: "Không thể xác định lớp cho sinh viên đã chọn" }), {
-            status: 400,
-          });
+          return new NextResponse(
+            JSON.stringify({
+              error: "Không thể xác định lớp cho sinh viên đã chọn",
+            }),
+            {
+              status: 400,
+            }
+          );
         }
 
         // Get selected questions based on difficulty configuration
-        const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+        const selectedQuestions = await selectQuestionsByDifficulty(
+          examId,
+          difficultyConfig
+        );
 
         // Create exam attempts for selected students
         await Promise.all(
@@ -200,11 +284,19 @@ export async function POST(
             await prisma.examAttempt.create({
               data: {
                 examId,
+                name,
                 studentId,
+                courseId,
                 classId: firstStudent.classId!, // Use the class of the first student
                 duration,
                 showCorrectAfter: showCorrectAnswers,
-                selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
+                examAttemptQuestions: {
+                  create: selectedQuestions.map(questionId => ({
+                    questionId
+                  }))
+                },
+                createdBy: user.id,
+                expirateAt,
               },
             });
           })
@@ -216,22 +308,35 @@ export async function POST(
       }
 
       default:
-        return new NextResponse(JSON.stringify({ error: "Loại bài tập không hợp lệ." }), {
-          status: 400,
-        });
+        return new NextResponse(
+          JSON.stringify({ error: "Loại bài tập không hợp lệ." }),
+          {
+            status: 400,
+          }
+        );
     }
   } catch (error) {
     console.error("[EXAM_ASSIGN_POST]", error);
-    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-    });
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      {
+        status: 500,
+      }
+    );
   }
 }
 
 // Helper function to select questions based on difficulty configuration
-async function selectQuestionsByDifficulty(examId: string, difficultyConfig: DifficultyConfig) {
+async function selectQuestionsByDifficulty(
+  examId: string,
+  difficultyConfig: DifficultyConfig
+) {
   // If all difficulty configs are 0, return empty array (use all questions)
-  if (difficultyConfig.easy === 0 && difficultyConfig.medium === 0 && difficultyConfig.hard === 0) {
+  if (
+    difficultyConfig.easy === 0 &&
+    difficultyConfig.medium === 0 &&
+    difficultyConfig.hard === 0
+  ) {
     return [];
   }
 
@@ -239,15 +344,21 @@ async function selectQuestionsByDifficulty(examId: string, difficultyConfig: Dif
   const examQuestions = await prisma.examQuestion.findMany({
     where: { examId },
     include: {
-      question: true
-    }
+      question: true,
+    },
   });
 
   // Group questions by difficulty
   const questionsByDifficulty = {
-    EASY: examQuestions.filter(q => q.question.difficulty === 'EASY').map(q => q.questionId),
-    MEDIUM: examQuestions.filter(q => q.question.difficulty === 'MEDIUM').map(q => q.questionId),
-    HARD: examQuestions.filter(q => q.question.difficulty === 'HARD').map(q => q.questionId)
+    EASY: examQuestions
+      .filter((q) => q.question.difficulty === "EASY")
+      .map((q) => q.questionId),
+    MEDIUM: examQuestions
+      .filter((q) => q.question.difficulty === "MEDIUM")
+      .map((q) => q.questionId),
+    HARD: examQuestions
+      .filter((q) => q.question.difficulty === "HARD")
+      .map((q) => q.questionId),
   };
 
   // Select random questions based on difficulty configuration
@@ -261,20 +372,35 @@ async function selectQuestionsByDifficulty(examId: string, difficultyConfig: Dif
 
   // Select easy questions
   if (difficultyConfig.easy > 0 && questionsByDifficulty.EASY.length > 0) {
-    const count = Math.min(difficultyConfig.easy, questionsByDifficulty.EASY.length);
-    selectedQuestions.push(...getRandomItems(questionsByDifficulty.EASY, count));
+    const count = Math.min(
+      difficultyConfig.easy,
+      questionsByDifficulty.EASY.length
+    );
+    selectedQuestions.push(
+      ...getRandomItems(questionsByDifficulty.EASY, count)
+    );
   }
 
   // Select medium questions
   if (difficultyConfig.medium > 0 && questionsByDifficulty.MEDIUM.length > 0) {
-    const count = Math.min(difficultyConfig.medium, questionsByDifficulty.MEDIUM.length);
-    selectedQuestions.push(...getRandomItems(questionsByDifficulty.MEDIUM, count));
+    const count = Math.min(
+      difficultyConfig.medium,
+      questionsByDifficulty.MEDIUM.length
+    );
+    selectedQuestions.push(
+      ...getRandomItems(questionsByDifficulty.MEDIUM, count)
+    );
   }
 
   // Select hard questions
   if (difficultyConfig.hard > 0 && questionsByDifficulty.HARD.length > 0) {
-    const count = Math.min(difficultyConfig.hard, questionsByDifficulty.HARD.length);
-    selectedQuestions.push(...getRandomItems(questionsByDifficulty.HARD, count));
+    const count = Math.min(
+      difficultyConfig.hard,
+      questionsByDifficulty.HARD.length
+    );
+    selectedQuestions.push(
+      ...getRandomItems(questionsByDifficulty.HARD, count)
+    );
   }
 
   return selectedQuestions;
@@ -282,11 +408,15 @@ async function selectQuestionsByDifficulty(examId: string, difficultyConfig: Dif
 
 // Helper function to create exam attempts for all students in a class
 async function createExamAttemptsForClass(
-  examId: string, 
-  classId: string, 
+  examId: string,
+  classId: string,
   difficultyConfig: DifficultyConfig,
   duration: number,
-  showCorrectAnswers: boolean
+  showCorrectAnswers: boolean,
+  user: User,
+  name: string,
+  expirateAt?: Date,
+  courseId?: string,
 ) {
   // Get all students in the class
   const students = await prisma.student.findMany({
@@ -300,7 +430,10 @@ async function createExamAttemptsForClass(
   }
 
   // Get selected questions based on difficulty configuration
-  const selectedQuestions = await selectQuestionsByDifficulty(examId, difficultyConfig);
+  const selectedQuestions = await selectQuestionsByDifficulty(
+    examId,
+    difficultyConfig
+  );
 
   // Create exam attempts for all students in the class
   await Promise.all(
@@ -308,13 +441,21 @@ async function createExamAttemptsForClass(
       await prisma.examAttempt.create({
         data: {
           examId,
+          name,
           studentId: student.id,
           classId,
+          courseId,
           duration,
           showCorrectAfter: showCorrectAnswers,
-          selectedQuestions: selectedQuestions.length > 0 ? selectedQuestions : []
+          examAttemptQuestions: {
+            create: selectedQuestions.map(questionId => ({
+              questionId
+            }))
+          },
+          expirateAt,
+          createdBy: user.id,
         },
       });
     })
   );
-} 
+}

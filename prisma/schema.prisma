@@ -76,7 +76,6 @@ model Student {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   classId               String?
   class                 Class?                 @relation(fields: [classId], references: [id])
-  enrolledCourses       Course[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime?              @updatedAt
   completedLessons      CompletedLesson[]
@@ -96,10 +95,11 @@ model Course {
   teacher      Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   departmentId String
   department   Department      @relation(fields: [departmentId], references: [id])
-  students     Student[]
   lessons      Lesson[]
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  createdBy    String?
+  updatedBy    String?
   documents    Document[]
   enrollments  Enrollment[]
   attempts     ExamAttempt[]
@@ -112,11 +112,15 @@ model Course {
 }
 
 model Department {
-  id      String    @id @default(cuid())
-  name    String
-  courses Course[]
-  Class   Class[]
-  Subject Subject[]
+  id        String    @id @default(cuid())
+  name      String
+  courses   Course[]
+  Class     Class[]
+  Subject   Subject[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+  createdBy String?
+  updatedBy String?
 
   @@map("departments")
 }
@@ -134,6 +138,8 @@ model Lesson {
   updatedAt        DateTime          @updatedAt
   completedLessons CompletedLesson[]
   comments         LessonComment[]   @relation("LessonComments")
+  createdBy        String?
+  updatedBy        String?
 
   @@map("lessons")
 }
@@ -150,6 +156,8 @@ model Document {
   lesson      Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
 
   @@map("documents")
 }
@@ -184,6 +192,10 @@ model Class {
   students     Student[]
   attempts     ExamAttempt[]
   assignments  Assignment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime?     @updatedAt
+  createdBy    String?
+  updatedBy    String?
 
   @@map("classes")
 }
@@ -197,6 +209,8 @@ model Subject {
   department   Department @relation(fields: [departmentId], references: [id])
   createdAt    DateTime   @default(now())
   updatedAt    DateTime?  @updatedAt
+  createdBy    String?
+  updatedBy    String?
 
   @@map("subjects")
 }
@@ -206,6 +220,10 @@ model Exam {
   title     String
   questions ExamQuestion[]
   attempts  ExamAttempt[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime?      @updatedAt
+  createdBy String?
+  updatedBy String?
 
   @@map("exams")
 }
@@ -222,15 +240,20 @@ model ExamQuestion {
 }
 
 model Question {
-  id             String          @id @default(cuid())
-  content        String
-  points         Int
-  imageUrl       String?
-  videoUrl       String?
-  difficulty     String          @default("MEDIUM") // EASY, MEDIUM, HARD
-  answers        Answer[]
-  exams          ExamQuestion[]
-  studentAnswers StudentAnswer[]
+  id                  String                @id @default(cuid())
+  content             String
+  points              Int
+  imageUrl            String?
+  videoUrl            String?
+  difficulty          String                @default("MEDIUM") // EASY, MEDIUM, HARD
+  answers             Answer[]
+  exams               ExamQuestion[]
+  studentAnswers      StudentAnswer[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime?             @updatedAt
+  createdBy           String?
+  updatedBy           String?
+  ExamAttemptQuestion ExamAttemptQuestion[]
 
   @@map("questions")
 }
@@ -241,34 +264,50 @@ model Answer {
   isCorrect      Boolean
   questionId     String
   question       Question        @relation(fields: [questionId], references: [id])
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime?       @updatedAt
+  createdBy      String?
+  updatedBy      String?
   studentAnswers StudentAnswer[]
 
   @@map("answers")
 }
 
 model ExamAttempt {
-  id                String           @id @default(cuid())
-  studentId         String?
-  student           Student?         @relation(fields: [studentId], references: [id])
-  examId            String
-  exam              Exam             @relation(fields: [examId], references: [id])
-  startedAt         DateTime?
-  finishedAt        DateTime?
-  expirateAt        DateTime?
-  score             Int?
-  duration          Int              @default(60) // in minutes
-  showCorrectAfter  Boolean          @default(false)
-  courseId          String?
-  course            Course?          @relation(fields: [courseId], references: [id])
-  classId           String
-  class             Class            @relation(fields: [classId], references: [id])
-  createdAt         DateTime         @default(now())
-  answers           StudentAnswer[]
-  markedQuestions   MarkedQuestion[]
-  assignments       Assignment[]
-  selectedQuestions String[] // Array of question IDs to include in this attempt
+  id                  String                @id @default(cuid())
+  name                String?
+  studentId           String?
+  student             Student?              @relation(fields: [studentId], references: [id])
+  examId              String
+  exam                Exam                  @relation(fields: [examId], references: [id])
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  expirateAt          DateTime?
+  score               Int?
+  duration            Int                   @default(60) // in minutes
+  showCorrectAfter    Boolean               @default(false)
+  courseId            String?
+  course              Course?               @relation(fields: [courseId], references: [id])
+  classId             String
+  class               Class                 @relation(fields: [classId], references: [id])
+  createdAt           DateTime              @default(now())
+  answers             StudentAnswer[]
+  markedQuestions     MarkedQuestion[]
+  createdBy           String?
+  examAttemptQuestions ExamAttemptQuestion[]
 
   @@map("exam_attempts")
+}
+
+model ExamAttemptQuestion {
+  id         String      @id @default(cuid())
+  attempt    ExamAttempt @relation(fields: [attemptId], references: [id])
+  attemptId  String
+  questionId String
+  question   Question    @relation(fields: [questionId], references: [id])
+  createdAt  DateTime    @default(now())
+
+  @@map("exam_attempt_questions")
 }
 
 model StudentAnswer {
@@ -382,27 +421,23 @@ model ForumLike {
 }
 
 enum AssignmentType {
-  EXAM // Bài tập trắc nghiệm (bài kiểm tra)
   FILE_UPLOAD // Bài tập nộp file
-  QUIZ // Bài tập trắc nghiệm (không phải bài kiểm tra)
 }
 
 model Assignment {
-  id            String                 @id @default(cuid())
-  title         String
-  description   String?
-  dueDate       DateTime
-  type          AssignmentType
-  courseId      String
-  course        Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  classId       String? // Nếu giao cho cả lớp
-  class         Class?                 @relation(fields: [classId], references: [id])
-  examAttemptId String?
-  examAttempt   ExamAttempt?           @relation(fields: [examAttemptId], references: [id])
-  fileType      String? // Loại file chấp nhận cho bài tập nộp file
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  submissions   AssignmentSubmission[]
+  id          String                 @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  type        AssignmentType
+  courseId    String
+  course      Course                 @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classId     String? // Nếu giao cho cả lớp
+  class       Class?                 @relation(fields: [classId], references: [id])
+  fileType    String? // Loại file chấp nhận cho bài tập nộp file
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  submissions AssignmentSubmission[]
 
   @@map("assignments")
 }

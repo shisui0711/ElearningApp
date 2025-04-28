@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { FileUp, Plus } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -37,12 +37,8 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/DatePicker";
 
-interface CreateAssignmentDialogProps {
+interface CreateFileAssignmentDialogProps {
   courseId: string;
-  exams: {
-    id: string;
-    title: string;
-  }[];
   classes: {
     id: string;
     name: string;
@@ -61,11 +57,7 @@ const formSchema = z.object({
   dueDate: z.date({
     required_error: "Vui lòng chọn hạn nộp bài",
   }),
-  type: z.enum(["EXAM", "FILE_UPLOAD"], {
-    required_error: "Vui lòng chọn loại bài tập",
-  }),
-  fileType: z.string().optional(),
-  examId: z.string().optional(),
+  fileType: z.string(),
   assignFor: z.enum(["CLASS", "STUDENTS"], {
     required_error: "Vui lòng chọn đối tượng giao bài",
   }),
@@ -75,17 +67,16 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function CreateAssignmentDialog({
+export default function CreateFileAssignmentDialog({
   courseId,
-  exams,
   classes,
   students,
-}: CreateAssignmentDialogProps) {
+}: CreateFileAssignmentDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const today = new Date();
-  const tomorrow = new Date(today); // Tạo một bản sao để không thay đổi today
+  const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   const form = useForm<FormValues>({
@@ -93,7 +84,6 @@ export default function CreateAssignmentDialog({
     defaultValues: {
       title: "",
       description: "",
-      type: "FILE_UPLOAD",
       fileType: "application/pdf",
       assignFor: "CLASS",
       studentIds: [],
@@ -101,7 +91,6 @@ export default function CreateAssignmentDialog({
     },
   });
 
-  const assignmentType = form.watch("type");
   const assignFor = form.watch("assignFor");
 
   const onSubmit = async (values: FormValues) => {
@@ -112,9 +101,8 @@ export default function CreateAssignmentDialog({
         title: values.title,
         description: values.description,
         dueDate: values.dueDate,
-        type: values.type,
-        fileType: values.type === "FILE_UPLOAD" ? values.fileType : null,
-        examId: values.type === "EXAM" ? values.examId : null,
+        type: "FILE_UPLOAD", // Hardcoded for file assignments
+        fileType: values.fileType,
         classId: values.assignFor === "CLASS" ? values.classId : null,
         studentIds: values.assignFor === "STUDENTS" ? values.studentIds : [],
       };
@@ -132,16 +120,16 @@ export default function CreateAssignmentDialog({
         throw new Error(data.error || "Failed to create assignment");
       }
 
-      toast.success("Đã tạo bài tập thành công");
+      toast.success("Đã tạo bài tập nộp file thành công");
       setIsOpen(false);
       form.reset();
       
       // Tải lại trang để hiển thị bài tập mới
       window.location.reload();
     } catch (error) {
-      console.error("Error creating assignment:", error);
+      console.error("Error creating file assignment:", error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create assignment"
+        error instanceof Error ? error.message : "Failed to create file assignment"
       );
     } finally {
       setIsSubmitting(false);
@@ -151,16 +139,16 @@ export default function CreateAssignmentDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Tạo bài tập
+        <Button variant="outline">
+          <FileUp className="mr-2 h-4 w-4" />
+          Tạo bài tập nộp file
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px] max-h-screen overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Tạo bài tập mới</DialogTitle>
+          <DialogTitle>Tạo bài tập nộp file mới</DialogTitle>
           <DialogDescription>
-            Tạo bài tập cho khóa học và giao cho học sinh
+            Tạo bài tập nộp file cho khóa học và giao cho học sinh
           </DialogDescription>
         </DialogHeader>
 
@@ -205,44 +193,17 @@ export default function CreateAssignmentDialog({
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <FormLabel>Hạn nộp bài</FormLabel>
-                    <DatePicker date={field.value} setDate={field.onChange}  />
+                    <DatePicker date={field.value} setDate={field.onChange} />
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormLabel>Loại bài tập</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn loại bài tập" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="FILE_UPLOAD">Nộp file</SelectItem>
-                          <SelectItem value="EXAM">Trắc nghiệm</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {assignmentType === "FILE_UPLOAD" && (
               <FormField
                 control={form.control}
                 name="fileType"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="flex-1">
                     <FormLabel>Loại file được chấp nhận</FormLabel>
                     <FormControl>
                       <Select
@@ -273,40 +234,7 @@ export default function CreateAssignmentDialog({
                   </FormItem>
                 )}
               />
-            )}
-
-            {assignmentType === "EXAM" && (
-              <FormField
-                control={form.control}
-                name="examId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bài kiểm tra</FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Chọn bài kiểm tra" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {exams.map((exam) => (
-                            <SelectItem key={exam.id} value={exam.id}>
-                              {exam.title} ({exam.duration} phút)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormDescription>
-                      Chọn bài kiểm tra trắc nghiệm để giao cho học sinh
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            </div>
 
             <FormField
               control={form.control}
@@ -314,20 +242,35 @@ export default function CreateAssignmentDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Giao bài tập cho</FormLabel>
-                  <FormControl>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn đối tượng giao bài" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CLASS">Lớp học</SelectItem>
-                        <SelectItem value="STUDENTS">Sinh viên cụ thể</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
+                  <div className="flex space-x-4">
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === "CLASS"}
+                          onCheckedChange={() =>
+                            field.onChange("CLASS")
+                          }
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">
+                        Lớp học
+                      </FormLabel>
+                    </FormItem>
+
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value === "STUDENTS"}
+                          onCheckedChange={() =>
+                            field.onChange("STUDENTS")
+                          }
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal cursor-pointer">
+                        Học sinh cụ thể
+                      </FormLabel>
+                    </FormItem>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -339,27 +282,27 @@ export default function CreateAssignmentDialog({
                 name="classId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Lớp học</FormLabel>
+                    <FormLabel>Chọn lớp</FormLabel>
                     <FormControl>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Chọn lớp học" />
                         </SelectTrigger>
                         <SelectContent>
                           {classes.map((classItem) => (
-                            <SelectItem key={classItem.id} value={classItem.id}>
+                            <SelectItem
+                              key={classItem.id}
+                              value={classItem.id}
+                            >
                               {classItem.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </FormControl>
-                    <FormDescription>
-                      Bài tập sẽ được giao cho tất cả sinh viên trong lớp
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -372,38 +315,87 @@ export default function CreateAssignmentDialog({
                 name="studentIds"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sinh viên</FormLabel>
-                    <FormDescription>
-                      Chọn sinh viên để giao bài tập
-                    </FormDescription>
-                    <div className="border rounded-md p-4 space-y-4">
-                      {students.map((student) => (
-                        <div
-                          key={student.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Checkbox
-                            id={student.id}
-                            checked={field.value?.includes(student.id)}
-                            onCheckedChange={(checked) => {
-                              const currentVal = field.value || [];
-                              if (checked) {
-                                field.onChange([...currentVal, student.id]);
-                              } else {
-                                field.onChange(
-                                  currentVal.filter((id) => id !== student.id)
-                                );
-                              }
-                            }}
-                          />
-                          <label
-                            htmlFor={student.id}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    <FormLabel>Chọn học sinh</FormLabel>
+                    <div className="border p-4 rounded-md max-h-40 overflow-y-auto">
+                      {students.length > 0 ? (
+                        students.map((student) => (
+                          <div
+                            key={student.id}
+                            className="flex items-center space-x-2 my-2"
                           >
-                            {student.user.displayName}
-                          </label>
+                            <Checkbox
+                              id={student.id}
+                              checked={(field.value || []).includes(
+                                student.id
+                              )}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  field.onChange([
+                                    ...(field.value || []),
+                                    student.id,
+                                  ]);
+                                } else {
+                                  field.onChange(
+                                    (field.value || []).filter(
+                                      (id) => id !== student.id
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor={student.id}
+                              className="text-sm cursor-pointer"
+                            >
+                              {student.user.displayName}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Không có học sinh nào đăng ký khóa học
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-2">
+                      {(field.value || []).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {(field.value || []).map((studentId) => {
+                            const student = students.find(
+                              (s) => s.id === studentId
+                            );
+                            return (
+                              <div
+                                key={studentId}
+                                className="flex items-center bg-secondary rounded-md px-2 py-1"
+                              >
+                                <span className="text-sm">
+                                  {student?.user.displayName}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  className="h-4 w-4 p-0 ml-1"
+                                  onClick={() => {
+                                    field.onChange(
+                                      (field.value || []).filter(
+                                        (id) => id !== studentId
+                                      )
+                                    );
+                                  }}
+                                >
+                                  ×
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Chọn học sinh để giao bài tập
+                        </p>
+                      )}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -412,13 +404,6 @@ export default function CreateAssignmentDialog({
             )}
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsOpen(false)}
-              >
-                Hủy
-              </Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Đang tạo..." : "Tạo bài tập"}
               </Button>

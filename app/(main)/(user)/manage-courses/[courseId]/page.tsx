@@ -15,7 +15,8 @@ import EditCourseDialog from "../EditCourseDialog";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import CreateAssignmentDialog from "./CreateAssignmentDialog";
+import AssignExamButton from "./AssignExamButton";
+import CreateFileAssignmentDialog from "./CreateFileAssignmentDialog";
 
 interface PageProps {
   params: Promise<{
@@ -74,12 +75,6 @@ async function getCourseDetails(courseId: string, userId: string) {
                 name: true,
               },
             },
-            exam: {
-              select: {
-                id: true,
-                title: true,
-              },
-            },
             _count: {
               select: {
                 submissions: true,
@@ -122,22 +117,70 @@ export default async function ManageCourseDetail({ params }: PageProps) {
     notFound();
   }
 
+  const examAttempts = await prisma.examAttempt.findMany({
+    where: {
+      courseId: courseId,
+    },
+    include: {
+      class: true,
+      student: true,
+    },
+  });
+
+  // Nhóm các bài kiểm tra theo lớp học và tên
+  interface GroupedExam {
+    id: string;
+    name: string | null;
+    class: { id: string; name: string };
+    expirateAt: Date | null;
+    notStarted: number;
+    inProgress: number;
+    completed: number;
+    total: number;
+  }
+
+  // Tạo map để lưu trữ các bài kiểm tra đã được gom nhóm
+  const groupedExamsMap = new Map<string, GroupedExam>();
+
+  // Duyệt qua tất cả các lần thi và gom nhóm theo lớp và tên bài kiểm tra
+  for (const attempt of examAttempts) {
+    if (!attempt.class) continue;
+
+    const key = `${attempt.classId}-${attempt.name || ""}`;
+
+    if (!groupedExamsMap.has(key)) {
+      groupedExamsMap.set(key, {
+        id: key,
+        name: attempt.name,
+        class: attempt.class,
+        expirateAt: attempt.expirateAt,
+        notStarted: 0,
+        inProgress: 0,
+        completed: 0,
+        total: 0,
+      });
+    }
+
+    const examGroup = groupedExamsMap.get(key)!;
+
+    // Cập nhật thông kê trạng thái
+    examGroup.total++;
+    if (attempt.finishedAt) {
+      examGroup.completed++;
+    } else if (attempt.startedAt) {
+      examGroup.inProgress++;
+    } else {
+      examGroup.notStarted++;
+    }
+  }
+
+  // Chuyển từ Map sang mảng để hiển thị
+  const examsDisplay = Array.from(groupedExamsMap.values());
+
   // Lấy danh sách các lớp học cho chức năng tạo bài tập
   const classes = await prisma.class.findMany({
     orderBy: {
       name: "asc",
-    },
-  });
-
-  // Lấy danh sách bài kiểm tra cho chức năng tạo bài tập
-  const exams = await prisma.exam.findMany({
-    orderBy: {
-      title: "asc",
-    },
-    select: {
-      id: true,
-      title: true,
-      duration: true,
     },
   });
 
@@ -382,95 +425,228 @@ export default async function ManageCourseDetail({ params }: PageProps) {
         <TabsContent value="assignments" className="border rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">Danh sách bài tập</h2>
-            <CreateAssignmentDialog
-              courseId={course.id}
-              exams={exams}
-              classes={classes}
-              students={enrolledStudents}
-            />
+            <div className="flex space-x-3">
+              <CreateFileAssignmentDialog
+                courseId={course.id}
+                classes={classes}
+                students={enrolledStudents}
+              />
+              <AssignExamButton courseId={course.id} />
+            </div>
           </div>
 
-          {course.assignments.length > 0 ? (
-            <div className="space-y-4">
-              {course.assignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="border rounded-md p-4 flex justify-between items-center group hover:border-primary transition-colors"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-lg">
-                        {assignment.title}
-                      </h3>
-                    </div>
-
-                    <p className="text-muted-foreground text-sm mt-1">
-                      {assignment.description || "Không có mô tả"}
-                    </p>
-
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge
-                        variant="outline"
-                        className={
-                          assignment.type === "EXAM"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-cyan-100 text-cyan-800"
-                        }
-                      >
-                        {assignment.type === "EXAM"
-                          ? "Bài kiểm tra"
-                          : "Nộp file"}
-                      </Badge>
-
-                      {assignment.class && (
-                        <Badge
-                          variant="outline"
-                          className="bg-blue-100 text-blue-800"
-                        >
-                          Lớp: {assignment.class.name}
-                        </Badge>
-                      )}
-
-                      <Badge
-                        variant="outline"
-                        className="bg-amber-100 text-amber-800"
-                      >
-                        Hạn nộp:{" "}
-                        {format(new Date(assignment.dueDate), "dd/MM/yyyy", {
-                          locale: vi,
-                        })}
-                      </Badge>
-
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-800"
-                      >
-                        {assignment._count.submissions} bài nộp
-                      </Badge>
-                    </div>
+          <Tabs defaultValue="file">
+            <TabsList className="mb-4">
+              <TabsTrigger value="file">Bài tập nộp file</TabsTrigger>
+              <TabsTrigger value="exam">Bài kiểm tra trắc nghiệm</TabsTrigger>
+            </TabsList>
+            <TabsContent value="file">
+              {course.assignments.filter((a) => a.type === "FILE_UPLOAD")
+                .length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">
+                      Danh sách bài tập nộp file
+                    </h3>
+                    <CreateFileAssignmentDialog
+                      courseId={course.id}
+                      classes={classes}
+                      students={enrolledStudents}
+                    />
                   </div>
+                  {course.assignments
+                    .filter((assignment) => assignment.type === "FILE_UPLOAD")
+                    .map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className="border rounded-md p-4 flex justify-between items-center group hover:border-primary transition-colors"
+                      >
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium text-lg">
+                              {assignment.title}
+                            </h3>
+                          </div>
 
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Link
-                      href={`/manage-courses/${course.id}/assignments/${assignment.id}`}
-                    >
-                      <Button variant="outline" size="sm">
-                        <PenLine className="mr-1 h-4 w-4" />
-                        Quản lý
-                      </Button>
-                    </Link>
-                  </div>
+                          <p className="text-muted-foreground text-sm mt-1">
+                            {assignment.description || "Không có mô tả"}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Badge
+                              variant="outline"
+                              className="bg-cyan-100 text-cyan-800"
+                            >
+                              Nộp file
+                            </Badge>
+
+                            {assignment.class && (
+                              <Badge
+                                variant="outline"
+                                className="bg-blue-100 text-blue-800"
+                              >
+                                Lớp: {assignment.class.name}
+                              </Badge>
+                            )}
+
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-100 text-amber-800"
+                            >
+                              Hạn nộp:{" "}
+                              {format(
+                                new Date(assignment.dueDate),
+                                "dd/MM/yyyy",
+                                {
+                                  locale: vi,
+                                }
+                              )}
+                            </Badge>
+
+                            <Badge
+                              variant="outline"
+                              className="bg-green-100 text-green-800"
+                            >
+                              {assignment._count.submissions} bài nộp
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Link
+                            href={`/manage-courses/${course.id}/assignments/${assignment.id}`}
+                          >
+                            <Button variant="outline" size="sm">
+                              <PenLine className="mr-1 h-4 w-4" />
+                              Quản lý
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12 bg-muted/30 rounded-lg">
-              <h3 className="text-xl font-medium mb-2">Chưa có bài tập nào</h3>
-              <p className="text-muted-foreground mb-6">
-                Hãy thêm bài tập đầu tiên cho khóa học của bạn
-              </p>
-            </div>
-          )}
+              ) : (
+                <div className="text-center py-12 bg-muted/30 rounded-lg">
+                  <h3 className="text-xl font-medium mb-2">
+                    Chưa có bài tập nộp file nào
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Hãy thêm bài tập nộp file đầu tiên cho khóa học của bạn
+                  </p>
+                  <CreateFileAssignmentDialog
+                    courseId={course.id}
+                    classes={classes}
+                    students={enrolledStudents}
+                  />
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="exam">
+              {examsDisplay.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">
+                      Danh sách bài kiểm tra
+                    </h3>
+                    <AssignExamButton courseId={course.id} />
+                  </div>
+                  {examsDisplay.map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="border rounded-md p-4 flex justify-between items-center group hover:border-primary transition-colors"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium text-lg">{exam.name}</h3>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-100 text-purple-800"
+                          >
+                            Bài kiểm tra
+                          </Badge>
+
+                          {exam.class && (
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-100 text-blue-800"
+                            >
+                              Lớp: {exam.class.name}
+                            </Badge>
+                          )}
+
+                          {exam.expirateAt && (
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-100 text-amber-800"
+                            >
+                              Hạn nộp:{" "}
+                              {format(new Date(exam.expirateAt), "dd/MM/yyyy", {
+                                locale: vi,
+                              })}
+                            </Badge>
+                          )}
+
+                          <Badge
+                            variant="outline"
+                            className="bg-red-100 text-red-800"
+                          >
+                            Chưa làm: {exam.notStarted}
+                          </Badge>
+
+                          <Badge
+                            variant="outline"
+                            className="bg-yellow-100 text-yellow-800"
+                          >
+                            Đang làm: {exam.inProgress}
+                          </Badge>
+
+                          <Badge
+                            variant="outline"
+                            className="bg-green-100 text-green-800"
+                          >
+                            Hoàn thành: {exam.completed}
+                          </Badge>
+
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-100 text-blue-800"
+                          >
+                            Tổng: {exam.total}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Link
+                          href={`/manage-courses/${course.id}/exams?class=${
+                            exam.class.id
+                          }&name=${encodeURIComponent(exam.name || "")}`}
+                        >
+                          <Button variant="outline" size="sm">
+                            <PenLine className="mr-1 h-4 w-4" />
+                            Quản lý
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 bg-muted/30 rounded-lg">
+                  <h3 className="text-xl font-medium mb-2">
+                    Chưa có bài kiểm tra nào
+                  </h3>
+                  <p className="text-muted-foreground mb-6">
+                    Hãy thêm bài kiểm tra đầu tiên cho khóa học của bạn
+                  </p>
+                  <AssignExamButton courseId={course.id} />
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </div>

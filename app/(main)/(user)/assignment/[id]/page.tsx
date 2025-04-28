@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import AssignmentDetail from "./AssignmentDetail";
-import { Assignment, AssignmentSubmission, AssignmentType, ExamAttempt, QuizAttempt } from "@prisma/client";
+import { Assignment, AssignmentSubmission, AssignmentType, ExamAttempt } from "@prisma/client";
 
 interface AssignmentPageProps {
   params: Promise<{ id: string }>;
@@ -18,8 +18,6 @@ interface FormattedAssignment {
   dueDate: string;
   type: AssignmentType;
   fileType: string | null;
-  examId: string | null;
-  quizId: string | null;
   course: {
     id: string;
     name: string;
@@ -30,35 +28,11 @@ interface FormattedAssignment {
     };
     enrollments: any[];
   };
-  exam: {
-    id: string;
-    title: string;
-    duration: number;
-  } | null;
-  quiz: {
-    id: string;
-    title: string;
-    timeLimit: number | null;
-  } | null;
   submissions: Array<{
     id: string;
     fileUrl: string | null;
-    examAttemptId: string | null;
-    quizAttemptId: string | null;
     grade: number | null;
     submittedAt: string;
-    examAttempt: {
-      id: string;
-      score: number | null;
-      startedAt: string | null;
-      finishedAt: string | null;
-    } | null;
-    quizAttempt: {
-      id: string;
-      score: number | null;
-      startedAt: string | null;
-      finishedAt: string | null;
-    } | null;
   }>;
 }
 
@@ -101,27 +75,9 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
           },
         },
       },
-      exam: {
-        select: {
-          id: true,
-          title: true,
-          duration: true,
-        },
-      },
-      quiz: {
-        select: {
-          id: true,
-          title: true,
-          timeLimit: true,
-        },
-      },
       submissions: {
         where: {
           studentId: user.student.id,
-        },
-        include: {
-          examAttempt: true,
-          quizAttempt: true,
         },
       },
     },
@@ -152,20 +108,8 @@ export default async function AssignmentPage({ params }: AssignmentPageProps) {
     submissions: assignment.submissions.map(submission => ({
       ...submission,
       submittedAt: submission.submittedAt.toISOString(),
-      examAttempt: submission.examAttempt
-        ? {
-            ...submission.examAttempt,
-            startedAt: submission.examAttempt.startedAt?.toISOString() || null,
-            finishedAt: submission.examAttempt.finishedAt?.toISOString() || null,
-          }
-        : null,
-      quizAttempt: submission.quizAttempt
-        ? {
-            ...submission.quizAttempt,
-            startedAt: submission.quizAttempt.startedAt?.toISOString() || null,
-            finishedAt: submission.quizAttempt.finishedAt?.toISOString() || null,
-          }
-        : null,
+      examAttempt: null,
+      quizAttempt: null,
     })),
   };
 

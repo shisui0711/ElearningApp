@@ -3,7 +3,87 @@ import prisma from "@/lib/prisma";
 import { createCourseSchema, updateCourseSchema } from "@/lib/validation";
 import { validateRequest } from "@/auth";
 
-// GET all courses with pagination
+/**
+ * @swagger
+ * /api/courses:
+ *   get:
+ *     summary: Get all courses with pagination
+ *     tags: [Courses]
+ *     parameters:
+ *       - in: query
+ *         name: pageNumber
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: name
+ *         schema:
+ *           type: string
+ *         description: Filter courses by name
+ *       - in: query
+ *         name: departmentId
+ *         schema:
+ *           type: string
+ *         description: Filter courses by department ID
+ *       - in: query
+ *         name: teacherId
+ *         schema:
+ *           type: string
+ *         description: Filter courses by teacher ID
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of courses with pagination metadata
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         description: Course ID
+ *                       name:
+ *                         type: string
+ *                         description: Course name
+ *                       description:
+ *                         type: string
+ *                         description: Course description
+ *                       imageUrl:
+ *                         type: string
+ *                         description: Course image URL
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     pageNumber:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalCount:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPreviousPage:
+ *                       type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function GET(request: Request) {
   try {
     const { user } = await validateRequest();
@@ -81,6 +161,69 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * @swagger
+ * /api/courses:
+ *   post:
+ *     summary: Create a new course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - description
+ *               - departmentId
+ *               - teacherId
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Course name
+ *               description:
+ *                 type: string
+ *                 description: Course description
+ *               imageUrl:
+ *                 type: string
+ *                 description: Course image URL
+ *               departmentId:
+ *                 type: string
+ *                 description: Department ID
+ *               teacherId:
+ *                 type: string
+ *                 description: Teacher ID
+ *     responses:
+ *       200:
+ *         description: Course created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                   description: Course ID
+ *                 name:
+ *                   type: string
+ *                   description: Course name
+ *                 description:
+ *                   type: string
+ *                   description: Course description
+ *       400:
+ *         description: Invalid data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers can create courses
+ *       404:
+ *         description: Teacher or department not found
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function POST(req: Request) {
   try {
     // Verify authentication
@@ -161,7 +304,52 @@ export async function POST(req: Request) {
   }
 }
 
-// Update a course - only the teacher who created the course or an admin can update it
+/**
+ * @swagger
+ * /api/courses:
+ *   put:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: Course ID
+ *               name:
+ *                 type: string
+ *                 description: Course name
+ *               description:
+ *                 type: string
+ *                 description: Course description
+ *               imageUrl:
+ *                 type: string
+ *                 description: Course image URL
+ *               departmentId:
+ *                 type: string
+ *                 description: Department ID
+ *     responses:
+ *       200:
+ *         description: Course updated successfully
+ *       400:
+ *         description: Invalid data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only the teacher who created the course or an admin can update it
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function PUT(req: Request) {
   try {
     // Verify authentication
@@ -243,7 +431,35 @@ export async function PUT(req: Request) {
   }
 }
 
-// Delete a course - only the teacher who created the course or an admin can delete it
+/**
+ * @swagger
+ * /api/courses:
+ *   delete:
+ *     summary: Delete a course
+ *     tags: [Courses]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Course ID to delete
+ *     responses:
+ *       200:
+ *         description: Course deleted successfully
+ *       400:
+ *         description: Course ID is required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only the teacher who created the course or an admin can delete it
+ *       404:
+ *         description: Course not found
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function DELETE(req: Request) {
   try {
     // Get courseId from URL

@@ -9,6 +9,8 @@ import {
   FileText,
   Plus,
   Award,
+  Eye,
+  FileCheck,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -30,6 +32,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow, isPast, format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import DoExamButton from "@/components/DoExamButton";
 
 interface CoursePageProps {
   params: Promise<{ id: string }>;
@@ -85,12 +90,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
               name: true,
             },
           },
-          exam: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
           _count: {
             select: {
               submissions: true,
@@ -108,6 +107,23 @@ const CoursePage = async ({ params }: CoursePageProps) => {
     },
   })) as CourseWithDetails | null;
 
+  const examAttempts = await prisma.examAttempt.findMany({
+    where: {
+      OR: [
+        {
+          studentId: user.student?.id,
+        },
+        {
+          classId: user.student?.classId ?? undefined,
+          studentId: user.student?.id,
+        },
+      ],
+      courseId: course?.id,
+    },
+  });
+
+  console.log(examAttempts);
+
   if (!course) {
     return notFound();
   }
@@ -123,7 +139,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
   const isEnrolled = !!enrollment;
   const isTeacher = course.teacherId === user.teacher?.id;
   const isAdmin = user.role === "ADMIN";
-
   return (
     <div className="min-h-screen bg-background">
       <div className="relative h-[60vh] w-full">
@@ -189,17 +204,112 @@ const CoursePage = async ({ params }: CoursePageProps) => {
               </CardHeader>
 
               <CardContent>
-                {course.assignments.length === 0 ? (
+                {course.assignments.length === 0 &&
+                examAttempts.length === 0 ? (
                   <div className="text-center py-6 text-muted-foreground">
                     Khóa học chưa có bài tập nào
                   </div>
                 ) : (
                   <div className="space-y-4">
+                    {examAttempts.map((examAttempt) => {
+                      
+                      return (
+                        <div
+                          key={examAttempt.id}
+                          className="border rounded-lg p-4 transition-colors hover:border-primary"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="font-medium text-lg mb-1">
+                                {examAttempt.name}
+                              </h3>
+                              <div className="flex flex-wrap gap-3 mb-3">
+                                <div className="flex items-center text-xs text-muted-foreground">
+                                  <Badge
+                                    variant="outline"
+                                    className={`bg-purple-100 text-purple-800`}
+                                  >
+                                    Trắc nghiệm
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-center text-xs text-muted-foreground">
+                                  <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                                  <span>
+                                    Hạn nộp:{" "}
+                                    {format(
+                                      examAttempt.expirateAt!,
+                                      "dd/MM/yyyy HH:mm",
+                                      {
+                                        locale: vi,
+                                      }
+                                    )}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center text-xs text-muted-foreground">
+                                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                                  <span>
+                                    {isPast(examAttempt.expirateAt!)
+                                      ? `Đã hết hạn ${formatDistanceToNow(
+                                          examAttempt.expirateAt!,
+                                          { addSuffix: true, locale: vi }
+                                        )}`
+                                      : `Còn ${formatDistanceToNow(
+                                          examAttempt.expirateAt!,
+                                          {
+                                            locale: vi,
+                                          }
+                                        )}`}
+                                  </span>
+                                </div>
+
+                                {/* {isEnrolled && (
+                              <Badge className={status.color}>
+                                {status.label}
+                              </Badge>
+                            )} */}
+
+                                {examAttempt.finishedAt !== null && (
+                                  <div className="flex items-center text-xs font-medium">
+                                    <Badge
+                                      variant="outline"
+                                      className="bg-green-100 text-green-700"
+                                    >
+                                      {examAttempt.score} điểm //TODO: Điểm số
+                                    </Badge>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="ml-4 flex-shrink-0">
+                              <DoExamButton examAttempt={examAttempt} />
+
+                              {(isTeacher || isAdmin) && (
+                                <Link
+                                  href={`/manage-courses/${course.id}`}
+                                  passHref
+                                >
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="ml-2"
+                                  >
+                                    Quản lý
+                                  </Button>
+                                </Link>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                     {course.assignments.map((assignment) => {
                       const dueDate = new Date(assignment.dueDate);
                       const hasSubmission =
                         assignment.submissions &&
-                        assignment.submissions.some(x=>x.fileUrl);
+                        assignment.submissions.some((x) => x.fileUrl);
                       const submission = hasSubmission
                         ? assignment.submissions[0]
                         : null;
@@ -254,15 +364,9 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                                 <div className="flex items-center text-xs text-muted-foreground">
                                   <Badge
                                     variant="outline"
-                                    className={
-                                      assignment.type === "EXAM"
-                                        ? "bg-purple-100 text-purple-800"
-                                        : "bg-cyan-100 text-cyan-800"
-                                    }
+                                    className={"bg-cyan-100 text-cyan-800"}
                                   >
-                                    {assignment.type === "EXAM"
-                                      ? "Trắc nghiệm"
-                                      : "Nộp file"}
+                                    Nộp file
                                   </Badge>
                                 </div>
 
@@ -324,13 +428,8 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                                         : "default"
                                     }
                                   >
-                                    {assignment.type === "EXAM"
-                                      ? status.status === "submitted" ||
-                                        status.status === "graded"
-                                        ? "Xem bài làm"
-                                        : "Làm bài"
-                                      : status.status === "submitted" ||
-                                        status.status === "graded"
+                                    {status.status === "submitted" ||
+                                    status.status === "graded"
                                       ? "Xem bài nộp"
                                       : "Nộp bài"}
                                   </Button>

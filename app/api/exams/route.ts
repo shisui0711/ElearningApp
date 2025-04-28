@@ -2,6 +2,66 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/exams:
+ *   get:
+ *     summary: Get all exams with pagination
+ *     tags: [Exams]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter exams by title
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of exams with pagination metadata
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Exam'
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     pageNumber:
+ *                       type: integer
+ *                     pageSize:
+ *                       type: integer
+ *                     totalCount:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                     hasNextPage:
+ *                       type: boolean
+ *                     hasPreviousPage:
+ *                       type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers and admins can access exams
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function GET(request: NextRequest) {
   try {
     const { user } = await validateRequest();
@@ -75,6 +135,42 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * @swagger
+ * /api/exams:
+ *   post:
+ *     summary: Create a new exam
+ *     tags: [Exams]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Exam title
+ *     responses:
+ *       200:
+ *         description: Exam created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Exam'
+ *       400:
+ *         description: Invalid title
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers and admins can create exams
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function POST(request: NextRequest) {
   try {
     const { user } = await validateRequest();

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users } from "lucide-react";
+import { Users, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +25,13 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface AssignExamButtonProps {
   examId: string;
@@ -99,7 +107,10 @@ export default function AssignExamButton({
   });
   const [duration, setDuration] = useState(60); // in minutes
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
-
+  const [dueDate, setDueDate] = useState<Date>(
+    new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  ); // Default 30 days from now
+  const [examName, setExamName] = useState("");
   // Selected values
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
@@ -222,8 +233,18 @@ export default function AssignExamButton({
   };
 
   const handleAssignToDepartment = async () => {
+    if (!examName) {
+      toast.error("Vui lòng nhập tên bài kiểm tra");
+      return;
+    }
+
     if (!selectedDepartmentId) {
       toast.error("Vui lòng chọn khoa.");
+      return;
+    }
+
+    if (!dueDate) {
+      toast.error("Vui lòng chọn hạn nộp bài");
       return;
     }
 
@@ -240,6 +261,8 @@ export default function AssignExamButton({
           difficultyConfig,
           duration,
           showCorrectAnswers,
+          expirateAt: dueDate,
+          name: examName,
         }),
       });
 
@@ -258,8 +281,18 @@ export default function AssignExamButton({
   };
 
   const handleAssignToClass = async () => {
+    if (!examName) {
+      toast.error("Vui lòng nhập tên bài kiểm tra");
+      return;
+    }
+
     if (!selectedClassId) {
       toast.error("Vui lòng chọn lớp học.");
+      return;
+    }
+
+    if (!dueDate) {
+      toast.error("Vui lòng chọn hạn nộp bài");
       return;
     }
 
@@ -276,6 +309,8 @@ export default function AssignExamButton({
           difficultyConfig,
           duration,
           showCorrectAnswers,
+          dueDate,
+          name: examName,
         }),
       });
 
@@ -294,8 +329,18 @@ export default function AssignExamButton({
   };
 
   const handleAssignToCourse = async () => {
+    if (!examName) {
+      toast.error("Vui lòng nhập tên bài kiểm tra");
+      return;
+    }
+
     if (!selectedCourseId) {
       toast.error("Vui lòng chọn khóa học.");
+      return;
+    }
+
+    if (!dueDate) {
+      toast.error("Vui lòng chọn hạn nộp bài");
       return;
     }
 
@@ -312,6 +357,8 @@ export default function AssignExamButton({
           difficultyConfig,
           duration,
           showCorrectAnswers,
+          dueDate,
+          name: examName,
         }),
       });
 
@@ -330,8 +377,18 @@ export default function AssignExamButton({
   };
 
   const handleAssignToStudents = async () => {
+    if (!examName) {
+      toast.error("Vui lòng nhập tên bài kiểm tra");
+      return;
+    }
+
     if (selectedStudents.length === 0) {
       toast.error("Vui lòng chọn ít nhất một học sinh.");
+      return;
+    }
+
+    if (!dueDate) {
+      toast.error("Vui lòng chọn hạn nộp bài");
       return;
     }
 
@@ -348,6 +405,8 @@ export default function AssignExamButton({
           difficultyConfig,
           duration,
           showCorrectAnswers,
+          dueDate,
+          name: examName,
         }),
       });
 
@@ -512,6 +571,41 @@ export default function AssignExamButton({
               </div>
             </CardContent>
           </Card>
+
+          <div className="space-y-2">
+            <Label htmlFor="exam-name">Tên bài kiểm tra</Label>
+            <Input
+              id="exam-name"
+              type="text"
+              value={examName}
+              onChange={(e) => setExamName(e.target.value)}
+            />
+            <Label htmlFor="due-date">Hạn nộp bài</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="due-date"
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !dueDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dueDate ? format(dueDate, "dd/MM/yyyy") : <span>Chọn ngày</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dueDate}
+                  onSelect={(date) => date && setDueDate(date)}
+                  disabled={(date) => date < new Date()}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -582,11 +676,12 @@ export default function AssignExamButton({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {filteredClasses.map((classItem) => (
-                    <SelectItem key={classItem.id} value={classItem.id}>
-                      {classItem.name}
-                    </SelectItem>
-                  ))}
+                  {Array.isArray(filteredClasses) &&
+                    filteredClasses.map((classItem) => (
+                      <SelectItem key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -652,11 +747,12 @@ export default function AssignExamButton({
                   <SelectValue placeholder="Chọn lớp" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((classItem) => (
-                    <SelectItem key={classItem.id} value={classItem.id}>
-                      {classItem.name}
-                    </SelectItem>
-                  ))}
+                  {Array.isArray(classes) &&
+                    classes.map((classItem) => (
+                      <SelectItem key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -700,7 +796,7 @@ export default function AssignExamButton({
         <div className="flex justify-end mt-4">
           <Button
             onClick={handleSubmit}
-            disabled={loading || totalSelectedQuestions === 0}
+            disabled={loading || totalSelectedQuestions === 0 || !dueDate}
           >
             {loading ? "Đang tiến hành..." : "Giao bài kiểm tra"}
           </Button>

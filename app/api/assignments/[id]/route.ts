@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   get:
+ *     summary: Get detailed information about an assignment
+ *     tags: [Assignments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assignment ID
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Assignment details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Assignment'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - You don't have permission to access this assignment
+ *       404:
+ *         description: Assignment not found
+ *       500:
+ *         description: Internal Server Error
+ */
 // API để lấy thông tin chi tiết bài tập
 export async function GET(
   request: NextRequest,
@@ -30,11 +61,6 @@ export async function GET(
           select: {
             id: true,
             name: true,
-          },
-        },
-        examAttempt: {
-          include: {
-            exam: true,
           },
         },
         submissions: {
@@ -83,6 +109,72 @@ export async function GET(
   }
 }
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   put:
+ *     summary: Update an assignment
+ *     tags: [Assignments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assignment ID
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Assignment title
+ *               description:
+ *                 type: string
+ *                 description: Assignment description
+ *               dueDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Assignment due date
+ *               type:
+ *                 type: string
+ *                 enum: [FILE, TEXT, MULTIPLE_CHOICE]
+ *                 description: Assignment type
+ *               classId:
+ *                 type: string
+ *                 description: Class ID if assignment is for a specific class
+ *               examId:
+ *                 type: string
+ *                 description: Exam ID if assignment is related to an exam
+ *               fileType:
+ *                 type: string
+ *                 description: Allowed file type for submissions
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: List of student IDs who are assigned this assignment
+ *     responses:
+ *       200:
+ *         description: Assignment updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Assignment'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers who created the assignment or admins can update it
+ *       404:
+ *         description: Assignment not found
+ *       500:
+ *         description: Internal Server Error
+ */
 // API để cập nhật thông tin bài tập
 export async function PUT(
   request: NextRequest,
@@ -206,6 +298,33 @@ export async function PUT(
   }
 }
 
+/**
+ * @swagger
+ * /api/assignments/{id}:
+ *   delete:
+ *     summary: Delete an assignment
+ *     tags: [Assignments]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Assignment ID to delete
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: Assignment deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers who created the assignment or admins can delete it
+ *       404:
+ *         description: Assignment not found
+ *       500:
+ *         description: Internal Server Error
+ */
 // API để xóa bài tập
 export async function DELETE(
   request: NextRequest,

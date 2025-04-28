@@ -56,13 +56,6 @@ export async function GET(
             name: true,
           },
         },
-        exam: {
-          select: {
-            id: true,
-            title: true,
-            duration: true,
-          },
-        },
         submissions: user.student
           ? {
               where: {
@@ -79,7 +72,10 @@ export async function GET(
     return NextResponse.json(assignments);
   } catch (error) {
     console.error("[COURSE_ASSIGNMENTS_GET]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -123,6 +119,8 @@ export async function POST(
       examId,
       fileType,
       studentIds,
+      duration,
+      showCorrectAnswers,
     } = body;
 
     // Kiểm tra dữ liệu đầu vào
@@ -148,6 +146,23 @@ export async function POST(
       );
     }
 
+    let examAttemptId = null;
+
+    // Chỉ tạo exam attempt khi type là EXAM và có examId
+    if (type === "EXAM" && examId) {
+      const examAttempt = await prisma.examAttempt.create({
+        data: {
+          examId,
+          courseId,
+          classId,
+          duration: duration || 60, // Mặc định 60 phút nếu không chỉ định
+          showCorrectAfter: showCorrectAnswers || false,
+        },
+      });
+
+      examAttemptId = examAttempt.id;
+    }
+
     // Tạo bài tập mới
     const assignment = await prisma.assignment.create({
       data: {
@@ -157,8 +172,7 @@ export async function POST(
         type,
         courseId,
         classId: classId || null,
-        examId: examId || null,
-        fileType: fileType || null,
+        fileType: type === "FILE_UPLOAD" ? fileType : null,
       },
     });
 
@@ -196,6 +210,9 @@ export async function POST(
     return NextResponse.json(assignment);
   } catch (error) {
     console.error("[COURSE_ASSIGNMENTS_POST]", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
-} 
+}

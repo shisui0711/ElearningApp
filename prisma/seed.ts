@@ -1,15 +1,14 @@
 import { PrismaClient, UserRole, AssignmentType } from "@prisma/client";
 import { createHash } from "crypto";
 
-
 function encryptSha256(text: string) {
-  const hash = createHash('sha256');
+  const hash = createHash("sha256");
 
   // Update the hash object with the input text
   hash.update(text);
 
   // Calculate the hash digest in hexadecimal format
-  const digest = hash.digest('hex');
+  const digest = hash.digest("hex");
 
   // Return the hash digest
   return digest;
@@ -19,7 +18,9 @@ const prisma = new PrismaClient();
 
 // Hàm để tạo ngày ngẫu nhiên trong phạm vi
 function randomDate(start: Date, end: Date) {
-  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+  return new Date(
+    start.getTime() + Math.random() * (end.getTime() - start.getTime())
+  );
 }
 
 // Hàm để tạo điểm ngẫu nhiên
@@ -36,18 +37,18 @@ async function main() {
     { name: "Công nghệ may" },
     { name: "Kinh tế" },
     { name: "Ngôn ngữ Anh" },
-    { name: "Sư phạm" }
+    { name: "Sư phạm" },
   ];
 
   // Tạo các phòng ban
   for (const deptData of departments) {
     const existingDept = await prisma.department.findFirst({
-      where: { name: deptData.name }
+      where: { name: deptData.name },
     });
 
     if (!existingDept) {
       await prisma.department.create({
-        data: deptData
+        data: deptData,
       });
       console.log(`Đã tạo phòng ban: ${deptData.name}`);
     }
@@ -55,12 +56,12 @@ async function main() {
 
   // Lấy IDs của các phòng ban
   const deptIds = await prisma.department.findMany({
-    select: { id: true }
+    select: { id: true },
   });
 
   // Tạo tài khoản admin nếu chưa có
   const adminExists = await prisma.user.findFirst({
-    where: { role: UserRole.ADMIN }
+    where: { role: UserRole.ADMIN },
   });
 
   if (!adminExists) {
@@ -73,8 +74,8 @@ async function main() {
         lastName: "User",
         email: "admin@example.com",
         passwordHash,
-        role: UserRole.ADMIN
-      }
+        role: UserRole.ADMIN,
+      },
     });
     console.log("Đã tạo tài khoản admin");
   }
@@ -99,16 +100,18 @@ async function main() {
           email: `teacher${teacherNumber}@example.com`,
           passwordHash,
           role: UserRole.TEACHER,
-          createdAt
-        }
+          createdAt,
+        },
       });
 
       // Tạo teacher
       await prisma.teacher.create({
         data: {
           userId: user.id,
-          degree: ["Thạc sĩ", "Tiến sĩ", "Giáo sư"][Math.floor(Math.random() * 3)]
-        }
+          degree: ["Thạc sĩ", "Tiến sĩ", "Giáo sư"][
+            Math.floor(Math.random() * 3)
+          ],
+        },
       });
 
       console.log(`Đã tạo giáo viên: ${user.username}`);
@@ -125,8 +128,8 @@ async function main() {
       await prisma.class.create({
         data: {
           name: `Class ${classNumber}`,
-          departmentId: deptId
-        }
+          departmentId: deptId,
+        },
       });
 
       console.log(`Đã tạo lớp học: Class ${classNumber}`);
@@ -156,16 +159,16 @@ async function main() {
           email: `student${studentNumber}@example.com`,
           passwordHash,
           role: UserRole.STUDENT,
-          createdAt
-        }
+          createdAt,
+        },
       });
 
       // Tạo student
       await prisma.student.create({
         data: {
           userId: user.id,
-          classId
-        }
+          classId,
+        },
       });
 
       if (i % 20 === 0) {
@@ -192,8 +195,10 @@ async function main() {
             description: `Description for course ${courseNumber}`,
             teacherId: teacher.id,
             departmentId: deptId,
-            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(Math.random() * 1000)}`,
-          }
+            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(
+              Math.random() * 1000
+            )}`,
+          },
         });
       }
     }
@@ -217,23 +222,13 @@ async function main() {
 
       for (const course of selectedCourses) {
         const enrollmentDate = randomDate(new Date(2023, 0, 1), new Date());
-        
+
         await prisma.enrollment.create({
           data: {
             studentId: student.id,
             courseId: course.id,
-            createdAt: enrollmentDate
-          }
-        });
-
-        // Cập nhật lại quan hệ nhiều-nhiều
-        await prisma.student.update({
-          where: { id: student.id },
-          data: {
-            enrolledCourses: {
-              connect: { id: course.id }
-            }
-          }
+            createdAt: enrollmentDate,
+          },
         });
       }
     }
@@ -245,15 +240,15 @@ async function main() {
   if (lessonCount < 500) {
     for (const course of courses) {
       const numLessons = Math.floor(Math.random() * 6) + 5; // 5-10 lessons
-      
+
       for (let i = 0; i < numLessons; i++) {
         await prisma.lesson.create({
           data: {
             title: `Lesson ${i + 1} for ${course.name}`,
             description: `Description for lesson ${i + 1}`,
             position: i + 1,
-            courseId: course.id
-          }
+            courseId: course.id,
+          },
         });
       }
     }
@@ -272,30 +267,34 @@ async function main() {
       // Lấy khóa học mà sinh viên đã đăng ký
       const enrolledCourses = await prisma.enrollment.findMany({
         where: { studentId: student.id },
-        select: { courseId: true }
+        select: { courseId: true },
       });
 
       // Lấy bài học từ các khóa học đã đăng ký
       const enrolledLessons = await prisma.lesson.findMany({
         where: {
           courseId: {
-            in: enrolledCourses.map(ec => ec.courseId)
-          }
-        }
+            in: enrolledCourses.map((ec) => ec.courseId),
+          },
+        },
       });
 
       // Hoàn thành ngẫu nhiên 40-80% bài học
       const completionPercentage = Math.random() * 0.4 + 0.4; // 40-80%
-      const lessonsToComplete = Math.floor(enrolledLessons.length * completionPercentage);
-      const shuffledLessons = [...enrolledLessons].sort(() => 0.5 - Math.random());
-      
+      const lessonsToComplete = Math.floor(
+        enrolledLessons.length * completionPercentage
+      );
+      const shuffledLessons = [...enrolledLessons].sort(
+        () => 0.5 - Math.random()
+      );
+
       for (let i = 0; i < lessonsToComplete; i++) {
         if (i < shuffledLessons.length) {
           await prisma.completedLesson.create({
             data: {
               studentId: student.id,
-              lessonId: shuffledLessons[i].id
-            }
+              lessonId: shuffledLessons[i].id,
+            },
           });
         }
       }
@@ -310,7 +309,7 @@ async function main() {
       await prisma.exam.create({
         data: {
           title: `Exam ${i + 1}`,
-        }
+        },
       });
     }
     console.log("Đã tạo xong bài thi");
@@ -324,15 +323,17 @@ async function main() {
     for (const exam of exams) {
       // 8-12 câu hỏi mỗi bài thi
       const numQuestions = Math.floor(Math.random() * 5) + 8;
-      
+
       for (let i = 0; i < numQuestions; i++) {
         // Tạo câu hỏi
         const question = await prisma.question.create({
           data: {
             content: `Câu ${i + 1} for ${exam.title}`,
-            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(Math.random() * 1000)}`,
-            points: Math.floor(Math.random() * 5) + 1 // 1-5 điểm
-          }
+            imageUrl: `https://picsum.photos/200/300?random=${Math.floor(
+              Math.random() * 1000
+            )}`,
+            points: Math.floor(Math.random() * 5) + 1, // 1-5 điểm
+          },
         });
 
         // Kết nối câu hỏi với bài thi
@@ -340,20 +341,20 @@ async function main() {
           data: {
             examId: exam.id,
             questionId: question.id,
-            order: i + 1
-          }
+            order: i + 1,
+          },
         });
 
         // Tạo 4 câu trả lời cho mỗi câu hỏi (1 đúng, 3 sai)
         const correctAnswerIndex = Math.floor(Math.random() * 4);
-        
+
         for (let j = 0; j < 4; j++) {
           await prisma.answer.create({
             data: {
               content: `Answer ${j + 1} for question ${i + 1}`,
               isCorrect: j === correctAnswerIndex,
-              questionId: question.id
-            }
+              questionId: question.id,
+            },
           });
         }
       }
@@ -375,28 +376,31 @@ async function main() {
       const exam = exams[Math.floor(Math.random() * exams.length)];
       const course = courses[Math.floor(Math.random() * courses.length)];
       const classObj = classes[Math.floor(Math.random() * classes.length)];
-      
+
       // Thời gian thi
       const startDate = randomDate(new Date(2023, 3, 1), new Date());
       const finishDate = new Date(startDate);
       const duration = Math.floor(Math.random() * 60) + 30; // 30-90 phút
-      finishDate.setMinutes(finishDate.getMinutes() + duration + Math.floor(Math.random() * 30));
-      
+      finishDate.setMinutes(
+        finishDate.getMinutes() + duration + Math.floor(Math.random() * 30)
+      );
+
       // Điểm thi (40-100)
       const score = randomScore();
-      
+
       // Tạo mảng các ID câu hỏi được chọn cho lần thi này
       const examQuestions = await prisma.examQuestion.findMany({
         where: { examId: exam.id },
-        include: { question: true }
+        include: { question: true },
       });
-      
-      const selectedQuestions = examQuestions.map(eq => eq.questionId);
+
+      const selectedQuestions = examQuestions.map((eq) => eq.questionId);
 
       // Tạo lần thi
       const attempt = await prisma.examAttempt.create({
         data: {
           studentId: student.id,
+          name: `Bài thi ${i + 1}`,
           examId: exam.id,
           courseId: course.id,
           classId: classObj.id,
@@ -405,30 +409,37 @@ async function main() {
           score,
           duration: duration,
           showCorrectAfter: Math.random() > 0.5,
-          selectedQuestions: selectedQuestions,
-          createdAt: startDate
-        }
+          createdAt: startDate,
+          examAttemptQuestions: {
+            create: selectedQuestions.map(questionId => ({
+              questionId
+            }))
+          }
+        },
       });
 
       // Tạo câu trả lời của sinh viên
       for (const eq of examQuestions) {
         // Lấy tất cả câu trả lời cho câu hỏi này
         const answers = await prisma.answer.findMany({
-          where: { questionId: eq.questionId }
+          where: { questionId: eq.questionId },
         });
 
         // Xác định xem sinh viên trả lời đúng hay sai (tỉ lệ đúng phụ thuộc vào điểm số)
         const correctProbability = score / 100;
         const answeredCorrectly = Math.random() < correctProbability;
-        
+
         // Nếu trả lời đúng, chọn câu trả lời đúng
         // Nếu trả lời sai, chọn một câu trả lời sai
         let selectedAnswer;
         if (answeredCorrectly) {
-          selectedAnswer = answers.find(a => a.isCorrect);
+          selectedAnswer = answers.find((a) => a.isCorrect);
         } else {
-          const incorrectAnswers = answers.filter(a => !a.isCorrect);
-          selectedAnswer = incorrectAnswers[Math.floor(Math.random() * incorrectAnswers.length)];
+          const incorrectAnswers = answers.filter((a) => !a.isCorrect);
+          selectedAnswer =
+            incorrectAnswers[
+              Math.floor(Math.random() * incorrectAnswers.length)
+            ];
         }
 
         if (selectedAnswer) {
@@ -437,16 +448,16 @@ async function main() {
             data: {
               attemptId: attempt.id,
               questionId: eq.questionId,
-              answerId: selectedAnswer.id
-            }
+              answerId: selectedAnswer.id,
+            },
           });
 
           // Tạo đánh giá câu hỏi
           await prisma.markedQuestion.create({
             data: {
               attemptId: attempt.id,
-              questionId: eq.questionId
-            }
+              questionId: eq.questionId,
+            },
           });
         }
       }
@@ -464,40 +475,24 @@ async function main() {
     for (let i = 0; i < 100; i++) {
       const course = courses[Math.floor(Math.random() * courses.length)];
       const classObj = classes[Math.floor(Math.random() * classes.length)];
-      const dueDate = randomDate(new Date(), new Date(new Date().setMonth(new Date().getMonth() + 3)));
-      
-      // Loại bài tập: EXAM, FILE_UPLOAD hoặc QUIZ
-      const types = [AssignmentType.EXAM, AssignmentType.FILE_UPLOAD, AssignmentType.QUIZ];
-      const type = types[Math.floor(Math.random() * types.length)];
-      
-      // Nếu là bài tập EXAM, liên kết với một lần thi
-      let examAttemptId = null;
-      if (type === AssignmentType.EXAM) {
-        const examAttemptCount = await prisma.examAttempt.count();
-        if (examAttemptCount > 0) {
-          const skip = Math.floor(Math.random() * examAttemptCount);
-          const examAttempt = await prisma.examAttempt.findFirst({
-            skip,
-            take: 1
-          });
-          if (examAttempt) {
-            examAttemptId = examAttempt.id;
-          }
-        }
-      }
-      
+      const dueDate = randomDate(
+        new Date(),
+        new Date(new Date().setMonth(new Date().getMonth() + 3))
+      );
+
+      // Loại bài tập: FILE_UPLOAD
+      const type = AssignmentType.FILE_UPLOAD;
+
       // Loại file cho bài tập upload
       const fileTypes = [
         "pdf",
         "doc,docx",
         "ppt,pptx",
         "jpg,png,gif",
-        "zip,rar"
+        "zip,rar",
       ];
-      const fileType = type === AssignmentType.FILE_UPLOAD 
-        ? fileTypes[Math.floor(Math.random() * fileTypes.length)]
-        : null;
-      
+      const fileType = fileTypes[Math.floor(Math.random() * fileTypes.length)];
+
       await prisma.assignment.create({
         data: {
           title: `Assignment ${i + 1}`,
@@ -506,9 +501,8 @@ async function main() {
           type,
           courseId: course.id,
           classId: Math.random() > 0.5 ? classObj.id : null, // 50% chance of being assigned to a class
-          examAttemptId,
-          fileType
-        }
+          fileType,
+        },
       });
     }
     console.log("Đã tạo xong bài tập");
@@ -519,32 +513,32 @@ async function main() {
   if (submissionCount < 300) {
     // Lấy tất cả bài tập
     const assignments = await prisma.assignment.findMany();
-    
+
     // Mỗi sinh viên nộp 1-3 bài tập ngẫu nhiên
     for (const student of students) {
       const numSubmissions = Math.floor(Math.random() * 3) + 1;
-      const shuffledAssignments = [...assignments].sort(() => 0.5 - Math.random());
+      const shuffledAssignments = [...assignments].sort(
+        () => 0.5 - Math.random()
+      );
       const selectedAssignments = shuffledAssignments.slice(0, numSubmissions);
-      
+
       for (const assignment of selectedAssignments) {
         const submittedAt = randomDate(
-          new Date(), 
-          assignment.dueDate < new Date() 
-            ? assignment.dueDate 
-            : new Date()
+          new Date(),
+          assignment.dueDate < new Date() ? assignment.dueDate : new Date()
         );
-        
-        let fileUrl = null;
-        if (assignment.type === AssignmentType.FILE_UPLOAD) {
-          fileUrl = `https://example.com/uploads/student_${student.id}_assignment_${assignment.id}.pdf`;
-        }
-        
+
+        // All assignments are FILE_UPLOAD type, so all should have fileUrl
+        const fileUrl = `https://example.com/uploads/student_${student.id}_assignment_${assignment.id}.pdf`;
+
         // Một số bài tập đã được chấm điểm
         const isGraded = Math.random() > 0.3;
         const grade = isGraded ? Math.floor(Math.random() * 11) : null; // Điểm từ 0-10
-        const feedback = isGraded ? `Feedback for student ${student.id}'s submission` : null;
+        const feedback = isGraded
+          ? `Feedback for student ${student.id}'s submission`
+          : null;
         const gradedAt = isGraded ? randomDate(submittedAt, new Date()) : null;
-        
+
         await prisma.assignmentSubmission.create({
           data: {
             assignmentId: assignment.id,
@@ -553,8 +547,8 @@ async function main() {
             grade,
             feedback,
             submittedAt,
-            gradedAt
-          }
+            gradedAt,
+          },
         });
       }
     }
@@ -571,4 +565,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

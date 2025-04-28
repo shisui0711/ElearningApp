@@ -44,7 +44,9 @@ export default function DeleteCourseDialog({
 
       toast.success("Xóa khóa học thành công");
       setOpen(false);
-      onCourseDeleted && onCourseDeleted();
+      if(onCourseDeleted){
+        onCourseDeleted();
+      }
     } catch (error) {
       console.error("Failed to delete course:", error);
       toast.error("Không thể xóa khóa học");

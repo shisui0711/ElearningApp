@@ -63,11 +63,6 @@ export async function GET(req: Request) {
             },
           },
         },
-        enrolledCourses: {
-          select: {
-            id: true,
-          },
-        },
       },
       orderBy: {
         createdAt: "desc",

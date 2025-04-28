@@ -62,21 +62,23 @@ export default function DoExam({ examId }: { examId: string }) {
     async function fetchExam() {
       try {
         const response = await fetch(`/api/student/exams/${examId}`);
-        
+
         if (response.status === 403) {
           // If the exam is already completed, redirect to results page
           const errorData = await response.json();
           if (errorData.error === "This exam has already been completed") {
-            toast.info("Bạn đã hoàn thành bài kiểm tra này. Đang chuyển đến trang kết quả...");
+            toast.info(
+              "Bạn đã hoàn thành bài kiểm tra này. Đang chuyển đến trang kết quả..."
+            );
             router.push(`/assignment/${examId}/view`);
             return;
           }
         }
-        
+
         if (!response.ok) {
           throw new Error("Failed to fetch exam");
         }
-        
+
         const data = await response.json();
         setExam(data);
 
@@ -390,14 +392,21 @@ export default function DoExam({ examId }: { examId: string }) {
                   >
                     Câu trước
                   </Button>
-                  <Button
-                    disabled={
-                      currentQuestionIndex === exam.questions.length - 1
-                    }
+                  {currentQuestionIndex !== exam.questions.length - 1 ? (
+                    <Button
                     onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
                   >
                     Câu sau
                   </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setConfirmSubmit(true)}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                      Nộp bài
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

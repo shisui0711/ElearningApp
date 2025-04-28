@@ -2,6 +2,54 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
 
+/**
+ * @swagger
+ * /api/lessons:
+ *   post:
+ *     summary: Create a new lesson
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - courseId
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Lesson title
+ *               description:
+ *                 type: string
+ *                 description: Lesson description
+ *               videoUrl:
+ *                 type: string
+ *                 description: URL to the lesson video
+ *               courseId:
+ *                 type: string
+ *                 description: ID of the course this lesson belongs to
+ *     responses:
+ *       200:
+ *         description: Lesson created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Lesson'
+ *       400:
+ *         description: Title and courseId are required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers can create lessons
+ *       404:
+ *         description: Teacher not found or Course not found
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function POST(req: Request) {
   try {
     // Verify authentication
@@ -78,6 +126,61 @@ export async function POST(req: Request) {
   }
 }
 
+/**
+ * @swagger
+ * /api/lessons:
+ *   put:
+ *     summary: Update a lesson
+ *     tags: [Lessons]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - id
+ *               - title
+ *               - courseId
+ *             properties:
+ *               id:
+ *                 type: string
+ *                 description: Lesson ID
+ *               title:
+ *                 type: string
+ *                 description: Lesson title
+ *               description:
+ *                 type: string
+ *                 description: Lesson description
+ *               videoUrl:
+ *                 type: string
+ *                 description: URL to the lesson video
+ *               position:
+ *                 type: integer
+ *                 description: Position of the lesson in the course
+ *               courseId:
+ *                 type: string
+ *                 description: ID of the course this lesson belongs to
+ *     responses:
+ *       200:
+ *         description: Lesson updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Lesson'
+ *       400:
+ *         description: ID, title, and courseId are required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Only teachers can update lessons
+ *       404:
+ *         description: Teacher, course, or lesson not found
+ *       500:
+ *         description: Internal Server Error
+ */
 export async function PUT(req: Request) {
   try {
     // Verify authentication

@@ -2,12 +2,39 @@ import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const question = await prisma.question.findUnique({
+      where: { id },
+      include: { answers: true },
+    });
+
+    if (!question) {
+      return new NextResponse(JSON.stringify({ error: "Question not found" }), {
+        status: 404,
+      });
+    }
+
+    return NextResponse.json(question);
+  } catch (error) {
+    console.error("[QUESTION_GET]", error);
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { user } =  await validateRequest();
+    const { user } = await validateRequest();
     if (!user) {
       return new NextResponse(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -23,9 +50,12 @@ export async function PATCH(
     const { id } = await params;
 
     if (!id) {
-      return new NextResponse(JSON.stringify({ error: "Missing question ID" }), {
-        status: 400,
-      });
+      return new NextResponse(
+        JSON.stringify({ error: "Missing question ID" }),
+        {
+          status: 400,
+        }
+      );
     }
 
     const body = await request.json();
@@ -78,10 +108,9 @@ export async function PATCH(
     });
 
     if (!existingQuestion) {
-      return new NextResponse(
-        JSON.stringify({ error: "Question not found" }),
-        { status: 404 }
-      );
+      return new NextResponse(JSON.stringify({ error: "Question not found" }), {
+        status: 404,
+      });
     }
 
     // Transaction to update question and its answers
@@ -198,10 +227,9 @@ export async function DELETE(
     });
 
     if (!question) {
-      return new NextResponse(
-        JSON.stringify({ error: "Question not found" }),
-        { status: 404 }
-      );
+      return new NextResponse(JSON.stringify({ error: "Question not found" }), {
+        status: 404,
+      });
     }
 
     // If question is used in multiple exams, just remove from current exam
@@ -240,4 +268,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-} 
+}

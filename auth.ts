@@ -52,6 +52,7 @@ interface DatabaseUserAttributes {
   role: "STUDENT" | "TEACHER" | "ADMIN"
   student: {
     id: string;
+    classId: string | null;
   } | undefined | null,
   teacher?: {
     id: string;

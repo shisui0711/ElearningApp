@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, ChevronRight, Eye, FileCheck, TimerIcon } from "lucide-react";
+import { CalendarClock, Eye, FileCheck, TimerIcon } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

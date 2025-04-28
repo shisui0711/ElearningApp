@@ -17,11 +17,8 @@ import {
   Clock,
   FileText,
   Upload,
-  ChevronRight,
   Award,
   Download,
-  CheckCircle,
-  AlertCircle,
   Loader2,
   ArrowRight,
   Eye,
@@ -38,10 +35,8 @@ interface AssignmentDetailProps {
     title: string;
     description: string | null;
     dueDate: string;
-    type: "EXAM" | "FILE_UPLOAD" | "QUIZ";
+    type: "FILE_UPLOAD";
     fileType: string | null;
-    examId: string | null;
-    quizId: string | null;
     course: {
       id: string;
       name: string;
@@ -51,35 +46,11 @@ interface AssignmentDetailProps {
         };
       };
     };
-    exam?: {
-      id: string;
-      title: string;
-      duration: number;
-    } | null;
-    quiz?: {
-      id: string;
-      title: string;
-      timeLimit: number | null;
-    } | null;
     submissions: Array<{
       id: string;
       fileUrl: string | null;
-      examAttemptId: string | null;
-      quizAttemptId: string | null;
       grade: number | null;
       submittedAt: string;
-      examAttempt?: {
-        id: string;
-        score: number | null;
-        startedAt: string | null;
-        finishedAt: string | null;
-      } | null;
-      quizAttempt?: {
-        id: string;
-        score: number | null;
-        startedAt: string | null;
-        finishedAt: string | null;
-      } | null;
     }>;
   };
   studentId: string;
@@ -96,7 +67,7 @@ export default function AssignmentDetail({
 
   const dueDate = new Date(assignment.dueDate);
   const isDueDatePassed = isPast(dueDate);
-  const hasSubmission = assignment.submissions.some((x) => x.fileUrl || x.examAttemptId || x.quizAttemptId);
+  const hasSubmission = assignment.submissions.some((x) => x.fileUrl);
   const submission = hasSubmission ? assignment.submissions[0] : null;
   const isGraded = submission && submission.grade !== null;
 
@@ -158,90 +129,6 @@ export default function AssignmentDetail({
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    }
-  };
-
-  const startExam = async () => {
-    if (!assignment.examId) {
-      toast.error("Không tìm thấy bài kiểm tra");
-      return;
-    }
-
-    try {
-      // Tạo lần thi mới và liên kết với bài tập
-      const response = await fetch(`/api/exams/${assignment.examId}/start`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Có lỗi xảy ra khi bắt đầu làm bài");
-      }
-
-      const data = await response.json();
-
-      // Liên kết lần thi với bài tập
-      await fetch(`/api/assignments/${assignment.id}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          examAttemptId: data.id,
-        }),
-      });
-
-      // Chuyển hướng đến trang làm bài
-      router.push(`/assignment/${assignment.id}/take/${data.id}`);
-    } catch (error) {
-      console.error("Error starting exam:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Có lỗi xảy ra khi bắt đầu làm bài"
-      );
-    }
-  };
-
-  const startQuiz = async () => {
-    if (!assignment.quizId) {
-      toast.error("Không tìm thấy bài tập trắc nghiệm");
-      return;
-    }
-
-    try {
-      // Tạo lần làm bài mới
-      const response = await fetch(`/api/quizzes/${assignment.quizId}/start`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Có lỗi xảy ra khi bắt đầu làm bài");
-      }
-
-      const data = await response.json();
-
-      // Liên kết lần làm với bài tập
-      await fetch(`/api/assignments/${assignment.id}/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          quizAttemptId: data.id,
-        }),
-      });
-
-      // Chuyển hướng đến trang làm bài
-      router.push(`/assignment/${assignment.id}/quiz/${data.id}`);
-    } catch (error) {
-      console.error("Error starting quiz:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Có lỗi xảy ra khi bắt đầu làm bài"
-      );
     }
   };
 
@@ -310,7 +197,9 @@ export default function AssignmentDetail({
             <CardContent className="pt-6">
               {assignment.description && (
                 <div className="mb-6 prose max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: assignment.description }} />
+                  <div
+                    dangerouslySetInnerHTML={{ __html: assignment.description }}
+                  />
                 </div>
               )}
 
@@ -334,64 +223,10 @@ export default function AssignmentDetail({
                     <span>{getFileTypeLabel(assignment.fileType)}</span>
                   </div>
                 )}
-
-                {assignment.type === "EXAM" && assignment.exam && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Thời gian làm bài:</span>
-                    <span>{assignment.exam.duration} phút</span>
-                  </div>
-                )}
-
-                {assignment.type === "QUIZ" && assignment.quiz && assignment.quiz.timeLimit && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">Thời gian làm bài:</span>
-                    <span>{assignment.quiz.timeLimit} phút</span>
-                  </div>
-                )}
               </div>
             </CardContent>
             <CardFooter className="flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
               <div className="grid gap-2 flex-1 w-full">
-                {assignment.type === "EXAM" && (
-                  <Button
-                    onClick={startExam}
-                    disabled={isDueDatePassed}
-                    className="w-full"
-                  >
-                    {submission?.examAttempt?.finishedAt ? (
-                      "Bài đã nộp, xem lại kết quả"
-                    ) : submission?.examAttempt?.startedAt ? (
-                      "Tiếp tục làm bài"
-                    ) : (
-                      <>
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                        Bắt đầu làm bài kiểm tra
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {assignment.type === "QUIZ" && (
-                  <Button
-                    onClick={startQuiz}
-                    disabled={isDueDatePassed}
-                    className="w-full"
-                  >
-                    {submission?.quizAttempt?.finishedAt ? (
-                      "Bài đã nộp, xem lại kết quả"
-                    ) : submission?.quizAttempt?.startedAt ? (
-                      "Tiếp tục làm bài"
-                    ) : (
-                      <>
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                        Bắt đầu làm bài
-                      </>
-                    )}
-                  </Button>
-                )}
-
                 {assignment.type === "FILE_UPLOAD" && (
                   <>
                     <input
@@ -437,22 +272,10 @@ export default function AssignmentDetail({
                     Hãy nộp bài trước thời hạn{" "}
                     {format(dueDate, "dd/MM/yyyy HH:mm", { locale: vi })}.
                   </p>
-                  {assignment.type === "FILE_UPLOAD" ? (
-                    <Button onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Nộp bài tập
-                    </Button>
-                  ) : assignment.type === "EXAM" ? (
-                    <Button onClick={startExam}>
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      Bắt đầu làm bài
-                    </Button>
-                  ) : (
-                    <Button onClick={startQuiz}>
-                      <ArrowRight className="mr-2 h-4 w-4" />
-                      Bắt đầu làm bài
-                    </Button>
-                  )}
+                  <Button onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Nộp bài tập
+                  </Button>
                 </div>
               ) : submission ? (
                 <div className="space-y-6">
@@ -461,13 +284,14 @@ export default function AssignmentDetail({
                       <CalendarIcon className="h-5 w-5 text-muted-foreground" />
                       <span className="font-medium">Thời gian nộp:</span>
                       <span>
-                        {submission && format(
-                          new Date(submission.submittedAt),
-                          "dd/MM/yyyy HH:mm",
-                          {
-                            locale: vi,
-                          }
-                        )}
+                        {submission &&
+                          format(
+                            new Date(submission.submittedAt),
+                            "dd/MM/yyyy HH:mm",
+                            {
+                              locale: vi,
+                            }
+                          )}
                       </span>
                     </div>
 
@@ -497,148 +321,6 @@ export default function AssignmentDetail({
                             <Download className="h-4 w-4 mr-1" />
                             Tải xuống
                           </a>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {assignment.type === "EXAM" && submission.examAttempt && (
-                    <Card className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="border-t border-border p-4">
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-muted-foreground" />
-                              <span className="font-medium">
-                                Kết quả bài kiểm tra
-                              </span>
-                            </div>
-                            {submission.examAttempt.score !== null && (
-                              <div className="flex items-center gap-2">
-                                <Award className="h-5 w-5 text-yellow-500" />
-                                <span className="font-medium">Điểm: </span>
-                                <span className="font-bold">
-                                  {submission.examAttempt.score}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Thời gian bắt đầu:
-                              </span>
-                              <span>
-                                {submission.examAttempt.startedAt
-                                  ? format(
-                                      new Date(submission.examAttempt.startedAt),
-                                      "dd/MM/yyyy HH:mm",
-                                      { locale: vi }
-                                    )
-                                  : "Chưa bắt đầu"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Thời gian kết thúc:
-                              </span>
-                              <span>
-                                {submission.examAttempt.finishedAt
-                                  ? format(
-                                      new Date(submission.examAttempt.finishedAt),
-                                      "dd/MM/yyyy HH:mm",
-                                      { locale: vi }
-                                    )
-                                  : "Chưa hoàn thành"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() =>
-                                router.push(
-                                  `/assignment/${assignment.id}/view/${submission.examAttempt?.id}`
-                                )
-                              }
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Xem chi tiết bài làm
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {assignment.type === "QUIZ" && submission.quizAttempt && (
-                    <Card className="overflow-hidden">
-                      <CardContent className="p-0">
-                        <div className="border-t border-border p-4">
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-5 w-5 text-muted-foreground" />
-                              <span className="font-medium">
-                                Kết quả bài tập trắc nghiệm
-                              </span>
-                            </div>
-                            {submission.quizAttempt.score !== null && (
-                              <div className="flex items-center gap-2">
-                                <Award className="h-5 w-5 text-yellow-500" />
-                                <span className="font-medium">Điểm: </span>
-                                <span className="font-bold">
-                                  {submission.quizAttempt.score}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Thời gian bắt đầu:
-                              </span>
-                              <span>
-                                {submission.quizAttempt.startedAt
-                                  ? format(
-                                      new Date(submission.quizAttempt.startedAt),
-                                      "dd/MM/yyyy HH:mm",
-                                      { locale: vi }
-                                    )
-                                  : "Chưa bắt đầu"}
-                              </span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-muted-foreground">
-                                Thời gian kết thúc:
-                              </span>
-                              <span>
-                                {submission.quizAttempt.finishedAt
-                                  ? format(
-                                      new Date(submission.quizAttempt.finishedAt),
-                                      "dd/MM/yyyy HH:mm",
-                                      { locale: vi }
-                                    )
-                                  : "Chưa hoàn thành"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="mt-4">
-                            <Button
-                              variant="outline"
-                              className="w-full"
-                              onClick={() =>
-                                router.push(
-                                  `/assignment/${assignment.id}/quiz-result/${submission.quizAttempt?.id}`
-                                )
-                              }
-                            >
-                              <Eye className="mr-2 h-4 w-4" />
-                              Xem chi tiết bài làm
-                            </Button>
-                          </div>
                         </div>
                       </CardContent>
                     </Card>

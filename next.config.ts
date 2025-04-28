@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true
-  }
+  },
+  transpilePackages: ['swagger-ui-react'],
 };
 
 export default nextConfig;
