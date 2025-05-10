@@ -1,5 +1,6 @@
 import Menu from "@/components/admin/Menu";
 import Navbar from "@/components/admin/Navbar";
+import AdminFooter from "@/components/admin/Footer";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -24,7 +25,10 @@ export default function AdminLayout({
       {/* RIGHT */}
       <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-background overflow-scroll flex flex-col">
         <Navbar />
-        {children}
+        <div className="flex-1 flex flex-col">
+          {children}
+          <AdminFooter />
+        </div>
       </div>
     </div>
   );
