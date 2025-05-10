@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { AnimatedCard } from "@/components/ui/animated-card";
 import { Pencil, Plus, Save, Trash2, ArrowLeft } from "lucide-react";
 import {
   AlertDialog,
@@ -50,9 +51,11 @@ interface ExamWithQuestions {
 
 interface ExamEditorProps {
   examId: string;
+  onAddQuestion?: () => void;
+  onEditQuestion?: (question: Question) => void;
 }
 
-export default function ExamEditor({ examId }: ExamEditorProps) {
+export default function ExamEditor({ examId, onAddQuestion, onEditQuestion }: ExamEditorProps) {
   const router = useRouter();
   const [exam, setExam] = useState<ExamWithQuestions | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,13 +136,21 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
   };
 
   const handleEditQuestion = (question: Question) => {
-    setEditingQuestion(question);
-    setIsAddingQuestion(false);
+    if (onEditQuestion) {
+      onEditQuestion(question);
+    } else {
+      setEditingQuestion(question);
+      setIsAddingQuestion(false);
+    }
   };
 
   const handleAddQuestion = () => {
-    setIsAddingQuestion(true);
-    setEditingQuestion(null);
+    if (onAddQuestion) {
+      onAddQuestion();
+    } else {
+      setIsAddingQuestion(true);
+      setEditingQuestion(null);
+    }
   };
 
   const handleQuestionSaved = () => {
@@ -167,7 +178,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
         <Button
           variant="ghost"
           onClick={() => router.push("/admin/exams")}
-          className="gap-1"
+          className="gap-1 hover:bg-primary/10"
         >
           <ArrowLeft className="h-4 w-4" />
           Quay lại
@@ -190,7 +201,10 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
             </div>
 
             <div className="flex gap-2 mt-4">
-              <Button onClick={handleUpdateExam}>
+              <Button
+                onClick={handleUpdateExam}
+                className="bg-gradient-to-r from-[hsl(var(--gradient-2-start))] to-[hsl(var(--gradient-2-end))] hover:opacity-90 text-white border-0"
+              >
                 <Save className="h-4 w-4 mr-1" />
                 Lưu thay đổi
               </Button>
@@ -202,6 +216,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                     setTitle(exam.title);
                   }
                 }}
+                className="hover:bg-primary/10"
               >
                 Hủy
               </Button>
@@ -209,14 +224,18 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
           </div>
         ) : (
           <div className="w-full">
-            <h1 className="text-3xl font-bold">{exam?.title}</h1>
+            <h1 className="text-3xl font-bold text-gradient-2">{exam?.title}</h1>
             <div className="flex justify-between items-center mt-2">
               <div className="space-y-1">
                 <p className="text-sm text-muted-foreground">
                   Số câu hỏi: {exam?.questions.length || 0}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => setIsEditing(true)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                className="hover:bg-primary/10"
+              >
                 <Pencil className="h-4 w-4 mr-1" />
                 Chỉnh sửa
               </Button>
@@ -228,13 +247,16 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
       {!isAddingQuestion && !editingQuestion && (
         <div className="space-y-4 mt-8">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Các câu hỏi</h2>
+            <h2 className="text-xl font-semibold text-gradient-2">Các câu hỏi</h2>
             <div className="flex gap-2">
               <ImportQuestionsButton
                 examId={examId}
                 onImportComplete={fetchExam}
               />
-              <Button onClick={handleAddQuestion}>
+              <Button
+                onClick={handleAddQuestion}
+                className="bg-gradient-to-r from-[hsl(var(--gradient-2-start))] to-[hsl(var(--gradient-2-end))] hover:opacity-90 text-white border-0"
+              >
                 <Plus className="h-4 w-4 mr-1" />
                 Thêm câu hỏi
               </Button>
@@ -242,7 +264,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
           </div>
 
           {exam?.questions.length === 0 ? (
-            <div className="text-center py-10 border rounded-lg">
+            <div className="text-center py-10 border rounded-lg bg-card/60 backdrop-blur-sm">
               <p className="text-muted-foreground">
                 Chưa có câu hỏi nào được thêm vào. Thêm câu hỏi đầu tiên của
                 bạn.
@@ -251,7 +273,11 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
           ) : (
             <div className="space-y-4">
               {exam?.questions.map(({ question, id: examQuestionId }) => (
-                <Card key={examQuestionId} className="overflow-hidden">
+                <AnimatedCard
+                  key={examQuestionId}
+                  className="overflow-hidden bg-card/60 backdrop-blur-sm border-0 shadow-lg"
+                  animationVariant="hover"
+                >
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start">
                       <div className="space-y-4 flex-1">
@@ -265,10 +291,10 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                           <span
                             className={`text-sm px-2 py-0.5 rounded-full ${
                               question.difficulty === "EASY"
-                                ? "bg-green-100 text-green-800"
+                                ? "bg-green-100/80 text-green-800 backdrop-blur-sm"
                                 : question.difficulty === "MEDIUM"
-                                ? "bg-yellow-100 text-yellow-800"
-                                : "bg-red-100 text-red-800"
+                                ? "bg-yellow-100/80 text-yellow-800 backdrop-blur-sm"
+                                : "bg-red-100/80 text-red-800 backdrop-blur-sm"
                             }`}
                           >
                             {question.difficulty === "EASY"
@@ -307,6 +333,7 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditQuestion(question)}
+                          className="hover:bg-primary/10"
                         >
                           <Pencil className="h-4 w-4 mr-1" />
                           Chỉnh sửa
@@ -318,9 +345,9 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                               Xóa
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="bg-card/95 backdrop-blur-sm border-0 shadow-lg">
                             <AlertDialogHeader>
-                              <AlertDialogTitle>
+                              <AlertDialogTitle className="text-xl text-gradient-3">
                                 Bạn có chắc chắn muốn xóa?
                               </AlertDialogTitle>
                               <AlertDialogDescription>
@@ -330,11 +357,12 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy</AlertDialogCancel>
+                              <AlertDialogCancel className="hover:bg-primary/10">Hủy</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() =>
                                   handleDeleteQuestion(question.id)
                                 }
+                                className="bg-gradient-to-r from-[hsl(var(--gradient-3-start))] to-[hsl(var(--gradient-3-end))] hover:opacity-90 text-white border-0"
                               >
                                 Xóa
                               </AlertDialogAction>
@@ -344,14 +372,14 @@ export default function ExamEditor({ examId }: ExamEditorProps) {
                       </div>
                     </div>
                   </CardContent>
-                </Card>
+                </AnimatedCard>
               ))}
             </div>
           )}
         </div>
       )}
 
-      {(isAddingQuestion || editingQuestion) && (
+      {(isAddingQuestion || editingQuestion) && !onAddQuestion && !onEditQuestion && (
         <QuestionForm
           examId={examId}
           question={editingQuestion}

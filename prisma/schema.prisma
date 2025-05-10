@@ -87,26 +87,27 @@ model Student {
 }
 
 model Course {
-  id           String          @id @default(cuid())
-  name         String
-  imageUrl     String?
-  description  String?
-  teacherId    String
-  teacher      Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  departmentId String
-  department   Department      @relation(fields: [departmentId], references: [id])
-  lessons      Lesson[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  createdBy    String?
-  updatedBy    String?
-  documents    Document[]
-  enrollments  Enrollment[]
-  attempts     ExamAttempt[]
-  comments     CourseComment[]
-  assignments  Assignment[]
-  Subject      Subject?        @relation(fields: [subjectId], references: [id])
-  subjectId    String?
+  id              String            @id @default(cuid())
+  name            String
+  imageUrl        String?
+  description     String?
+  teacherId       String
+  teacher         Teacher           @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  departmentId    String
+  department      Department        @relation(fields: [departmentId], references: [id])
+  lessons         Lesson[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  createdBy       String?
+  updatedBy       String?
+  documents       Document[]
+  enrollments     Enrollment[]
+  attempts        ExamAttempt[]
+  comments        CourseComment[]
+  assignments     Assignment[]
+  Subject         Subject?          @relation(fields: [subjectId], references: [id])
+  subjectId       String?
+  CompletedLesson CompletedLesson[]
 
   @@map("courses")
 }
@@ -177,6 +178,8 @@ model CompletedLesson {
   id        String   @id @default(cuid())
   studentId String
   lessonId  String
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
   student   Student  @relation(fields: [studentId], references: [id])
   lesson    Lesson   @relation(fields: [lessonId], references: [id])
   createdAt DateTime @default(now())
@@ -274,26 +277,26 @@ model Answer {
 }
 
 model ExamAttempt {
-  id                  String                @id @default(cuid())
-  name                String?
-  studentId           String?
-  student             Student?              @relation(fields: [studentId], references: [id])
-  examId              String
-  exam                Exam                  @relation(fields: [examId], references: [id])
-  startedAt           DateTime?
-  finishedAt          DateTime?
-  expirateAt          DateTime?
-  score               Int?
-  duration            Int                   @default(60) // in minutes
-  showCorrectAfter    Boolean               @default(false)
-  courseId            String?
-  course              Course?               @relation(fields: [courseId], references: [id])
-  classId             String
-  class               Class                 @relation(fields: [classId], references: [id])
-  createdAt           DateTime              @default(now())
-  answers             StudentAnswer[]
-  markedQuestions     MarkedQuestion[]
-  createdBy           String?
+  id                   String                @id @default(cuid())
+  name                 String?
+  studentId            String?
+  student              Student?              @relation(fields: [studentId], references: [id])
+  examId               String
+  exam                 Exam                  @relation(fields: [examId], references: [id])
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  expirateAt           DateTime?
+  score                Int?
+  duration             Int                   @default(60) // in minutes
+  showCorrectAfter     Boolean               @default(false)
+  courseId             String?
+  course               Course?               @relation(fields: [courseId], references: [id])
+  classId              String
+  class                Class                 @relation(fields: [classId], references: [id])
+  createdAt            DateTime              @default(now())
+  answers              StudentAnswer[]
+  markedQuestions      MarkedQuestion[]
+  createdBy            String?
   examAttemptQuestions ExamAttemptQuestion[]
 
   @@map("exam_attempts")
@@ -346,7 +349,7 @@ model LessonComment {
   updatedAt DateTime @updatedAt
   studentId String?
 
-  @@map("comments")
+  @@map("lesson_comments")
 }
 
 model CourseComment {

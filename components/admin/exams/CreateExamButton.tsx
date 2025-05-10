@@ -1,19 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AnimatedButton } from "@/components/ui/animated-button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAnimation } from "@/provider/AnimationProvider";
 
 export default function CreateExamButton() {
   const router = useRouter();
@@ -21,6 +25,32 @@ export default function CreateExamButton() {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(60);
   const [loading, setLoading] = useState(false);
+  const { gsap, isReady } = useAnimation();
+  const formRef = useRef<HTMLFormElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Animation for form elements when dialog opens
+  useEffect(() => {
+    if (!isReady || !open || !formRef.current) return;
+
+    const formElements = formRef.current.querySelectorAll('input, label, button');
+
+    gsap.fromTo(
+      formElements,
+      { y: 20, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+        stagger: 0.1,
+        ease: "power2.out"
+      }
+    );
+
+    return () => {
+      gsap.killTweensOf(formElements);
+    };
+  }, [isReady, open, gsap]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,41 +90,73 @@ export default function CreateExamButton() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
+        <AnimatedButton
+          ref={buttonRef}
+          gradientVariant="gradient2"
+          animationVariant="hover"
+          size="lg"
+          className="shadow-lg"
+        >
+          <Plus className="h-5 w-5" />
           Tạo bài kiểm tra
-        </Button>
+        </AnimatedButton>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md border-0 shadow-lg bg-card/95 backdrop-blur-sm">
         <DialogHeader>
-          <DialogTitle>Tạo bài kiểm tra mới</DialogTitle>
+          <DialogTitle className="text-xl text-gradient-2">Tạo bài kiểm tra mới</DialogTitle>
+          <DialogDescription>
+            Tạo bài kiểm tra trắc nghiệm mới để giao cho sinh viên
+          </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-          <div className="space-y-2">
-            <Label htmlFor="exam-title">Tiêu đề</Label>
-            <Input
-              id="exam-title"
-              placeholder="Nhập tiêu đề"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              disabled={loading}
-            />
-            <Label htmlFor="points">Thời gian làm bài &#40;phút&#41;</Label>
-            <Input
-              id="points"
-              type="number"
-              min={1}
-              value={duration}
-              onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-              disabled={loading}
-              className="w-24"
-            />
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 pt-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="exam-title" className="text-foreground">Tiêu đề bài kiểm tra</Label>
+              <Input
+                id="exam-title"
+                placeholder="Nhập tiêu đề bài kiểm tra"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                disabled={loading}
+                className="border-input/60 bg-background/60 focus:border-primary"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="duration" className="text-foreground flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                Thời gian làm bài &#40;phút&#41;
+              </Label>
+              <Input
+                id="duration"
+                type="number"
+                min={1}
+                value={duration}
+                onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
+                disabled={loading}
+                className="w-full sm:w-32 border-input/60 bg-background/60 focus:border-primary"
+              />
+            </div>
           </div>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Đang tạo..." : "Tạo"}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+              type="button"
+            >
+              Hủy
             </Button>
-          </div>
+            <AnimatedButton
+              type="submit"
+              disabled={loading}
+              gradientVariant="gradient2"
+              animationVariant="hover"
+            >
+              {loading ? "Đang tạo..." : "Tạo bài kiểm tra"}
+            </AnimatedButton>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

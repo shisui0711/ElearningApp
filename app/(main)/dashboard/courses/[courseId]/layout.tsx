@@ -16,6 +16,9 @@ const CourseLayout = async ({ children, params}:CourseLayoutProps) => {
   if(!user) return redirect("/")
 
   // TODO: Check course access permission
+  const enrollment = await prisma.enrollment.findFirst({where: {studentId: user.student?.id, courseId}})
+
+  if(!enrollment && user.role === "STUDENT") return redirect("/my-course");
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
@@ -40,6 +43,7 @@ const CourseLayout = async ({ children, params}:CourseLayoutProps) => {
   const completedLesson = await prisma.completedLesson.findMany({
     where: {
       studentId: user.student?.id,
+      courseId
     }
   })
 

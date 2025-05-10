@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
     const pageNumber = parseInt(searchParams.get("page") || "1");
     const pageSize = parseInt(searchParams.get("pageSize") || "10");
     const search = searchParams.get("search") || "";
-    
+
     const skip = (pageNumber - 1) * pageSize;
 
     // Get total count for pagination
@@ -115,7 +115,6 @@ export async function GET(request: NextRequest) {
       skip,
       take: pageSize,
     });
-
     return NextResponse.json({
       data: exams,
       pagination: {
@@ -124,14 +123,17 @@ export async function GET(request: NextRequest) {
         totalCount,
         totalPages: Math.ceil(totalCount / pageSize),
         hasNextPage: pageNumber < Math.ceil(totalCount / pageSize),
-        hasPreviousPage: pageNumber > 1
-      }
+        hasPreviousPage: pageNumber > 1,
+      },
     });
   } catch (error) {
     console.error("[EXAMS_GET]", error);
-    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-    });
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      {
+        status: 500,
+      }
+    );
   }
 }
 
@@ -204,8 +206,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(exam);
   } catch (error) {
     console.error("[EXAMS_POST]", error);
-    return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), {
-      status: 500,
-    });
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      {
+        status: 500,
+      }
+    );
   }
-} 
+}
