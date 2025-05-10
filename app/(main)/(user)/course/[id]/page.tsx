@@ -184,7 +184,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2">
             {/* Hiển thị danh sách bài tập */}
-            <Card className="mb-8">
+            {user.student && <Card className="mb-8">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Bài tập</CardTitle>
@@ -192,15 +192,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                     Danh sách bài tập của khóa học
                   </CardDescription>
                 </div>
-
-                {(isTeacher || isAdmin) && (
-                  <Link href={`/manage-courses/${course.id}`}>
-                    <Button variant="outline" size="sm">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Quản lý bài tập
-                    </Button>
-                  </Link>
-                )}
               </CardHeader>
 
               <CardContent>
@@ -212,7 +203,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                 ) : (
                   <div className="space-y-4">
                     {examAttempts.map((examAttempt) => {
-                      
                       return (
                         <div
                           key={examAttempt.id}
@@ -458,7 +448,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                   </div>
                 )}
               </CardContent>
-            </Card>
+            </Card>}
 
             {/* Nội dung khóa học */}
             <div className="bg-card rounded-lg p-6 mb-8 border border-border">

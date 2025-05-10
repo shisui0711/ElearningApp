@@ -110,8 +110,8 @@ const LessonCommentList = ({ lessonId }: LessonCommentListProps) => {
 
   return (
     <div className="mt-8 border rounded-lg shadow-sm">
-      <div className="p-4 border-b bg-gray-50">
-        <h2 className="text-xl font-semibold">Bình luận</h2>
+      <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+        <h2 className="text-xl font-semibold text-gradient-1">Bình luận</h2>
       </div>
 
       {/* Comments list */}

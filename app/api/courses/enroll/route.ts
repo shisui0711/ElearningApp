@@ -22,7 +22,15 @@ export async function GET(request: Request) {
     const skip = (pageNumber - 1) * pageSize;
 
     // Get total count for pagination metadata
-    const totalCount = await prisma.course.count();
+    const totalCount = await prisma.course.count({
+      where: {
+        enrollments: {
+          some: {
+            studentId: user.student?.id,
+          },
+        },
+      },
+    });
 
     const courses = await prisma.course.findMany({
       where: {
