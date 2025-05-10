@@ -1,0 +1,114 @@
+@startuml
+title Course Enrollment - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor ForestGreen
+  ActorBorderColor ForestGreen
+  LifeLineBorderColor DarkGreen
+  LifeLineBackgroundColor PaleGreen
+  
+  ParticipantBorderColor ForestGreen
+  ParticipantBackgroundColor ForestGreen
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor PaleGreen
+  
+  ActorBackgroundColor LightGreen
+  ActorFontColor ForestGreen
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor Student as student
+participant "Enrollment\nInterface" as ui
+participant "Enrollment\nController" as controller
+participant "Course\nRepository" as courseRepo
+participant "Student\nRepository" as studentRepo
+participant "Enrollment\nRepository" as enrollRepo
+participant "Notification\nService" as notify
+
+autonumber
+
+== Browse Available Courses ==
+
+student -> ui: Navigate to course catalog
+ui -> controller: getAvailableCourses(studentId)
+controller -> courseRepo: findAvailableCourses()
+courseRepo --> controller: Return available courses
+controller -> studentRepo: getStudent(studentId)
+studentRepo --> controller: Return student data
+controller -> controller: filterCoursesForStudent(courses, student)
+controller --> ui: Return filtered course list
+ui --> student: Display available courses
+
+== View Course Details ==
+
+student -> ui: Select course to view
+ui -> controller: getCourseDetails(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course details
+controller --> ui: Return course data
+ui --> student: Display course details and enrollment option
+
+== Enroll in Course ==
+
+student -> ui: Click "Enroll" button
+ui -> controller: checkPrerequisites(studentId, courseId)
+controller -> studentRepo: getCompletedCourses(studentId)
+studentRepo --> controller: Return completed courses
+controller -> courseRepo: getCoursePrerequisites(courseId)
+courseRepo --> controller: Return prerequisites
+
+alt Has Prerequisites
+    controller -> controller: verifyPrerequisitesMet(completedCourses, prerequisites)
+    
+    alt Prerequisites Met
+        controller --> ui: Prerequisites satisfied
+    else Prerequisites Not Met
+        controller --> ui: Prerequisites not satisfied
+        ui --> student: Display prerequisite requirements
+        note right: Enrollment process stops here if prerequisites not met
+    end
+end
+
+controller -> courseRepo: checkEnrollmentCapacity(courseId)
+courseRepo --> controller: Return capacity status
+
+alt Requires Enrollment Code
+    controller --> ui: Request enrollment code
+    ui --> student: Prompt for enrollment code
+    student -> ui: Enter enrollment code
+    ui -> controller: validateEnrollmentCode(code, courseId)
+    controller -> courseRepo: checkEnrollmentCode(code, courseId)
+    courseRepo --> controller: Return code validation result
+    
+    alt Invalid Code
+        controller --> ui: Invalid code
+        ui --> student: Display invalid code message
+        note right: Enrollment process stops here if code invalid
+    end
+end
+
+ui -> controller: createEnrollment(studentId, courseId)
+controller -> enrollRepo: save(newEnrollment)
+enrollRepo --> controller: Return enrollment data
+controller -> notify: sendEnrollmentNotification(teacherId, enrollmentId)
+notify --> controller: Notification sent
+controller --> ui: Return success
+ui --> student: Display enrollment confirmation
+
+== Alternative Flow: Course Full ==
+
+controller -> courseRepo: checkEnrollmentCapacity(courseId)
+courseRepo --> controller: Enrollment capacity reached
+controller --> ui: Course is full
+ui --> student: Display course full message and waitlist option
+
+student -> ui: Click "Join Waitlist"
+ui -> controller: addToWaitlist(studentId, courseId)
+controller -> enrollRepo: createWaitlistEntry(studentId, courseId)
+enrollRepo --> controller: Return waitlist confirmation
+controller --> ui: Return success
+ui --> student: Display waitlist confirmation
+
+@enduml 

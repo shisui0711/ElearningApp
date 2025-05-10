@@ -1,0 +1,168 @@
+@startuml
+title Admin Exam Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor SaddleBrown
+  ActorBorderColor SaddleBrown
+  LifeLineBorderColor Sienna
+  LifeLineBackgroundColor Wheat
+  
+  ParticipantBorderColor SaddleBrown
+  ParticipantBackgroundColor SaddleBrown
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor Wheat
+  
+  ActorBackgroundColor Tan
+  ActorFontColor SaddleBrown
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Admin" as admin
+participant "Admin Exam\nInterface" as ui
+participant "Admin Exam\nController" as controller
+participant "Exam\nRepository" as examRepo
+participant "Teacher\nRepository" as teacherRepo
+participant "Department\nRepository" as deptRepo
+participant "Class\nRepository" as classRepo
+participant "Question\nRepository" as questionRepo
+participant "Statistics\nService" as statsService
+participant "Admin Activity\nLogger" as logger
+
+autonumber
+
+== View All Exams ==
+
+admin -> ui: Navigate to exam management
+ui -> controller: getAllExams()
+controller -> examRepo: findAll()
+examRepo --> controller: Return all exams
+controller -> teacherRepo: getTeachersByIds(teacherIds)
+teacherRepo --> controller: Return teacher information
+controller -> controller: organizeExamData(exams, teachers)
+controller --> ui: Return exam list
+ui --> admin: Display exam list
+
+== Filter Exams ==
+
+admin -> ui: Apply filters (department, teacher, etc.)
+ui -> controller: getExamsByFilter(filterParams)
+
+alt Department Filter
+    controller -> deptRepo: findById(departmentId)
+    deptRepo --> controller: Return department
+    controller -> examRepo: findByDepartment(departmentId)
+    examRepo --> controller: Return filtered exams
+else Teacher Filter
+    controller -> teacherRepo: findById(teacherId)
+    teacherRepo --> controller: Return teacher
+    controller -> examRepo: findByTeacher(teacherId)
+    examRepo --> controller: Return filtered exams
+else Date Range Filter
+    controller -> examRepo: findByDateRange(startDate, endDate)
+    examRepo --> controller: Return filtered exams
+end
+
+controller -> controller: organizeExamData(filteredExams)
+controller --> ui: Return filtered exams
+ui --> admin: Display filtered exam list
+
+== View Exam Details ==
+
+admin -> ui: Select exam to view
+ui -> controller: getExamDetails(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller -> questionRepo: findByExamId(examId)
+questionRepo --> controller: Return questions
+controller -> teacherRepo: getTeacherById(teacherId)
+teacherRepo --> controller: Return teacher details
+controller -> statsService: getExamStatistics(examId)
+statsService --> controller: Return statistics
+controller --> ui: Return exam details and stats
+ui --> admin: Display exam details
+
+== Approve Exam ==
+
+admin -> ui: Select "Approve Exam" option
+ui -> controller: checkExamApprovalEligibility(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller -> questionRepo: countByExamId(examId)
+questionRepo --> controller: Return question count
+
+alt Exam Eligible for Approval
+    ui --> admin: Display approval confirmation dialog
+    admin -> ui: Confirm approval
+    ui -> controller: approveExam(examId, adminId)
+    controller -> examRepo: updateApprovalStatus(examId, approved=true, approvedBy=adminId)
+    examRepo --> controller: Return updated exam
+    controller -> logger: logExamApproval(adminId, examId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display approval confirmation
+else Insufficient Questions
+    controller --> ui: Return ineligibility reason
+    ui --> admin: Display requirements for approval
+end
+
+== Assign Exam to Classes ==
+
+admin -> ui: Select "Assign to Classes" option
+ui -> controller: getAvailableClasses()
+controller -> classRepo: findAll()
+classRepo --> controller: Return class list
+controller --> ui: Return available classes
+ui --> admin: Display class selection form
+
+admin -> ui: Select classes and submit
+ui -> controller: assignExamToClasses(examId, classIds)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+
+loop for each class
+    controller -> classRepo: findById(classId)
+    classRepo --> controller: Return class data
+    controller -> examRepo: assignToClass(examId, classId)
+    examRepo --> controller: Return assignment confirmation
+end
+
+controller -> logger: logExamAssignment(adminId, examId, classIds)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display assignment confirmation
+
+== View Exam Statistics ==
+
+admin -> ui: Select "View Statistics" for exam
+ui -> controller: getExamStatistics(examId)
+controller -> statsService: generateExamStatistics(examId)
+statsService -> examRepo: findById(examId)
+examRepo --> statsService: Return exam data
+statsService -> questionRepo: findByExamId(examId)
+questionRepo --> statsService: Return questions
+
+statsService -> statsService: calculatePerformanceMetrics(exam, attempts)
+statsService -> statsService: generateStatisticalCharts(metrics)
+statsService --> controller: Return comprehensive statistics
+controller --> ui: Return statistics and charts
+ui --> admin: Display exam statistics dashboard
+
+== Delete Exam ==
+
+admin -> ui: Select exam and click "Delete"
+ui --> admin: Display confirmation dialog
+admin -> ui: Confirm deletion
+ui -> controller: deleteExam(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller -> controller: checkDeletionEligibility(exam)
+controller -> examRepo: softDelete(examId)
+examRepo --> controller: Return success
+controller -> logger: logExamDeletion(adminId, examId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display deletion confirmation
+
+@enduml 

@@ -1,0 +1,252 @@
+@startuml
+
+' Style settings
+skinparam class {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' User hierarchy
+package "User Management" {
+  abstract class User {
+    -userId: String
+    -username: String
+    -email: String
+    -password: String
+    -profilePicture: String
+    +login()
+    +logout()
+    +resetPassword()
+    +updateProfile()
+  }
+  
+  class Guest {
+    +browsePublicCourses()
+    +signUp()
+  }
+  
+  class Student {
+    -enrolledCourses: List<Course>
+    +enrollCourse()
+    +viewCourseContent()
+    +completeLesson()
+    +submitAssignment()
+    +attemptExam()
+    +downloadMaterial()
+    +leaveComment()
+  }
+  
+  class Teacher {
+    -createdCourses: List<Course>
+    +createCourse()
+    +editCourse()
+    +deleteCourse()
+    +uploadMaterial()
+    +addLesson()
+    +createExam()
+    +gradeExam()
+    +createAssignment()
+    +gradeAssignment()
+  }
+  
+  class Admin {
+    +manageUsers()
+    +manageDepartments()
+    +manageClasses()
+    +manageSubjects()
+    +viewAnalytics()
+  }
+  
+  User <|-- Student
+  User <|-- Teacher
+  User <|-- Admin
+  Guest ..> User : converts to >
+}
+
+' Course Management
+package "Course Management" {
+  class Course {
+    -courseId: String
+    -title: String
+    -description: String
+    -createdDate: Date
+    -teacher: Teacher
+    -lessons: List<Lesson>
+    -materials: List<Material>
+    -enrolledStudents: List<Student>
+    +addLesson()
+    +removeLession()
+    +addMaterial()
+    +removeMaterial()
+  }
+  
+  class Lesson {
+    -lessonId: String
+    -title: String
+    -content: String
+    -sequence: Integer
+    -completed: Boolean
+    -materials: List<Material>
+    +markAsComplete()
+  }
+  
+  class Material {
+    -materialId: String
+    -title: String
+    -type: MaterialType
+    -content: String
+    -fileUrl: String
+    +download()
+  }
+  
+  enum MaterialType {
+    VIDEO
+    DOCUMENT
+    IMAGE
+    LINK
+  }
+  
+  Course "1" *-- "many" Lesson
+  Lesson "1" *-- "many" Material
+  Material ..> MaterialType
+}
+
+' Assignment and Examination
+package "Assignments & Examinations" {
+  abstract class Assessment {
+    -id: String
+    -title: String
+    -description: String
+    -dueDate: Date
+    -totalPoints: Integer
+  }
+  
+  class Assignment {
+    -instructions: String
+    -submissions: List<Submission>
+    +createSubmission()
+    +gradeSubmission()
+  }
+  
+  class Exam {
+    -timeLimit: Integer
+    -questions: List<Question>
+    -attempts: List<ExamAttempt>
+    +addQuestion()
+    +attemptExam()
+    +gradeExam()
+  }
+  
+  class Submission {
+    -studentId: String
+    -submissionDate: Date
+    -content: String
+    -attachments: List<String>
+    -grade: Integer
+    -feedback: String
+  }
+  
+  class ExamAttempt {
+    -studentId: String
+    -startTime: Date
+    -endTime: Date
+    -answers: Map<QuestionId, Answer>
+    -score: Integer
+  }
+  
+  class Question {
+    -questionId: String
+    -text: String
+    -type: QuestionType
+    -points: Integer
+    -options: List<String>
+    -correctAnswer: String
+  }
+  
+  enum QuestionType {
+    MULTIPLE_CHOICE
+    TRUE_FALSE
+    SHORT_ANSWER
+    ESSAY
+  }
+  
+  Assessment <|-- Assignment
+  Assessment <|-- Exam
+  Assignment "1" *-- "many" Submission
+  Exam "1" *-- "many" Question
+  Exam "1" *-- "many" ExamAttempt
+  Question ..> QuestionType
+}
+
+' Forum
+package "Forum" {
+  class Topic {
+    -topicId: String
+    -title: String
+    -content: String
+    -author: User
+    -createdDate: Date
+    -replies: List<Reply>
+    +addReply()
+  }
+  
+  class Reply {
+    -replyId: String
+    -content: String
+    -author: User
+    -createdDate: Date
+    -likes: Integer
+    +like()
+  }
+  
+  Topic "1" *-- "many" Reply
+}
+
+' Department structure
+package "Administration" {
+  class Department {
+    -departmentId: String
+    -name: String
+    -description: String
+    -classes: List<Class>
+    +addClass()
+    +removeClass()
+  }
+  
+  class Class {
+    -classId: String
+    -name: String
+    -students: List<Student>
+    -subjects: List<Subject>
+    +addStudent()
+    +removeStudent()
+    +addSubject()
+    +removeSubject()
+  }
+  
+  class Subject {
+    -subjectId: String
+    -name: String
+    -description: String
+    -courses: List<Course>
+    +addCourse()
+    +removeCourse()
+  }
+  
+  Department "1" *-- "many" Class
+  Class "many" *-- "many" Subject
+  Subject "1" *-- "many" Course
+}
+
+' Relationships between packages
+Teacher "1" -- "many" Course : creates >
+Student "many" -- "many" Course : enrolls in >
+Student "1" -- "many" Submission : submits >
+Student "1" -- "many" ExamAttempt : attempts >
+User "1" -- "many" Topic : creates >
+User "1" -- "many" Reply : posts >
+
+@enduml 

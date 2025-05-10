@@ -1,0 +1,170 @@
+@startuml
+title Admin Department Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightBlue
+  ArrowColor RoyalBlue
+  BorderColor NavyBlue
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Boundary" {
+  class "AdminDepartmentInterface" as ADI {
+    + displayDepartmentList()
+    + showDepartmentForm()
+    + displayDepartmentDetails(departmentId: Integer)
+    + showDepartmentStatistics(departmentId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showSubjectManagementPanel(departmentId: Integer)
+    + displayTeacherAssignmentDialog(departmentId: Integer)
+  }
+}
+
+package "Controller" {
+  class "AdminDepartmentController" as ADC {
+    + getAllDepartments(): List<Department>
+    + getDepartmentById(departmentId: Integer): Department
+    + createDepartment(departmentData: DepartmentData): Department
+    + updateDepartment(departmentId: Integer, departmentData: DepartmentData): Boolean
+    + deleteDepartment(departmentId: Integer): Boolean
+    + getDepartmentStatistics(departmentId: Integer): DepartmentStatistics
+    + createSubject(departmentId: Integer, subjectData: SubjectData): Subject
+    + assignTeacherToDepartment(departmentId: Integer, teacherId: Integer): Boolean
+    + removeTeacherFromDepartment(departmentId: Integer, teacherId: Integer): Boolean
+    + assignHeadOfDepartment(departmentId: Integer, teacherId: Integer): Boolean
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasDepartmentPermission(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    - description: String
+    - headOfDepartmentId: Integer
+    - establishedDate: Date
+    - status: DepartmentStatus
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getTeachers(): List<Teacher>
+    + getSubjects(): List<Subject>
+    + getCourses(): List<Course>
+    + getClasses(): List<Class>
+    + getStudents(): List<Student>
+    + getHeadOfDepartment(): Teacher
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    - isHeadOfDepartment: Boolean
+    - joinDate: Date
+    + getDepartment(): Department
+    + getName(): String
+    + getSpecialization(): String
+    + getManagedCourses(): List<Course>
+  }
+  
+  class "Subject" as S {
+    - subjectId: Integer
+    - name: String
+    - code: String
+    - departmentId: Integer
+    - description: String
+    - creditHours: Integer
+    - isActive: Boolean
+    + getDepartment(): Department
+    + getCourses(): List<Course>
+  }
+  
+  class "DepartmentStatistics" as DS {
+    - departmentId: Integer
+    - totalTeachers: Integer
+    - totalStudents: Integer
+    - totalCourses: Integer
+    - totalSubjects: Integer
+    - totalClasses: Integer
+    - activeStudents: Integer
+    - averageStudentPerformance: Double
+    + getTeacherCountTrend(): List<CountPoint>
+    + getStudentCountTrend(): List<CountPoint>
+    + getCoursesBySubject(): Map<String, Integer>
+    + getStudentsByClass(): Map<String, Integer>
+    + getPerformanceBySubject(): Map<String, Double>
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - departmentId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getDepartment(): Department
+  }
+  
+  class "Class" as C {
+    - classId: Integer
+    - name: String
+    - departmentId: Integer
+    - academicYear: String
+    + getDepartment(): Department
+    + getStudents(): List<Student>
+  }
+  
+  class "Student" as ST {
+    - studentId: Integer
+    - userId: Integer
+    - classId: Integer
+    + getClass(): Class
+    + getDepartment(): Department
+  }
+  
+  enum "AdminPermissions" as AP {
+    DEPARTMENT_VIEW
+    DEPARTMENT_CREATE
+    DEPARTMENT_EDIT
+    DEPARTMENT_DELETE
+    SUBJECT_MANAGE
+    FULL_ACCESS
+  }
+  
+  enum "DepartmentStatus" as DST {
+    ACTIVE
+    INACTIVE
+    PENDING
+    ARCHIVED
+  }
+}
+
+' Relationships
+ADI ..> ADC : requests action
+ADC --> A : verifies permissions
+ADC --> D : manages
+ADC --> S : manages
+ADC --> DS : generates
+ADC --> AA : logs actions
+A "1" -- "0..*" AA : generates
+D "1" -- "0..*" T : has
+D "1" -- "0..*" S : offers
+D "1" -- "0..*" C : contains
+D "1" -- "1" DS : has
+D "1" -- "0..1" T : headed by
+C "0..*" -- "0..*" ST : contains
+S "1" -- "0..*" D : belongs to
+
+@enduml 

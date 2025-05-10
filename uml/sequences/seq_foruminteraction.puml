@@ -1,0 +1,130 @@
+@startuml
+title Forum Interaction - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor RoyalBlue
+  ActorBorderColor RoyalBlue
+  LifeLineBorderColor MidnightBlue
+  LifeLineBackgroundColor LightSkyBlue
+  
+  ParticipantBorderColor RoyalBlue
+  ParticipantBackgroundColor RoyalBlue
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightSkyBlue
+  
+  ActorBackgroundColor SkyBlue
+  ActorFontColor RoyalBlue
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor User as user
+participant "Forum\nInterface" as ui
+participant "Forum\nController" as controller
+participant "Category\nRepository" as categoryRepo
+participant "Topic\nRepository" as topicRepo
+participant "Post\nRepository" as postRepo
+participant "Like\nRepository" as likeRepo
+participant "Subscription\nRepository" as subRepo
+participant "Notification\nService" as notify
+
+autonumber
+
+== Browse Forum Categories ==
+
+user -> ui: Navigate to forum
+ui -> controller: getForumCategories()
+controller -> categoryRepo: findAll()
+categoryRepo --> controller: Return categories
+controller --> ui: Return category list
+ui --> user: Display forum categories
+
+== View Topics in Category ==
+
+user -> ui: Select category
+ui -> controller: getTopics(categoryId)
+controller -> topicRepo: findByCategory(categoryId)
+topicRepo --> controller: Return topics
+controller --> ui: Return topic list
+ui --> user: Display topics in category
+
+== Create New Topic ==
+
+user -> ui: Click "Create New Topic"
+ui --> user: Display topic creation form
+user -> ui: Fill topic details and submit
+ui -> controller: createTopic(userId, categoryId, topicData)
+controller -> categoryRepo: findById(categoryId)
+categoryRepo --> controller: Return category
+controller -> topicRepo: save(newTopic)
+topicRepo --> controller: Return created topic
+controller -> subRepo: subscribeUserToTopic(userId, topicId)
+subRepo --> controller: Return subscription
+controller --> ui: Return success
+ui --> user: Display new topic
+
+== View Topic and Posts ==
+
+user -> ui: Select topic
+ui -> controller: getPosts(topicId)
+controller -> topicRepo: findById(topicId)
+topicRepo --> controller: Return topic
+controller -> postRepo: findByTopic(topicId)
+postRepo --> controller: Return posts
+controller -> controller: incrementViewCount(topicId)
+controller --> ui: Return topic and posts
+ui --> user: Display topic and posts
+
+== Reply to Topic ==
+
+user -> ui: Click "Reply" and compose message
+ui -> controller: createPost(userId, topicId, postData)
+controller -> postRepo: save(newPost)
+postRepo --> controller: Return created post
+controller -> topicRepo: updateLastActivity(topicId)
+topicRepo --> controller: Return updated topic
+controller -> subRepo: getTopicSubscribers(topicId)
+subRepo --> controller: Return subscribers
+controller -> notify: notifySubscribers(subscribers, topicId, postId)
+notify --> controller: Notifications sent
+controller --> ui: Return success
+ui --> user: Display updated topic with new post
+
+== Like a Post ==
+
+user -> ui: Click "Like" on a post
+ui -> controller: toggleLike(userId, postId)
+controller -> likeRepo: findByUserAndPost(userId, postId)
+
+alt No existing like
+    controller -> likeRepo: save(newLike)
+    likeRepo --> controller: Return created like
+else Existing like
+    controller -> likeRepo: delete(likeId)
+    likeRepo --> controller: Confirm deletion
+end
+
+controller -> postRepo: updateLikeCount(postId)
+postRepo --> controller: Return updated post
+controller --> ui: Return updated like status
+ui --> user: Display updated like count and status
+
+== Mark Answer ==
+
+user -> ui: Click "Mark as Answer"
+ui -> controller: markAsAnswer(postId, topicId)
+controller -> topicRepo: findById(topicId)
+topicRepo --> controller: Return topic
+controller -> postRepo: findById(postId)
+postRepo --> controller: Return post
+controller -> postRepo: updateAsAnswer(postId, true)
+postRepo --> controller: Return updated post
+controller -> topicRepo: updateAnsweredStatus(topicId, true)
+topicRepo --> controller: Return updated topic
+controller -> notify: notifyPostAuthor(postId, "Answer Accepted")
+notify --> controller: Notification sent
+controller --> ui: Return success
+ui --> user: Display updated topic with marked answer
+
+@enduml 

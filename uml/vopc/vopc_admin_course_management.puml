@@ -1,0 +1,163 @@
+@startuml
+title Admin Course Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightSalmon
+  ArrowColor Tomato
+  BorderColor Firebrick
+}
+
+skinparam package {
+  BackgroundColor Bisque
+  BorderColor Coral
+}
+
+package "Boundary" {
+  class "AdminCourseInterface" as ACI {
+    + displayCourseList()
+    + showCourseForm()
+    + displayCourseDetails(courseId: Integer)
+    + showCourseStatistics(courseId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showSearchFilters()
+    + displayDepartmentFilter()
+    + showTeacherAssignmentDialog()
+  }
+}
+
+package "Controller" {
+  class "AdminCourseController" as ACC {
+    + getAllCourses(): List<Course>
+    + getCoursesByDepartment(departmentId: Integer): List<Course>
+    + getCoursesByTeacher(teacherId: Integer): List<Course>
+    + createCourse(courseData: CourseData): Course
+    + updateCourse(courseId: Integer, courseData: CourseData): Boolean
+    + deleteCourse(courseId: Integer): Boolean
+    + approveCourse(courseId: Integer): Boolean
+    + getCourseStatistics(courseId: Integer): CourseStatistics
+    + assignCourseToTeacher(courseId: Integer, teacherId: Integer): Boolean
+    + setCourseFeatured(courseId: Integer, isFeatured: Boolean): Boolean
+    + duplicateCourse(courseId: Integer): Course
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasCoursePermission(): Boolean
+    + canApproveCourses(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - description: String
+    - departmentId: Integer
+    - subjectId: Integer
+    - createdBy: Integer
+    - assignedTo: Integer
+    - isPublished: Boolean
+    - isApproved: Boolean
+    - approvedBy: Integer
+    - isFeatured: Boolean
+    - price: Double
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getLessons(): List<Lesson>
+    + getTeacher(): Teacher
+    + getEnrollments(): List<Enrollment>
+    + getDepartment(): Department
+    + getSubject(): Subject
+    + getTotalStudents(): Integer
+    + getCompletionRate(): Double
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    + getManagedCourses(): List<Course>
+    + getDepartment(): Department
+    + getName(): String
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    + getCourses(): List<Course>
+    + getTeachers(): List<Teacher>
+    + getSubjects(): List<Subject>
+  }
+  
+  class "Subject" as S {
+    - subjectId: Integer
+    - name: String
+    - departmentId: Integer
+    - code: String
+    + getCourses(): List<Course>
+  }
+  
+  class "Lesson" as L {
+    - lessonId: Integer
+    - courseId: Integer
+    - title: String
+    - order: Integer
+    + getCompletionRate(): Double
+  }
+  
+  class "CourseStatistics" as CS {
+    - courseId: Integer
+    - totalEnrollments: Integer
+    - activeStudents: Integer
+    - completedStudents: Integer
+    - droppedStudents: Integer
+    - averageCompletionTime: Integer
+    - averageRating: Double
+    - totalRevenue: Double
+    + getEnrollmentTrend(): List<EnrollmentPoint>
+    + getCompletionRateByLesson(): Map<String, Double>
+    + getStudentDemographics(): Map<String, Integer>
+    + getRatingDistribution(): Map<Integer, Integer>
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - courseId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getCourse(): Course
+  }
+  
+  enum "AdminPermissions" as AP {
+    COURSE_VIEW
+    COURSE_CREATE
+    COURSE_EDIT
+    COURSE_DELETE
+    COURSE_APPROVE
+    FULL_ACCESS
+  }
+}
+
+' Relationships
+ACI ..> ACC : requests action
+ACC --> A : verifies permissions
+ACC --> C : manages
+ACC --> CS : generates
+ACC --> AA : logs actions
+A "0..*" -- "0..*" C : approves
+C "0..*" -- "1" T : assigned to
+T "0..*" -- "1" D : belongs to
+C "0..*" -- "1" D : belongs to
+C "0..*" -- "1" S : categorized as
+C "1" -- "0..*" L : contains
+C "1" -- "1" CS : has
+A "1" -- "0..*" AA : generates
+
+@enduml 

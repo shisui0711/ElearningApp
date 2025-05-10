@@ -1,0 +1,203 @@
+@startuml
+title Analytics - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightCyan
+  ArrowColor DeepSkyBlue
+  BorderColor SteelBlue
+}
+
+skinparam package {
+  BackgroundColor Azure
+  BorderColor SkyBlue
+}
+
+package "Boundary" {
+  class "AnalyticsInterface" as AI {
+    + displayDashboard()
+    + showPerformanceMetrics()
+    + displayEnrollmentStatistics()
+    + showRevenueReports()
+    + displayUserActivityGraph()
+    + showReportFilters()
+    + displayExportOptions()
+    + showDetailedView(metricId: String)
+  }
+}
+
+package "Controller" {
+  class "AnalyticsController" as AC {
+    + getDashboardData(userRole: Role): DashboardData
+    + getPerformanceMetrics(filters: MetricFilters): PerformanceMetrics
+    + getEnrollmentStatistics(dateRange: DateRange): EnrollmentStatistics
+    + getRevenueData(dateRange: DateRange): RevenueData
+    + getUserActivityData(filters: ActivityFilters): UserActivityData
+    + generateReport(reportType: ReportType, filters: ReportFilters): Report
+    + exportData(format: ExportFormat, data: AnalyticsData): ExportFile
+    + getCourseTrends(dateRange: DateRange): CourseTrends
+    + getStudentProgressTrends(classId: Integer): StudentProgressTrends
+  }
+}
+
+package "Entity" {
+  class "User" as U {
+    - userId: Integer
+    - role: Role
+    + canAccessAnalytics(): Boolean
+    + getAccessLevel(): AnalyticsAccessLevel
+  }
+  
+  class "DashboardData" as DD {
+    - totalStudents: Integer
+    - totalTeachers: Integer
+    - totalCourses: Integer
+    - activeCourses: Integer
+    - newEnrollmentsToday: Integer
+    - completedCoursesToday: Integer
+    - ongoingExams: Integer
+    - revenueToday: Double
+    + getQuickSummary(): String
+    + getComparisonWithPreviousPeriod(): Map<String, Double>
+  }
+  
+  class "PerformanceMetrics" as PM {
+    - averageStudentGrade: Double
+    - courseCompletionRate: Double
+    - examPassRate: Double
+    - averageLessonCompletionTime: Double
+    - topPerformingDepartments: List<Department>
+    - topPerformingTeachers: List<Teacher>
+    - topPerformingStudents: List<Student>
+    + getMetricsByDepartment(): Map<String, Double>
+    + getMetricsByTimeRange(): Map<String, Double>
+    + getComparisonByClass(): Map<String, Double>
+  }
+  
+  class "EnrollmentStatistics" as ES {
+    - totalEnrollments: Integer
+    - activeEnrollments: Integer
+    - completedEnrollments: Integer
+    - droppedEnrollments: Integer
+    - mostPopularCourses: List<Course>
+    - leastPopularCourses: List<Course>
+    - averageCompletionTime: Double
+    + getEnrollmentTrend(): List<EnrollmentPoint>
+    + getEnrollmentsByDepartment(): Map<String, Integer>
+    + getCompletionRateByDemographic(): Map<String, Double>
+  }
+  
+  class "RevenueData" as RD {
+    - totalRevenue: Double
+    - revenueByPeriod: Map<String, Double>
+    - topRevenueGeneratingCourses: List<Course>
+    - revenueByDepartment: Map<String, Double>
+    - projectedRevenue: Double
+    - refunds: Double
+    + getRevenueGrowthRate(): Double
+    + getAverageRevenuePerStudent(): Double
+    + getRevenueProjection(): List<RevenueProjection>
+  }
+  
+  class "UserActivityData" as UAD {
+    - totalActiveUsers: Integer
+    - averageSessionDuration: Double
+    - peakActivityHours: List<Integer>
+    - mostAccessedFeatures: List<String>
+    - studentActivityMetrics: Map<String, Double>
+    - teacherActivityMetrics: Map<String, Double>
+    - deviceUsageDistribution: Map<String, Double>
+    + getUserActivityTrend(): List<ActivityPoint>
+    + getRetentionRate(): Double
+    + getUserEngagementScore(): Double
+  }
+  
+  class "Report" as R {
+    - reportId: String
+    - generatedAt: DateTime
+    - reportType: ReportType
+    - filters: ReportFilters
+    - generatedBy: Integer
+    - dataPoints: Map<String, Object>
+    - visualizations: List<Visualization>
+    + export(format: ExportFormat): ExportFile
+    + getHighlights(): List<String>
+    + getSummary(): String
+  }
+  
+  class "ExportFile" as EF {
+    - fileId: String
+    - fileName: String
+    - format: ExportFormat
+    - createdAt: DateTime
+    - fileSize: Integer
+    - downloadUrl: String
+    + download(): File
+    + getShareableLink(): String
+  }
+  
+  class "CourseTrends" as CT {
+    - mostTrendingCourses: List<Course>
+    - growthRateBySubject: Map<String, Double>
+    - popularityTrend: List<PopularityPoint>
+    - completionTrendByDifficulty: Map<String, List<Double>>
+    + getPredictedTrendsNextQuarter(): List<PredictionPoint>
+    + getSeasonalTrends(): Map<String, Double>
+  }
+  
+  class "StudentProgressTrends" as SPT {
+    - averageGradeProgression: List<ProgressPoint>
+    - completionRateProgression: List<ProgressPoint>
+    - subjectStrengthsDistribution: Map<String, Double>
+    - learningPaceDistribution: Map<String, Integer>
+    + getProgressByStudentType(): Map<String, List<Double>>
+    + getPredictedOutcomes(): Map<String, Double>
+  }
+  
+  enum "Role" as RO {
+    ADMIN
+    TEACHER
+    STUDENT
+  }
+  
+  enum "AnalyticsAccessLevel" as AAL {
+    FULL
+    DEPARTMENTAL
+    COURSE_LEVEL
+    LIMITED
+    NONE
+  }
+  
+  enum "ReportType" as RT {
+    STUDENT_PERFORMANCE
+    COURSE_PERFORMANCE
+    REVENUE
+    USER_ACTIVITY
+    DEPARTMENT_PERFORMANCE
+    COMPREHENSIVE
+  }
+  
+  enum "ExportFormat" as EFO {
+    PDF
+    EXCEL
+    CSV
+    JSON
+  }
+}
+
+' Relationships
+AI ..> AC : requests action
+AC --> U : verifies permissions
+AC --> DD : generates
+AC --> PM : calculates
+AC --> ES : calculates
+AC --> RD : calculates
+AC --> UAD : generates
+AC --> R : creates
+AC --> EF : produces
+AC --> CT : analyzes
+AC --> SPT : calculates
+U "1" -- "1" AAL : has
+R "0..*" -- "1" RT : has type
+R "0..*" -- "0..*" EF : exported as
+
+@enduml 

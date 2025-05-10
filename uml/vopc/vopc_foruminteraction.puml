@@ -1,0 +1,146 @@
+@startuml
+title Forum Interaction - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightSkyBlue
+  ArrowColor RoyalBlue
+  BorderColor MidnightBlue
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Boundary" {
+  class "ForumInterface" as FI {
+    + displayForumCategories()
+    + showTopicList(categoryId: Integer)
+    + showTopicDetails(topicId: Integer)
+    + displayPostForm()
+    + showConfirmation(message: String)
+    + displayNotification(notification: Notification)
+  }
+}
+
+package "Controller" {
+  class "ForumController" as FC {
+    + getForumCategories(): List<ForumCategory>
+    + getTopics(categoryId: Integer): List<ForumTopic>
+    + getPosts(topicId: Integer): List<ForumPost>
+    + createTopic(userId: Integer, categoryId: Integer, topicData: TopicData): ForumTopic
+    + createPost(userId: Integer, topicId: Integer, postData: PostData): ForumPost
+    + toggleLike(userId: Integer, postId: Integer): Boolean
+    + markAsAnswer(postId: Integer, topicId: Integer): Boolean
+    + notifySubscribers(topicId: Integer, postId: Integer): List<Notification>
+  }
+}
+
+package "Entity" {
+  class "ForumCategory" as FC {
+    - categoryId: Integer
+    - title: String
+    - description: String
+    - courseId: Integer
+    - order: Integer
+    + getTopics(): List<ForumTopic>
+    + isCourseBound(): Boolean
+  }
+  
+  class "ForumTopic" as FT {
+    - topicId: Integer
+    - categoryId: Integer
+    - title: String
+    - content: Text
+    - createdBy: Integer
+    - createdAt: DateTime
+    - status: TopicStatus
+    - isQuestion: Boolean
+    - hasAnsweredPost: Boolean
+    + getPosts(): List<ForumPost>
+    + getAnsweredPost(): ForumPost
+    + getTotalViews(): Integer
+    + incrementViewCount(): Void
+  }
+  
+  class "ForumPost" as FP {
+    - postId: Integer
+    - topicId: Integer
+    - content: Text
+    - createdBy: Integer
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    - isAnswer: Boolean
+    + getLikes(): List<PostLike>
+    + isEdited(): Boolean
+    + markAsAnswer(): Boolean
+  }
+  
+  class "PostLike" as PL {
+    - likeId: Integer
+    - postId: Integer
+    - userId: Integer
+    - createdAt: DateTime
+  }
+  
+  class "User" as U {
+    - userId: Integer
+    - username: String
+    - email: String
+    - role: Role
+    + getCreatedTopics(): List<ForumTopic>
+    + getCreatedPosts(): List<ForumPost>
+    + getSubscriptions(): List<ForumSubscription>
+  }
+  
+  class "ForumSubscription" as FS {
+    - subscriptionId: Integer
+    - userId: Integer
+    - topicId: Integer
+    - subscribedAt: DateTime
+    - notificationPreference: NotificationType
+    + unsubscribe(): Boolean
+    + updatePreference(pref: NotificationType): Boolean
+  }
+  
+  class "Notification" as N {
+    - notificationId: Integer
+    - userId: Integer
+    - topicId: Integer
+    - postId: Integer
+    - message: String
+    - isRead: Boolean
+    - createdAt: DateTime
+    + markAsRead(): Boolean
+  }
+  
+  enum "TopicStatus" as TS {
+    OPEN
+    CLOSED
+    ANSWERED
+    PINNED
+  }
+  
+  enum "NotificationType" as NT {
+    ALL_POSTS
+    ANSWERS_ONLY
+    NONE
+  }
+}
+
+' Relationships
+FI ..> FC : requests action
+FC --> FC : manages
+FC --> FT : creates/manages
+FC --> FP : creates/manages
+FC --> N : generates
+U "1" -- "0..*" FT : creates
+U "1" -- "0..*" FP : authors
+U "1" -- "0..*" PL : makes
+U "1" -- "0..*" FS : has
+FT "1" -- "0..*" FP : contains
+FP "1" -- "0..*" PL : receives
+FT "1" -- "0..*" FS : has
+FS "0..*" -- "0..*" N : triggers
+
+@enduml 

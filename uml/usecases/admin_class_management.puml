@@ -1,0 +1,101 @@
+@startuml
+' Admin Class Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases based on implemented functionality
+usecase "Manage Classes" as manageclasses
+usecase "Create New Class" as createClass
+usecase "Edit Class Details" as editClass
+usecase "Delete Class" as deleteClass
+usecase "Filter Classes by Department" as filterByDepartment
+usecase "Search Classes" as searchClasses
+usecase "View Class List" as viewClasses
+
+' Relationships
+admin --> manageclasses
+manageclasses ..> createClass : <<include>> #purple
+manageclasses ..> editClass : <<include>> #purple
+manageclasses ..> deleteClass : <<include>> #purple
+manageclasses ..> filterByDepartment : <<include>> #purple
+manageclasses ..> searchClasses : <<include>> #purple
+manageclasses ..> viewClasses : <<include>> #purple
+
+' Use case specification documentation
+note right of manageclasses
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Classes
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to manage classes in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. Admin is logged into the system with Admin role
+  2. Admin has appropriate privileges
+  
+  <b>Postconditions:</b>
+  1. Classes are created, updated, or deleted as needed
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the admin dashboard
+  2. Admin selects the class management section
+  3. System displays existing classes with management options
+  4. Admin can:
+     - Create new classes
+     - Edit existing class details
+     - Delete classes
+     - Filter classes by department
+     - Search for classes by name
+     - View paginated class list
+  
+  <b>Alternative Flows:</b>
+  A1. Create New Class
+    1. Admin clicks "Thêm lớp mới" button
+    2. Admin enters class name and selects department
+    3. System validates input
+    4. System creates the class
+  
+  A2. Edit Class Details
+    1. Admin clicks the edit button for a class
+    2. Admin modifies class name and/or department
+    3. System validates changes
+    4. System updates class record
+  
+  A3. Delete Class
+    1. Admin clicks the delete button for a class
+    2. System prompts for confirmation
+    3. System checks if class has students
+    4. If no students, system deletes the class
+    5. If class has students, system shows error message
+  
+  A4. Filter Classes by Department
+    1. Admin selects a department from dropdown
+    2. System filters class list to show only classes in selected department
+  
+  A5. Search Classes
+    1. Admin enters search term in search field
+    2. System filters class list to show only classes matching search term
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Admin enters invalid data for creation/editing
+    2. System shows error message
+    3. Admin must correct issues before proceeding
+  
+  E2. Cannot delete class with students
+    1. Admin attempts to delete class with enrolled students
+    2. System shows error message that class cannot be deleted
+    3. Admin must reassign or remove students before deletion
+end note
+@enduml 

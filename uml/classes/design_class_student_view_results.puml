@@ -1,0 +1,717 @@
+@startuml
+title Student View Results - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightPink
+  ArrowColor HotPink
+  BorderColor DeepPink
+}
+
+skinparam package {
+  BackgroundColor MistyRose
+  BorderColor PaleVioletRed
+}
+
+package "Presentation Layer" {
+  class "ResultsView" as RV {
+    - courseListPanel: Panel
+    - examResultsPanel: Panel
+    - detailedResultPanel: Panel
+    - answersPanel: Panel
+    - analyticsPanel: Panel
+    - certificatePanel: Panel
+    - notificationArea: NotificationComponent
+    + displayCoursesList(courses: List<CourseProgressDTO>): void
+    + displayExamResults(exams: List<ExamResultDTO>): void
+    + displayDetailedResult(result: DetailedResultDTO): void
+    + displayAnswerComparison(comparison: AnswerComparisonDTO): void
+    + displayPerformanceAnalytics(analytics: PerformanceAnalyticsDTO): void
+    + displayCertificateOptions(certificate: CertificateDTO): void
+    + displayCertificateRequirements(requirements: CertificateRequirementsDTO): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewCourseResultsHandler(handler: EventHandler): void
+    + setViewDetailedResultHandler(handler: EventHandler): void
+    + setViewAnswersHandler(handler: EventHandler): void
+    + setViewAnalyticsHandler(handler: EventHandler): void
+    + setDownloadCertificateHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "ResultsController" as RC {
+    - studentService: StudentService
+    - courseService: CourseService
+    - examService: ExamService
+    - attemptService: AttemptService
+    - resultService: ResultService
+    - certificateService: CertificateService
+    - analyticsService: AnalyticsService
+    + getStudentCourses(studentId: Long): List<CourseProgressDTO>
+    + getExamResults(studentId: Long, courseId: Long): List<ExamResultDTO>
+    + getExamDetails(attemptId: Long): DetailedResultDTO
+    + getExamAnswers(attemptId: Long): AnswerComparisonDTO
+    + getStudentPerformanceData(studentId: Long): PerformanceAnalyticsDTO
+    + checkCertificateEligibility(studentId: Long, courseId: Long): CertificateEligibilityResult
+    + downloadCertificate(certificateId: Long): CertificateFile
+    + compareAnswers(submittedAnswers: List<SubmittedAnswer>, correctAnswers: Map<Long, List<Answer>>): Map<Long, AnswerComparisonResult>
+  }
+  
+  class "StudentService" as SS {
+    - studentRepository: StudentRepository
+    - userRepository: UserRepository
+    - enrollmentRepository: EnrollmentRepository
+    + findById(studentId: Long): Student
+    + getStudentEnrollments(studentId: Long): List<Enrollment>
+    + getStudentProfile(studentId: Long): StudentProfile
+    + isActiveStudent(studentId: Long): boolean
+    + getStudentProgressOverview(studentId: Long): StudentProgressOverview
+    + mapToDTO(student: Student): StudentDTO
+  }
+  
+  class "CourseService" as CS {
+    - courseRepository: CourseRepository
+    - enrollmentRepository: EnrollmentRepository
+    - progressRepository: ProgressRepository
+    + findByStudentId(studentId: Long): List<Course>
+    + findById(courseId: Long): Course
+    + getCourseCompletionStatus(studentId: Long, courseId: Long): CourseCompletionStatus
+    + getRequiredExamsCount(courseId: Long): int
+    + getCourseProgress(studentId: Long, courseId: Long): double
+    + mapToCourseProgressDTO(course: Course, progress: CourseProgress): CourseProgressDTO
+  }
+  
+  class "ExamService" as ES {
+    - examRepository: ExamRepository
+    - attemptRepository: ExamAttemptRepository
+    - questionRepository: QuestionRepository
+    + findByCourseId(courseId: Long): List<Exam>
+    + findById(examId: Long): Exam
+    + getExamQuestions(examId: Long): List<Question>
+    + getExamStatistics(examId: Long): ExamStatistics
+    + getExamWeight(examId: Long): double
+    + mapToDTO(exam: Exam): ExamDTO
+  }
+  
+  class "AttemptService" as AS {
+    - attemptRepository: ExamAttemptRepository
+    - submittedAnswerRepository: SubmittedAnswerRepository
+    - examRepository: ExamRepository
+    + findById(attemptId: Long): ExamAttempt
+    + findByStudentAndExams(studentId: Long, examIds: List<Long>): List<ExamAttempt>
+    + getBestAttemptForExam(studentId: Long, examId: Long): ExamAttempt
+    + getSubmittedAnswers(attemptId: Long): List<SubmittedAnswer>
+    + getAttemptScore(attemptId: Long): double
+    + getAttemptDuration(attemptId: Long): Duration
+    + mapToAttemptDTO(attempt: ExamAttempt): AttemptDTO
+  }
+  
+  class "ResultService" as RS {
+    - resultRepository: ResultRepository
+    - attemptRepository: ExamAttemptRepository
+    - examRepository: ExamRepository
+    - questionRepository: QuestionRepository
+    + findByAttemptId(attemptId: Long): Result
+    + findByAttemptIds(attemptIds: List<Long>): List<Result>
+    + getResultsByStudent(studentId: Long): List<Result>
+    + getPassedExamsCount(studentId: Long, courseId: Long): int
+    + calculateGPA(studentId: Long): double
+    + getStudentRanking(studentId: Long, courseId: Long): int
+    + mapToExamResultDTO(result: Result, attempt: ExamAttempt, exam: Exam): ExamResultDTO
+    + mapToDetailedResultDTO(result: Result, attempt: ExamAttempt, exam: Exam): DetailedResultDTO
+  }
+  
+  class "CertificateService" as CES {
+    - certificateRepository: CertificateRepository
+    - courseRepository: CourseRepository
+    - resultRepository: ResultRepository
+    - templateService: TemplateService
+    - pdfGenerator: PDFGenerator
+    + generateCertificate(studentId: Long, courseId: Long): Certificate
+    + downloadCertificate(certificateId: Long): CertificateFile
+    + getCertificateByStudentAndCourse(studentId: Long, courseId: Long): Optional<Certificate>
+    + verifyCertificate(certificateCode: String): CertificateVerificationResult
+    + checkEligibility(studentId: Long, courseId: Long): CertificateEligibilityResult
+    + getCertificateRequirements(courseId: Long): CertificateRequirements
+    + mapToDTO(certificate: Certificate): CertificateDTO
+  }
+  
+  class "AnalyticsService" as ANS {
+    - resultRepository: ResultRepository
+    - attemptRepository: ExamAttemptRepository
+    - courseRepository: CourseRepository
+    - chartGenerator: ChartGenerator
+    + processPerformanceMetrics(results: List<Result>): PerformanceMetrics
+    + generatePerformanceCharts(metrics: PerformanceMetrics): List<Chart>
+    + getPerformanceTrends(studentId: Long): PerformanceTrends
+    + getStrengthsAndWeaknesses(studentId: Long): StrengthsWeaknesses
+    + compareWithPeers(studentId: Long, courseId: Long): PeerComparison
+    + getTimeDistribution(studentId: Long): TimeDistribution
+    + mapToAnalyticsDTO(metrics: PerformanceMetrics, charts: List<Chart>): PerformanceAnalyticsDTO
+  }
+  
+  class "ChartGenerator" as CG {
+    - chartConfig: ChartConfiguration
+    + createLineChart(data: Map<String, Double>, title: String): Chart
+    + createBarChart(data: Map<String, Double>, title: String): Chart
+    + createPieChart(data: Map<String, Double>, title: String): Chart
+    + createRadarChart(data: Map<String, Double>, title: String): Chart
+    + createHistogram(data: List<Double>, bins: int, title: String): Chart
+    + generateChartImage(chart: Chart, width: int, height: int): byte[]
+  }
+  
+  class "CertificateEligibilityResult" as CER {
+    - eligible: boolean
+    - eligibilityMessage: String
+    - passedExams: int
+    - requiredExams: int
+    - completionPercentage: double
+    - missingRequirements: List<String>
+    + isEligible(): boolean
+    + getMessage(): String
+    + getCompletionPercentage(): double
+    + getMissingRequirements(): List<String>
+  }
+  
+  class "AnswerComparisonResult" as ACR {
+    - correct: boolean
+    - partiallyCorrect: boolean
+    - scoreEarned: double
+    - maxScore: double
+    - feedback: String
+    - explanation: String
+    + isCorrect(): boolean
+    + isPartiallyCorrect(): boolean
+    + getScorePercentage(): double
+    + hasFeedback(): boolean
+  }
+}
+
+package "Domain Layer" {
+  interface "StudentRepository" as SR {
+    + findById(studentId: Long): Optional<Student>
+    + findByUserId(userId: Long): Optional<Student>
+    + save(student: Student): Student
+    + getActiveStudentCount(): long
+  }
+  
+  interface "CourseRepository" as CR {
+    + findById(courseId: Long): Optional<Course>
+    + findByStudentId(studentId: Long): List<Course>
+    + getCourseCompletionStatus(studentId: Long, courseId: Long): CourseCompletionStatus
+    + getRequiredExamsCount(courseId: Long): int
+  }
+  
+  interface "ExamRepository" as ER {
+    + findById(examId: Long): Optional<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + findByIds(examIds: List<Long>): List<Exam>
+    + getExamQuestions(examId: Long): List<Question>
+  }
+  
+  interface "ExamAttemptRepository" as EAR {
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findByStudentAndExams(studentId: Long, examIds: List<Long>): List<ExamAttempt>
+    + findByStudentAndExam(studentId: Long, examId: Long): List<ExamAttempt>
+    + getSubmittedAnswers(attemptId: Long): List<SubmittedAnswer>
+  }
+  
+  interface "ResultRepository" as RR {
+    + findById(resultId: Long): Optional<Result>
+    + findByAttemptId(attemptId: Long): Optional<Result>
+    + findByAttemptIds(attemptIds: List<Long>): List<Result>
+    + findByStudentId(studentId: Long): List<Result>
+    + getPassedExamsCount(studentId: Long, courseId: Long): int
+  }
+  
+  interface "CertificateRepository" as CER2 {
+    + findById(certificateId: Long): Optional<Certificate>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Certificate>
+    + findByVerificationCode(code: String): Optional<Certificate>
+    + save(certificate: Certificate): Certificate
+  }
+  
+  class "Student" as S {
+    - studentId: Long
+    - userId: Long
+    - programId: Long
+    - enrollmentDate: LocalDateTime
+    - graduationDate: LocalDateTime
+    - status: StudentStatus
+    - enrollments: List<Enrollment>
+    - attempts: List<ExamAttempt>
+    - certificates: List<Certificate>
+    + getActiveCourses(): List<Course>
+    + getCompletedCourses(): List<Course>
+    + isActive(): boolean
+    + getOverallGPA(): double
+    + getAttemptsByExam(examId: Long): List<ExamAttempt>
+    + getCertificatesByCourse(courseId: Long): List<Certificate>
+  }
+  
+  class "Course" as C {
+    - courseId: Long
+    - title: String
+    - description: String
+    - creditHours: int
+    - startDate: LocalDateTime
+    - endDate: LocalDateTime
+    - instructorId: Long
+    - departmentId: Long
+    - status: CourseStatus
+    - exams: List<Exam>
+    - enrollments: List<Enrollment>
+    - certificationEnabled: boolean
+    - requiredExamCount: int
+    - passingGrade: double
+    + getActiveExams(): List<Exam>
+    + getExamCount(): int
+    + isCertificationEnabled(): boolean
+    + getPassingRequirements(): PassingRequirements
+    + isCompleted(studentId: Long): boolean
+    + getCompletionPercentage(studentId: Long): double
+  }
+  
+  class "Exam" as E {
+    - examId: Long
+    - courseId: Long
+    - title: String
+    - description: String
+    - timeLimit: Integer
+    - passingScore: double
+    - weight: double
+    - publishedDate: LocalDateTime
+    - dueDate: LocalDateTime
+    - status: ExamStatus
+    - questions: List<Question>
+    - attempts: List<ExamAttempt>
+    + getMaxScore(): double
+    + getAverageScore(): double
+    + getAttemptCount(): int
+    + getPassRate(): double
+    + getDifficulty(): ExamDifficulty
+    + isActive(): boolean
+    + isPastDue(currentDate: LocalDateTime): boolean
+  }
+  
+  class "Question" as Q {
+    - questionId: Long
+    - examId: Long
+    - text: String
+    - type: QuestionType
+    - points: double
+    - difficulty: QuestionDifficulty
+    - answers: List<Answer>
+    + getCorrectAnswers(): List<Answer>
+    + hasMultipleCorrectAnswers(): boolean
+    + requiresManualGrading(): boolean
+    + getMaxPoints(): double
+  }
+  
+  class "Answer" as A {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+    - score: double
+    + getExplanation(): String
+    + getScore(): double
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Long
+    - examId: Long
+    - studentId: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - submittedAnswers: List<SubmittedAnswer>
+    - status: AttemptStatus
+    - ipAddress: String
+    - result: Result
+    + getDuration(): Duration
+    + getScore(): double
+    + isPassed(): boolean
+    + getAnswerForQuestion(questionId: Long): Optional<SubmittedAnswer>
+    + isLatestAttempt(): boolean
+    + isCompleted(): boolean
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Long
+    - attemptId: Long
+    - questionId: Long
+    - answerId: Long
+    - textAnswer: String
+    - submittedAt: LocalDateTime
+    - score: double
+    - feedbackText: String
+    + isCorrect(): boolean
+    + isPartiallyCorrect(): boolean
+    + getScorePercentage(): double
+    + hasFeedback(): boolean
+  }
+  
+  class "Result" as R {
+    - resultId: Long
+    - attemptId: Long
+    - score: double
+    - maxScore: double
+    - percentageScore: double
+    - grade: String
+    - passingStatus: boolean
+    - gradedBy: Long
+    - gradedAt: LocalDateTime
+    - feedbackText: String
+    + isPassed(): boolean
+    + getGradePoint(): double
+    + getFeedback(): String
+    + hasFeedback(): boolean
+  }
+  
+  class "Certificate" as CE {
+    - certificateId: Long
+    - studentId: Long
+    - courseId: Long
+    - issueDate: LocalDateTime
+    - expiryDate: LocalDateTime
+    - verificationCode: String
+    - templateId: String
+    - status: CertificateStatus
+    - signatureUrls: List<String>
+    + isValid(): boolean
+    + isExpired(): boolean
+    + generateVerificationCode(): void
+    + getVerificationUrl(): String
+    + getStudent(): Student
+    + getCourse(): Course
+  }
+  
+  class "PerformanceMetrics" as PM {
+    - studentId: Long
+    - overallScore: double
+    - averageScore: double
+    - highestScore: double
+    - lowestScore: double
+    - examsPassed: int
+    - examsFailed: int
+    - totalExams: int
+    - successRate: double
+    - averageDuration: Duration
+    - scoreBySubject: Map<String, Double>
+    - scoreByDifficulty: Map<QuestionDifficulty, Double>
+    - progressOverTime: List<TimedScore>
+    + getPassRate(): double
+    + getAverageGrade(): String
+    + getStrengthAreas(): List<String>
+    + getWeakAreas(): List<String>
+    + hasImprovedOverTime(): boolean
+    + getTrendSlope(): double
+  }
+  
+  class "Chart" as CHT {
+    - chartId: String
+    - type: ChartType
+    - title: String
+    - data: Map<String, Object>
+    - options: ChartOptions
+    - imageData: byte[]
+    + generateImage(width: int, height: int): byte[]
+    + getChartDataJson(): String
+    + getChartHtml(): String
+  }
+  
+  enum "ChartType" as CT {
+    LINE
+    BAR
+    PIE
+    RADAR
+    HISTOGRAM
+    SCATTER
+    HEATMAP
+  }
+  
+  enum "StudentStatus" as SS2 {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    SUSPENDED
+    ON_LEAVE
+  }
+  
+  enum "CourseStatus" as CS2 {
+    ACTIVE
+    COMPLETED
+    ARCHIVED
+    DRAFT
+  }
+  
+  enum "ExamStatus" as ES2 {
+    DRAFT
+    PUBLISHED
+    CLOSED
+    ARCHIVED
+  }
+  
+  enum "AttemptStatus" as AS2 {
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    EXPIRED
+    CANCELLED
+  }
+  
+  enum "CertificateStatus" as CES2 {
+    ACTIVE
+    EXPIRED
+    REVOKED
+    PENDING
+  }
+  
+  enum "QuestionDifficulty" as QD {
+    EASY
+    MEDIUM
+    HARD
+    EXPERT
+  }
+}
+
+package "Infrastructure Layer" {
+  class "StudentRepositoryImpl" as SRI {
+    - dataSource: DataSource
+    + findById(studentId: Long): Optional<Student>
+    + findByUserId(userId: Long): Optional<Student>
+    + save(student: Student): Student
+    + getActiveStudentCount(): long
+    - mapResultSetToStudent(rs: ResultSet): Student
+  }
+  
+  class "ResultRepositoryImpl" as RRI {
+    - dataSource: DataSource
+    + findById(resultId: Long): Optional<Result>
+    + findByAttemptId(attemptId: Long): Optional<Result>
+    + findByAttemptIds(attemptIds: List<Long>): List<Result>
+    + findByStudentId(studentId: Long): List<Result>
+    + getPassedExamsCount(studentId: Long, courseId: Long): int
+    - mapResultSetToResult(rs: ResultSet): Result
+  }
+  
+  class "CertificateRepositoryImpl" as CERI {
+    - dataSource: DataSource
+    + findById(certificateId: Long): Optional<Certificate>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Certificate>
+    + findByVerificationCode(code: String): Optional<Certificate>
+    + save(certificate: Certificate): Certificate
+    - mapResultSetToCertificate(rs: ResultSet): Certificate
+  }
+  
+  class "PDFGeneratorImpl" as PDGI {
+    - templateEngine: TemplateEngine
+    - fontProvider: FontProvider
+    - imageService: ImageService
+    + generatePDF(template: String, data: Map<String, Object>): byte[]
+    + generateCertificatePDF(certificate: Certificate): byte[]
+    + addDigitalSignature(pdf: byte[], signatoryId: Long): byte[]
+    + addWatermark(pdf: byte[], text: String): byte[]
+  }
+  
+  class "ChartGeneratorImpl" as CGI {
+    - chartRenderer: ChartRenderer
+    - colorScheme: ColorScheme
+    + createLineChart(data: Map<String, Double>, title: String): Chart
+    + createBarChart(data: Map<String, Double>, title: String): Chart
+    + createPieChart(data: Map<String, Double>, title: String): Chart
+    + createRadarChart(data: Map<String, Double>, title: String): Chart
+    + createHistogram(data: List<Double>, bins: int, title: String): Chart
+    + generateChartImage(chart: Chart, width: int, height: int): byte[]
+    - configureChart(chart: Chart): void
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "CourseProgressDTO" as CPDTO {
+    - courseId: Long
+    - title: String
+    - description: String
+    - instructorName: String
+    - startDate: String
+    - endDate: String
+    - progressPercentage: double
+    - completionStatus: String
+    - examsTaken: int
+    - examsPassed: int
+    - examsTotal: int
+    - averageScore: double
+    - certificateAvailable: boolean
+  }
+  
+  class "ExamResultDTO" as ERDTO {
+    - examId: Long
+    - attemptId: Long
+    - examTitle: String
+    - attemptDate: String
+    - score: double
+    - maxScore: double
+    - percentageScore: double
+    - grade: String
+    - passingStatus: boolean
+    - duration: String
+    - attemptCount: int
+    - isBestAttempt: boolean
+  }
+  
+  class "DetailedResultDTO" as DRDTO {
+    - examId: Long
+    - attemptId: Long
+    - examTitle: String
+    - courseTitle: String
+    - attemptDate: String
+    - completionTime: String
+    - score: double
+    - maxScore: double
+    - percentageScore: double
+    - grade: String
+    - passingStatus: boolean
+    - feedback: String
+    - correctAnswers: int
+    - incorrectAnswers: int
+    - partialAnswers: int
+    - totalQuestions: int
+    - timeSpent: String
+    - attemptCount: int
+    - categoryScores: Map<String, Double>
+  }
+  
+  class "AnswerComparisonDTO" as ACDTO {
+    - examId: Long
+    - attemptId: Long
+    - questions: List<QuestionComparisonDTO>
+    - summaryStats: AnswerSummaryDTO
+  }
+  
+  class "QuestionComparisonDTO" as QCDTO {
+    - questionId: Long
+    - questionText: String
+    - questionType: String
+    - maxPoints: double
+    - earnedPoints: double
+    - userAnswer: String
+    - correctAnswer: String
+    - isCorrect: boolean
+    - isPartiallyCorrect: boolean
+    - explanation: String
+    - feedback: String
+  }
+  
+  class "AnswerSummaryDTO" as ASDTO {
+    - correctCount: int
+    - incorrectCount: int
+    - partialCount: int
+    - totalQuestions: int
+    - overallScore: double
+    - byCategory: Map<String, CategoryScoreDTO>
+    - byDifficulty: Map<String, DifficultyScoreDTO>
+  }
+  
+  class "PerformanceAnalyticsDTO" as PADTO {
+    - studentId: Long
+    - overallScore: double
+    - averageScore: double
+    - examsPassed: int
+    - examsFailed: int
+    - successRate: double
+    - charts: List<ChartDTO>
+    - strengthAreas: List<String>
+    - weakAreas: List<String>
+    - improvementTrend: String
+    - peerComparison: PeerComparisonDTO
+  }
+  
+  class "ChartDTO" as CHTDTO {
+    - chartId: String
+    - type: String
+    - title: String
+    - dataJson: String
+    - imageUrl: String
+  }
+  
+  class "CertificateDTO" as CEDTO {
+    - certificateId: Long
+    - courseTitle: String
+    - studentName: String
+    - issueDate: String
+    - expiryDate: String
+    - verificationCode: String
+    - verificationUrl: String
+    - downloadUrl: String
+    - status: String
+  }
+  
+  class "CertificateRequirementsDTO" as CRDTO {
+    - courseId: Long
+    - passingGrade: double
+    - requiredExams: int
+    - passedExams: int
+    - completionPercentage: double
+    - missingRequirements: List<String>
+    - estimatedCompletionDate: String
+  }
+}
+
+' Relationships
+RV ..> RC : uses
+RC --> SS : uses
+RC --> CS : uses
+RC --> ES : uses
+RC --> AS : uses
+RC --> RS : uses
+RC --> CES : uses
+RC --> ANS : uses
+SS --> SR : uses
+CS --> CR : uses
+ES --> ER : uses
+AS --> EAR : uses
+RS --> RR : uses
+CES --> CER2 : uses
+CES --> PDGI : uses
+ANS --> RR : uses
+ANS --> CG : uses
+CG ..> CHT : creates
+SRI ..|> SR : implements
+RRI ..|> RR : implements
+CERI ..|> CER2 : implements
+CGI ..|> CG : implements
+S "1" -- "0..*" EA : takes
+S "1" -- "0..*" CE : earns
+C "1" -- "0..*" E : contains
+C "1" -- "0..*" CE : issues
+E "1" -- "0..*" Q : contains
+E "1" -- "0..*" EA : has
+Q "1" -- "0..*" A : has
+EA "1" -- "0..*" SA : contains
+EA "1" -- "1" R : produces
+Q "1" -- "0..*" SA : answered by
+RC ..> CPDTO : returns
+RC ..> ERDTO : returns
+RC ..> DRDTO : returns
+RC ..> ACDTO : returns
+RC ..> PADTO : returns
+RC ..> CEDTO : returns
+RC ..> CER : returns
+RC ..> ACR : creates
+S "1" -- "1" SS2 : has status
+C "1" -- "1" CS2 : has status
+E "1" -- "1" ES2 : has status
+EA "1" -- "1" AS2 : has status
+CE "1" -- "1" CES2 : has status
+Q "1" -- "1" QD : has difficulty
+CHT "1" -- "1" CT : has type
+
+@enduml 

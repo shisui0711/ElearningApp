@@ -1,0 +1,81 @@
+@startuml
+' View Course Content Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+actor "Teacher" as teacher #lightsalmon
+
+' Define use cases
+usecase "View Course Content" as viewcontent
+usecase "Watch Video Lectures" as watchvideos
+usecase "Download Documents" as downloaddocs
+usecase "Complete Lessons" as completelessons
+usecase "Leave Comments" as leavecomments
+
+' Relationships
+student --> viewcontent
+teacher --> viewcontent
+viewcontent ..> watchvideos : <<include>> #purple
+viewcontent ..> downloaddocs : <<include>> #purple
+viewcontent ..> completelessons : <<include>> #purple
+leavecomments ..> viewcontent : <<include>> #purple
+
+' Use case specification documentation
+note right of viewcontent
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> View Course Content
+  
+  <b>Actors:</b> Student (Primary), Teacher (Secondary)
+  
+  <b>Description:</b> This use case allows users to access and view the content of a course they have enrolled in or are teaching.
+  
+  <b>Preconditions:</b>
+  1. User is logged into the system
+  2. User has access rights to the course (enrolled as student or assigned as teacher)
+  3. Course has published content
+  
+  <b>Postconditions:</b>
+  1. User has accessed the requested course content
+  2. System records user's activity and progress (for students)
+  
+  <b>Main Flow:</b>
+  1. User navigates to their course dashboard
+  2. User selects a specific course
+  3. System displays the course overview and structure
+  4. User navigates to desired section or lesson
+  5. System loads and displays the requested content
+  6. User interacts with the content (watches videos, reads documents, etc.)
+  7. System tracks the user's progress through the content
+  
+  <b>Alternative Flows:</b>
+  A1. Resume previous session
+    1. System detects user has previously accessed the course
+    2. System offers to resume from last position
+    3. User accepts and continues from previous point
+  
+  A2. Teacher view
+    1. System detects user is a teacher
+    2. System displays additional options (edit, preview, analytics)
+    3. Teacher can switch between student and teacher views
+  
+  <b>Exception Flows:</b>
+  E1. Content unavailable
+    1. User attempts to access unavailable or restricted content
+    2. System displays notification explaining why access is denied
+    3. User is redirected to available content
+  
+  E2. Technical issues with content
+    1. System cannot load specific content (video, document)
+    2. System displays error message with troubleshooting options
+    3. User can report the issue or try alternative content
+end note
+@enduml 

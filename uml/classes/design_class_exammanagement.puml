@@ -1,0 +1,759 @@
+@startuml
+title Exam Management - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor Lavender
+  ArrowColor Purple
+  BorderColor Indigo
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor MediumPurple
+}
+
+package "Presentation Layer" {
+  class "ExamManagementView" as EMV {
+    - examListPanel: Panel
+    - examDetailsPanel: Panel
+    - questionBankPanel: Panel
+    - examCreationPanel: Panel
+    - examStatsPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayExams(exams: List<ExamDTO>): void
+    + displayExamDetails(examDetails: ExamDetailsDTO): void
+    + displayQuestionBank(questions: List<QuestionDTO>): void
+    + displayExamCreationForm(courses: List<CourseDTO>): void
+    + displayExamStatistics(stats: ExamStatisticsDTO): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewExamDetailsHandler(handler: EventHandler): void
+    + setCreateExamHandler(handler: EventHandler): void
+    + setUpdateExamHandler(handler: EventHandler): void
+    + setAddQuestionHandler(handler: EventHandler): void
+    + setRemoveQuestionHandler(handler: EventHandler): void
+    + setPublishExamHandler(handler: EventHandler): void
+    + setImportQuestionsHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "ExamController" as EC {
+    - examService: ExamService
+    - questionService: QuestionService
+    - courseService: CourseService
+    - teacherService: TeacherService
+    - attemptService: AttemptService
+    - notificationService: NotificationService
+    + getAllExams(): List<ExamDTO>
+    + getExamById(examId: Long): ExamDetailsDTO
+    + getQuestionsByExam(examId: Long): List<QuestionDTO>
+    + getAvailableCourses(teacherId: Long): List<CourseDTO>
+    + createExam(examData: ExamCreateRequest): ExamDTO
+    + updateExam(examId: Long, examData: ExamUpdateRequest): ExamDTO
+    + addQuestionToExam(examId: Long, questionId: Long): boolean
+    + removeQuestionFromExam(examId: Long, questionId: Long): boolean
+    + publishExam(examId: Long): boolean
+    + unpublishExam(examId: Long): boolean
+    + importQuestionsFromFile(examId: Long, fileContent: String, format: ImportFormat): ImportResult
+    + getExamStatistics(examId: Long): ExamStatisticsDTO
+    + duplicateExam(examId: Long, newTitle: String): ExamDTO
+  }
+  
+  class "ExamService" as ES {
+    - examRepository: ExamRepository
+    - courseRepository: CourseRepository
+    - questionRepository: QuestionRepository
+    - attemptRepository: ExamAttemptRepository
+    + findAll(): List<Exam>
+    + findById(examId: Long): Exam
+    + findByCourse(courseId: Long): List<Exam>
+    + findByTeacher(teacherId: Long): List<Exam>
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: Map<String, Object>): Exam
+    + delete(examId: Long): boolean
+    + addQuestion(examId: Long, questionId: Long): boolean
+    + removeQuestion(examId: Long, questionId: Long): boolean
+    + publishExam(examId: Long): boolean
+    + unpublishExam(examId: Long): boolean
+    + getExamStatistics(examId: Long): ExamStatistics
+    + validateExam(exam: Exam): ValidationResult
+    + mapToDTO(exam: Exam): ExamDTO
+    + mapToDetailsDTO(exam: Exam, questions: List<Question>): ExamDetailsDTO
+  }
+  
+  class "QuestionService" as QS {
+    - questionRepository: QuestionRepository
+    - answerRepository: AnswerRepository
+    - examRepository: ExamRepository
+    - categoryRepository: CategoryRepository
+    + findAll(): List<Question>
+    + findById(questionId: Long): Question
+    + findByExam(examId: Long): List<Question>
+    + findByCategory(categoryId: Long): List<Question>
+    + findByDifficulty(difficulty: QuestionDifficulty): List<Question>
+    + save(question: Question): Question
+    + update(questionId: Long, questionData: Map<String, Object>): Question
+    + delete(questionId: Long): boolean
+    + addAnswer(questionId: Long, answer: Answer): boolean
+    + removeAnswer(questionId: Long, answerId: Long): boolean
+    + importFromFile(content: String, format: ImportFormat): ImportResult
+    + mapToDTO(question: Question): QuestionDTO
+  }
+  
+  class "AttemptService" as AS {
+    - attemptRepository: ExamAttemptRepository
+    - examRepository: ExamRepository
+    - studentRepository: StudentRepository
+    - questionRepository: QuestionRepository
+    + findAll(): List<ExamAttempt>
+    + findById(attemptId: Long): ExamAttempt
+    + findByExam(examId: Long): List<ExamAttempt>
+    + findByStudent(studentId: Long): List<ExamAttempt>
+    + findByExamAndStudent(examId: Long, studentId: Long): List<ExamAttempt>
+    + getAttemptStatistics(examId: Long): AttemptStatistics
+    + calculateAverageScore(examId: Long): double
+    + calculatePassRate(examId: Long): double
+    + getTimeDistribution(examId: Long): Map<DurationRange, Integer>
+    + mapToDTO(attempt: ExamAttempt): AttemptDTO
+  }
+  
+  class "NotificationService" as NS {
+    - notificationRepository: NotificationRepository
+    - emailService: EmailService
+    - userRepository: UserRepository
+    + sendExamPublishedNotification(examId: Long): void
+    + sendExamUpdateNotification(examId: Long, message: String): void
+    + notifyExamReadiness(examId: Long, issues: List<ValidationIssue>): void
+    + notifyStudentsOfDeadline(examId: Long, daysLeft: int): void
+    + markNotificationAsRead(notificationId: Long): void
+  }
+  
+  class "ExamStatistics" as EST {
+    - attemptCount: int
+    - averageScore: double
+    - highestScore: double
+    - lowestScore: double
+    - passRate: double
+    - averageCompletionTime: Duration
+    - questionStats: Map<Long, QuestionStats>
+    - scoreDistribution: Map<ScoreRange, Integer>
+    - timeDistribution: Map<DurationRange, Integer>
+    + getMostDifficultQuestions(): List<QuestionStats>
+    + getEasiestQuestions(): List<QuestionStats>
+    + getPerformanceByCategory(): Map<String, Double>
+    + getPerformanceByDifficulty(): Map<QuestionDifficulty, Double>
+    + getCompletionRateOverTime(): List<TimestampedValue>
+  }
+  
+  class "QuestionStats" as QST {
+    - questionId: Long
+    - text: String
+    - correctAnswerRate: double
+    - averageTimeSpent: Duration
+    - attemptCount: int
+    - skipCount: int
+    - difficulty: CalculatedDifficulty
+    + getDifficultyRating(): double
+    + getDiscriminationIndex(): double
+    + isProblematic(): boolean
+    + getSuggestedAction(): String
+  }
+  
+  class "ImportResult" as IR {
+    - successCount: int
+    - failureCount: int
+    - warnings: List<String>
+    - errors: List<String>
+    - importedQuestions: List<Question>
+    + isSuccessful(): boolean
+    + hasWarnings(): boolean
+    + getSummary(): String
+    + getDetailedReport(): String
+  }
+  
+  class "ValidationResult" as VR {
+    - isValid: boolean
+    - issues: List<ValidationIssue>
+    - criticalIssueCount: int
+    - warningCount: int
+    + isReady(): boolean
+    + hasCriticalIssues(): boolean
+    + hasWarnings(): boolean
+    + getSummary(): String
+    + getIssuesByType(type: IssueType): List<ValidationIssue>
+  }
+  
+  class "ValidationIssue" as VI {
+    - type: IssueType
+    - message: String
+    - source: String
+    - suggestion: String
+    + isCritical(): boolean
+    + getFormattedMessage(): String
+  }
+  
+  enum "ImportFormat" as IF {
+    CSV
+    XML
+    JSON
+    WORD
+    EXCEL
+  }
+  
+  enum "IssueType" as IT {
+    CRITICAL
+    WARNING
+    SUGGESTION
+  }
+  
+  enum "ScoreRange" as SR {
+    VERY_LOW
+    LOW
+    MEDIUM
+    HIGH
+    VERY_HIGH
+    PERFECT
+  }
+  
+  enum "DurationRange" as DR {
+    VERY_FAST
+    FAST
+    AVERAGE
+    SLOW
+    VERY_SLOW
+    TIMED_OUT
+  }
+  
+  enum "CalculatedDifficulty" as CD {
+    VERY_EASY
+    EASY
+    MEDIUM
+    DIFFICULT
+    VERY_DIFFICULT
+    EXTREME
+  }
+}
+
+package "Domain Layer" {
+  interface "ExamRepository" as ER {
+    + findById(examId: Long): Optional<Exam>
+    + findAll(): List<Exam>
+    + findByCourse(courseId: Long): List<Exam>
+    + findByTeacher(teacherId: Long): List<Exam>
+    + findPublished(): List<Exam>
+    + findWithQuestions(examId: Long): Exam
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: Map<String, Object>): Exam
+    + delete(examId: Long): boolean
+    + updateStatus(examId: Long, status: ExamStatus): boolean
+    + getAttemptCount(examId: Long): int
+  }
+  
+  interface "QuestionRepository" as QR {
+    + findById(questionId: Long): Optional<Question>
+    + findAll(): List<Question>
+    + findByExam(examId: Long): List<Question>
+    + findByCategory(categoryId: Long): List<Question>
+    + findByDifficulty(difficulty: QuestionDifficulty): List<Question>
+    + save(question: Question): Question
+    + update(questionId: Long, questionData: Map<String, Object>): Question
+    + delete(questionId: Long): boolean
+    + findWithAnswers(questionId: Long): Question
+    + addToExam(questionId: Long, examId: Long): boolean
+    + removeFromExam(questionId: Long, examId: Long): boolean
+  }
+  
+  interface "AnswerRepository" as AR {
+    + findById(answerId: Long): Optional<Answer>
+    + findByQuestion(questionId: Long): List<Answer>
+    + findCorrectByQuestion(questionId: Long): List<Answer>
+    + save(answer: Answer): Answer
+    + update(answerId: Long, answerData: Map<String, Object>): Answer
+    + delete(answerId: Long): boolean
+    + updateCorrectStatus(answerId: Long, isCorrect: boolean): boolean
+  }
+  
+  interface "ExamAttemptRepository" as EAR {
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findAll(): List<ExamAttempt>
+    + findByExam(examId: Long): List<ExamAttempt>
+    + findByStudent(studentId: Long): List<ExamAttempt>
+    + findByExamAndStudent(examId: Long, studentId: Long): List<ExamAttempt>
+    + save(attempt: ExamAttempt): ExamAttempt
+    + update(attemptId: Long, attemptData: Map<String, Object>): ExamAttempt
+    + delete(attemptId: Long): boolean
+    + getAverageScore(examId: Long): double
+    + getPassRate(examId: Long): double
+  }
+  
+  class "Exam" as E {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseId: Long
+    - createdBy: Long
+    - timeLimit: Integer
+    - startDate: LocalDateTime
+    - endDate: LocalDateTime
+    - passingScore: double
+    - totalPoints: double
+    - randomizeQuestions: boolean
+    - allowReview: boolean
+    - status: ExamStatus
+    - visibilityLevel: VisibilityLevel
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - questions: List<Question>
+    - attempts: List<ExamAttempt>
+    + getMaxScore(): double
+    + getQuestionCount(): int
+    + isActive(): boolean
+    + isPublished(): boolean
+    + isDraft(): boolean
+    + isPastDue(): boolean
+    + isInProgress(): boolean
+    + getAverageScore(): double
+    + getPassRate(): double
+    + getVisibleQuestionCount(): int
+    + addQuestion(question: Question): boolean
+    + removeQuestion(questionId: Long): boolean
+    + publish(): boolean
+    + unpublish(): boolean
+    + close(): boolean
+    + calculateTotalPoints(): double
+  }
+  
+  class "Question" as Q {
+    - questionId: Long
+    - text: String
+    - type: QuestionType
+    - points: double
+    - difficulty: QuestionDifficulty
+    - categoryId: Long
+    - explanation: String
+    - hintText: String
+    - requiredTime: Integer
+    - createdBy: Long
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - examQuestions: List<ExamQuestion>
+    - answers: List<Answer>
+    - tags: List<Tag>
+    + getAnswers(): List<Answer>
+    + getCorrectAnswers(): List<Answer>
+    + hasMultipleCorrectAnswers(): boolean
+    + requiresManualGrading(): boolean
+    + getMaxPoints(): double
+    + isUsedInExam(examId: Long): boolean
+    + addAnswer(answer: Answer): boolean
+    + removeAnswer(answerId: Long): boolean
+    + clone(): Question
+    + hasImage(): boolean
+    + countUsage(): int
+  }
+  
+  class "Answer" as A {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+    - score: double
+    - orderIndex: int
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    + getExplanation(): String
+    + getScore(): double
+    + isPartialCredit(): boolean
+    + clone(): Answer
+    + isNegative(): boolean
+  }
+  
+  class "ExamQuestion" as EQ {
+    - examQuestionId: Long
+    - examId: Long
+    - questionId: Long
+    - orderIndex: int
+    - isRequired: boolean
+    - isBonus: boolean
+    - points: double
+    - questionGroupId: Long
+    + isBonus(): boolean
+    + isRequired(): boolean
+    + getEffectivePoints(): double
+    + getOriginalQuestion(): Question
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Long
+    - examId: Long
+    - studentId: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - submittedAnswers: List<SubmittedAnswer>
+    - status: AttemptStatus
+    - ipAddress: String
+    - browserInfo: String
+    - score: double
+    - grade: String
+    - feedback: String
+    - gradedBy: Long
+    - gradedAt: LocalDateTime
+    + getDuration(): Duration
+    + isCompleted(): boolean
+    + calculateScore(): double
+    + isPassed(passingScore: double): boolean
+    + getAnswerForQuestion(questionId: Long): Optional<SubmittedAnswer>
+    + submitAnswer(answer: SubmittedAnswer): boolean
+    + isTimedOut(): boolean
+    + getRemainingTime(): Duration
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Long
+    - attemptId: Long
+    - questionId: Long
+    - answerId: Long
+    - textAnswer: String
+    - fileUrl: String
+    - submittedAt: LocalDateTime
+    - score: double
+    - gradedBy: Long
+    - gradedAt: LocalDateTime
+    - feedbackText: String
+    - timeSpent: Duration
+    + isCorrect(): boolean
+    + isPartiallyCorrect(): boolean
+    + getScorePercentage(): double
+    + hasFeedback(): boolean
+    + isAutoGraded(): boolean
+    + submitForAutoGrading(): void
+    + submitForManualGrading(): void
+  }
+  
+  class "Category" as C {
+    - categoryId: Long
+    - name: String
+    - description: String
+    - parentCategoryId: Long
+    - questions: List<Question>
+    + getQuestionCount(): int
+    + isSubcategory(): boolean
+    + getParentCategory(): Category
+    + getSubcategories(): List<Category>
+  }
+  
+  class "Tag" as T {
+    - tagId: Long
+    - name: String
+    - description: String
+    - questions: List<Question>
+    + getQuestionCount(): int
+  }
+  
+  enum "ExamStatus" as ES1 {
+    DRAFT
+    PUBLISHED
+    CLOSED
+    ARCHIVED
+  }
+  
+  enum "QuestionType" as QT {
+    MULTIPLE_CHOICE
+    SINGLE_CHOICE
+    TRUE_FALSE
+    MATCHING
+    FILL_BLANK
+    SHORT_ANSWER
+    ESSAY
+    CODING
+  }
+  
+  enum "QuestionDifficulty" as QD {
+    EASY
+    MEDIUM
+    HARD
+    EXPERT
+  }
+  
+  enum "AttemptStatus" as AS1 {
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    TIMED_OUT
+    CANCELLED
+  }
+  
+  enum "VisibilityLevel" as VL {
+    PUBLIC
+    ENROLLED_STUDENTS
+    SELECTED_STUDENTS
+    HIDDEN
+  }
+}
+
+package "Infrastructure Layer" {
+  class "ExamRepositoryImpl" as ERI {
+    - dataSource: DataSource
+    + findById(examId: Long): Optional<Exam>
+    + findAll(): List<Exam>
+    + findByCourse(courseId: Long): List<Exam>
+    + findByTeacher(teacherId: Long): List<Exam>
+    + findPublished(): List<Exam>
+    + findWithQuestions(examId: Long): Exam
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: Map<String, Object>): Exam
+    + delete(examId: Long): boolean
+    + updateStatus(examId: Long, status: ExamStatus): boolean
+    + getAttemptCount(examId: Long): int
+    - mapResultSetToExam(rs: ResultSet): Exam
+  }
+  
+  class "QuestionRepositoryImpl" as QRI {
+    - dataSource: DataSource
+    + findById(questionId: Long): Optional<Question>
+    + findAll(): List<Question>
+    + findByExam(examId: Long): List<Question>
+    + findByCategory(categoryId: Long): List<Question>
+    + findByDifficulty(difficulty: QuestionDifficulty): List<Question>
+    + save(question: Question): Question
+    + update(questionId: Long, questionData: Map<String, Object>): Question
+    + delete(questionId: Long): boolean
+    + findWithAnswers(questionId: Long): Question
+    + addToExam(questionId: Long, examId: Long): boolean
+    + removeFromExam(questionId: Long, examId: Long): boolean
+    - mapResultSetToQuestion(rs: ResultSet): Question
+  }
+  
+  class "ExamImportExportService" as EIES {
+    - questionRepository: QuestionRepository
+    - answerRepository: AnswerRepository
+    - examRepository: ExamRepository
+    + importQuestionsFromCsv(content: String): ImportResult
+    + importQuestionsFromXml(content: String): ImportResult
+    + importQuestionsFromJson(content: String): ImportResult
+    + exportQuestionsToFormat(questions: List<Question>, format: ImportFormat): String
+    + exportExamToFormat(exam: Exam, format: ImportFormat): String
+    + validateImportContent(content: String, format: ImportFormat): ValidationResult
+    - parseQuestionData(data: Map<String, Object>): Question
+    - parseAnswerData(data: Map<String, Object>): Answer
+  }
+  
+  class "EmailServiceImpl" as ESI {
+    - emailConfig: EmailConfiguration
+    - templateEngine: TemplateEngine
+    + sendEmail(recipient: String, subject: String, body: String): void
+    + sendBulkEmail(recipients: List<String>, subject: String, body: String): void
+    + sendExamNotification(examId: Long, subject: String, messageTemplate: String, variables: Map<String, Object>): void
+    + notifyStudents(studentIds: List<Long>, subject: String, messageTemplate: String, variables: Map<String, Object>): void
+    + generateMessageFromTemplate(templateName: String, variables: Map<String, Object>): String
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "ExamDTO" as EDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - teacherName: String
+    - timeLimit: String
+    - startDate: String
+    - endDate: String
+    - passingScore: double
+    - totalPoints: double
+    - questionCount: int
+    - attemptCount: int
+    - averageScore: double
+    - status: String
+    - createdAt: String
+    - updatedAt: String
+  }
+  
+  class "ExamDetailsDTO" as EDDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - teacherName: String
+    - timeLimit: String
+    - startDate: String
+    - endDate: String
+    - passingScore: double
+    - totalPoints: double
+    - randomizeQuestions: boolean
+    - allowReview: boolean
+    - status: String
+    - visibilityLevel: String
+    - questions: List<QuestionDTO>
+    - statistics: ExamStatisticsDTO
+  }
+  
+  class "QuestionDTO" as QDTO {
+    - questionId: Long
+    - text: String
+    - type: String
+    - points: double
+    - difficulty: String
+    - categoryName: String
+    - explanation: String
+    - hintText: String
+    - requiredTime: String
+    - answers: List<AnswerDTO>
+    - tags: List<String>
+    - usageCount: int
+    - correctAnswerRate: double
+  }
+  
+  class "AnswerDTO" as ADTO {
+    - answerId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+    - score: double
+    - orderIndex: int
+  }
+  
+  class "AttemptDTO" as ATDTO {
+    - attemptId: Long
+    - examTitle: String
+    - studentName: String
+    - startTime: String
+    - endTime: String
+    - duration: String
+    - status: String
+    - score: double
+    - grade: String
+    - isPassed: boolean
+    - hasManualGrading: boolean
+    - submittedAnswerCount: int
+  }
+  
+  class "ExamStatisticsDTO" as ESTDTO {
+    - attemptCount: int
+    - averageScore: double
+    - highestScore: double
+    - lowestScore: double
+    - passRate: double
+    - averageCompletionTime: String
+    - questionStatistics: List<QuestionStatsDTO>
+    - scoreDistribution: Map<String, Integer>
+    - timeDistribution: Map<String, Integer>
+    - performanceByCategory: Map<String, Double>
+    - completionRateOverTime: List<ChartPointDTO>
+  }
+  
+  class "QuestionStatsDTO" as QSTDTO {
+    - questionId: Long
+    - text: String
+    - correctAnswerRate: double
+    - averageTimeSpent: String
+    - attemptCount: int
+    - skipCount: int
+    - difficultyRating: String
+    - discriminationIndex: double
+    - isProblematic: boolean
+    - suggestedAction: String
+  }
+  
+  class "ImportResultDTO" as IRDTO {
+    - successCount: int
+    - failureCount: int
+    - warnings: List<String>
+    - errors: List<String>
+    - importedQuestionIds: List<Long>
+    - isSuccessful: boolean
+    - summary: String
+  }
+  
+  class "ValidationResultDTO" as VRDTO {
+    - isValid: boolean
+    - criticalIssueCount: int
+    - warningCount: int
+    - issues: List<ValidationIssueDTO>
+    - isReady: boolean
+    - summary: String
+  }
+  
+  class "ExamCreateRequest" as ECR {
+    - title: String
+    - description: String
+    - courseId: Long
+    - timeLimit: Integer
+    - startDate: String
+    - endDate: String
+    - passingScore: double
+    - randomizeQuestions: boolean
+    - allowReview: boolean
+    - visibilityLevel: String
+    - questionIds: List<Long>
+  }
+  
+  class "ExamUpdateRequest" as EUR {
+    - title: String
+    - description: String
+    - timeLimit: Integer
+    - startDate: String
+    - endDate: String
+    - passingScore: double
+    - randomizeQuestions: boolean
+    - allowReview: boolean
+    - visibilityLevel: String
+    - status: String
+  }
+}
+
+' Relationships
+EMV ..> EC : uses
+EC --> ES : uses
+EC --> QS : uses
+EC --> AS : uses
+EC --> NS : uses
+ES --> ER : uses
+QS --> QR : uses
+QS --> AR : uses
+AS --> EAR : uses
+NS --> ESI : uses
+ERI ..|> ER : implements
+QRI ..|> QR : implements
+EC ..> EST : uses
+EC ..> IR : produces
+EC ..> VR : consumes
+ES ..> EST : produces
+ES ..> VR : produces
+QS ..> QST : produces
+E "1" -- "0..*" EQ : contains
+E "1" -- "0..*" EA : has
+Q "1" -- "0..*" A : has
+Q "1" -- "1..*" EQ : included in
+EA "1" -- "0..*" SA : contains
+E "1" -- "1" ES1 : has status
+Q "1" -- "1" QT : has type
+Q "1" -- "1" QD : has difficulty
+EA "1" -- "1" AS1 : has status
+E "1" -- "1" VL : has visibility
+ES ..> EDTO : produces
+ES ..> EDDTO : produces
+QS ..> QDTO : produces
+QS ..> ADTO : produces
+AS ..> ATDTO : produces
+ES ..> ESTDTO : produces
+QS ..> QSTDTO : produces
+EC ..> IRDTO : produces
+EC ..> VRDTO : produces
+EC ..> ECR : consumes
+EC ..> EUR : consumes
+Q "0..*" -- "0..*" T : tagged with
+Q "0..*" -- "1" C : belongs to
+EIES ..> IR : produces
+EIES ..> VR : produces
+
+@enduml 

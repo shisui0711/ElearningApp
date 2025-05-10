@@ -1,0 +1,225 @@
+@startuml
+title View Content - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor PaleGoldenRod
+  ArrowColor DarkGoldenRod
+  BorderColor Peru
+}
+
+skinparam package {
+  BackgroundColor Ivory
+  BorderColor Tan
+}
+
+package "Boundary" {
+  class "ContentInterface" as CI {
+    + displayCourseList()
+    + showCourseContent(courseId: Integer)
+    + displayLessonContent(lessonId: Integer)
+    + showContentControls()
+    + displayAttachments(lessonId: Integer)
+    + showProgressIndicator(courseId: Integer)
+    + displayContentSearchForm()
+    + showDownloadOptions(contentId: Integer)
+  }
+}
+
+package "Controller" {
+  class "ContentController" as CC {
+    + getUserCourses(userId: Integer): List<Course>
+    + getCourseContent(courseId: Integer): CourseContent
+    + getLessonContent(lessonId: Integer): LessonContent
+    + getAttachments(lessonId: Integer): List<Document>
+    + markLessonAsCompleted(userId: Integer, lessonId: Integer): CompletedLesson
+    + searchContent(searchQuery: String): List<SearchResult>
+    + downloadContent(contentId: Integer, contentType: ContentType): File
+    + getCourseProgress(userId: Integer, courseId: Integer): CourseProgress
+    + getNextLesson(courseId: Integer, currentLessonId: Integer): Lesson
+    + logContentView(userId: Integer, contentId: Integer): ContentActivity
+  }
+}
+
+package "Entity" {
+  class "User" as U {
+    - userId: Integer
+    - role: Role
+    + getEnrolledCourses(): List<Course>
+    + getCompletedLessons(): List<CompletedLesson>
+    + hasAccessToContent(contentId: Integer): Boolean
+    + getPreferences(): UserPreferences
+  }
+  
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - description: String
+    - createdBy: Integer
+    - isPublished: Boolean
+    + getLessons(): List<Lesson>
+    + getDocuments(): List<Document>
+    + getProgress(userId: Integer): Double
+    + getNextLesson(currentLessonId: Integer): Lesson
+  }
+  
+  class "CourseContent" as CC2 {
+    - courseId: Integer
+    - title: String
+    - description: String
+    - lessons: List<Lesson>
+    - resources: List<Document>
+    - syllabusUrl: String
+    - introVideoUrl: String
+    + getLessonCount(): Integer
+    + getResourceCount(): Integer
+    + getContentTreeStructure(): ContentTree
+  }
+  
+  class "Lesson" as L {
+    - lessonId: Integer
+    - courseId: Integer
+    - title: String
+    - content: Text
+    - order: Integer
+    - type: LessonType
+    - estimatedDuration: Integer
+    - isVisible: Boolean
+    + getContent(): LessonContent
+    + getDocuments(): List<Document>
+    + isCompleted(userId: Integer): Boolean
+    + hasPrerequisites(): Boolean
+    + getPrerequisites(): List<Lesson>
+  }
+  
+  class "LessonContent" as LC {
+    - contentId: Integer
+    - lessonId: Integer
+    - htmlContent: Text
+    - plainTextContent: Text
+    - videoUrl: String
+    - audioUrl: String
+    - interactiveElementsJson: String
+    + getRenderableContent(format: ContentFormat): String
+    + hasVideo(): Boolean
+    + hasAudio(): Boolean
+    + hasInteractiveElements(): Boolean
+  }
+  
+  class "Document" as D {
+    - documentId: Integer
+    - contentId: Integer
+    - title: String
+    - description: String
+    - fileUrl: String
+    - fileType: String
+    - fileSize: Integer
+    - uploadedAt: DateTime
+    - version: String
+    + download(): File
+    + preview(): String
+    + isDownloadable(): Boolean
+  }
+  
+  class "CompletedLesson" as CL {
+    - completionId: Integer
+    - userId: Integer
+    - lessonId: Integer
+    - completedAt: DateTime
+    - timeSpent: Integer
+    - completionPercentage: Double
+    + getLesson(): Lesson
+    + isFullyCompleted(): Boolean
+  }
+  
+  class "CourseProgress" as CP {
+    - progressId: Integer
+    - userId: Integer
+    - courseId: Integer
+    - completedLessons: Integer
+    - totalLessons: Integer
+    - progressPercentage: Double
+    - lastAccessed: DateTime
+    - estimatedCompletionDate: Date
+    + getRemainingLessons(): Integer
+    + getCompletedLessonsList(): List<Lesson>
+  }
+  
+  class "SearchResult" as SR {
+    - resultId: String
+    - contentType: ContentType
+    - contentId: Integer
+    - title: String
+    - snippet: String
+    - relevanceScore: Double
+    - courseId: Integer
+    + getContent(): Object
+    + getCourse(): Course
+    + getUrl(): String
+  }
+  
+  class "ContentActivity" as CA {
+    - activityId: Integer
+    - userId: Integer
+    - contentId: Integer
+    - contentType: ContentType
+    - action: String
+    - timestamp: DateTime
+    - deviceInfo: String
+    + getContentReference(): Object
+    + getDuration(): Integer
+  }
+  
+  enum "Role" as R {
+    ADMIN
+    TEACHER
+    STUDENT
+  }
+  
+  enum "LessonType" as LT {
+    TEXT
+    VIDEO
+    AUDIO
+    INTERACTIVE
+    ASSIGNMENT
+  }
+  
+  enum "ContentType" as CT {
+    COURSE
+    LESSON
+    DOCUMENT
+    VIDEO
+    AUDIO
+  }
+  
+  enum "ContentFormat" as CF {
+    HTML
+    PLAIN_TEXT
+    MARKDOWN
+    JSON
+  }
+}
+
+' Relationships
+CI ..> CC : requests action
+CC --> U : validates access for
+CC --> C : retrieves
+CC --> CC2 : provides
+CC --> L : fetches
+CC --> LC : delivers
+CC --> D : serves
+CC --> CL : records
+CC --> CP : calculates
+CC --> SR : returns
+CC --> CA : logs
+U "1" -- "0..*" C : is enrolled in
+U "1" -- "0..*" CL : completes
+U "1" -- "0..*" CA : generates
+C "1" -- "1" CC2 : described by
+C "1" -- "0..*" L : contains
+C "1" -- "0..*" CP : tracked for
+L "1" -- "1" LC : presents
+L "1" -- "0..*" D : includes
+LC "0..*" -- "1" CF : formatted as
+L "0..*" -- "0..*" L : prerequisite for
+
+@enduml 

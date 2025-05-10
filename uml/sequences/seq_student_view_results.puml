@@ -1,0 +1,124 @@
+@startuml
+title Student View Results - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor HotPink
+  ActorBorderColor HotPink
+  LifeLineBorderColor DeepPink
+  LifeLineBackgroundColor LightPink
+  
+  ParticipantBorderColor HotPink
+  ParticipantBackgroundColor HotPink
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightPink
+  
+  ActorBackgroundColor Pink
+  ActorFontColor HotPink
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Student" as student
+participant "Results\nInterface" as ui
+participant "Results\nController" as controller
+participant "Student\nRepository" as studentRepo
+participant "Course\nRepository" as courseRepo
+participant "Exam\nRepository" as examRepo
+participant "ExamAttempt\nRepository" as attemptRepo
+participant "Result\nRepository" as resultRepo
+participant "Certificate\nService" as certService
+
+autonumber
+
+== View Enrolled Courses ==
+
+student -> ui: Navigate to results page
+ui -> controller: getStudentCourses(studentId)
+controller -> studentRepo: findById(studentId)
+studentRepo --> controller: Return student data
+controller -> courseRepo: findByStudentId(studentId)
+courseRepo --> controller: Return enrolled courses
+controller --> ui: Return course list with progress info
+ui --> student: Display courses and progress stats
+
+== View Course Exam Results ==
+
+student -> ui: Select course
+ui -> controller: getExamResults(studentId, courseId)
+controller -> examRepo: findByCourseId(courseId)
+examRepo --> controller: Return course exams
+controller -> attemptRepo: findByStudentAndExams(studentId, examIds)
+attemptRepo --> controller: Return student attempts
+controller -> resultRepo: findByAttemptIds(attemptIds)
+resultRepo --> controller: Return exam results
+controller --> ui: Return organized exam results
+ui --> student: Display course exams and results
+
+== View Detailed Exam Result ==
+
+student -> ui: Select exam result
+ui -> controller: getExamDetails(attemptId)
+controller -> attemptRepo: findById(attemptId)
+attemptRepo --> controller: Return attempt details
+controller -> resultRepo: findByAttemptId(attemptId)
+resultRepo --> controller: Return result details
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller --> ui: Return comprehensive result data
+ui --> student: Display detailed exam performance
+
+student -> ui: Click "View Answers"
+ui -> controller: getExamAnswers(attemptId)
+controller -> attemptRepo: getSubmittedAnswers(attemptId)
+attemptRepo --> controller: Return submitted answers
+controller -> examRepo: getExamQuestions(examId)
+examRepo --> controller: Return questions and correct answers
+controller -> controller: compareAnswers(submittedAnswers, correctAnswers)
+controller --> ui: Return answer comparison data
+ui --> student: Display questions, student answers, and correct answers
+
+== View Performance Charts ==
+
+student -> ui: Click "View Performance Analytics"
+ui -> controller: getStudentPerformanceData(studentId)
+controller -> resultRepo: getResultsByStudent(studentId)
+resultRepo --> controller: Return all student results
+controller -> controller: processPerformanceMetrics(results)
+controller -> controller: generatePerformanceCharts(metrics)
+controller --> ui: Return performance data and charts
+ui --> student: Display performance analytics
+
+== Download Certificate ==
+
+student -> ui: Click "Get Certificate" on completed course
+ui -> controller: checkCertificateEligibility(studentId, courseId)
+controller -> courseRepo: getCourseCompletionStatus(studentId, courseId)
+courseRepo --> controller: Return completion status
+
+alt Course Completed
+    controller -> resultRepo: getPassedExamsCount(studentId, courseId)
+    resultRepo --> controller: Return passed exams count
+    controller -> courseRepo: getRequiredExamsCount(courseId)
+    courseRepo --> controller: Return required exams count
+    
+    alt Certificate Eligible
+        controller -> certService: generateCertificate(studentId, courseId)
+        certService --> controller: Return certificate data
+        controller --> ui: Return certificate
+        ui --> student: Display and offer certificate download
+        
+        student -> ui: Click "Download"
+        ui -> certService: downloadCertificate(certificateId)
+        certService --> ui: Return certificate file
+        ui --> student: Download certificate PDF
+    else Not Eligible
+        controller --> ui: Return ineligibility reason
+        ui --> student: Display requirements to earn certificate
+    end
+else Course Not Completed
+    controller --> ui: Return incomplete status
+    ui --> student: Display course completion requirements
+end
+
+@enduml 

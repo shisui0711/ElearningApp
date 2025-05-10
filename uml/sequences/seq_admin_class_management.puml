@@ -1,0 +1,130 @@
+@startuml
+title Admin Class Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor Indigo
+  ActorBorderColor Indigo
+  LifeLineBorderColor DarkSlateBlue
+  LifeLineBackgroundColor Lavender
+  
+  ParticipantBorderColor Indigo
+  ParticipantBackgroundColor Indigo
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor Lavender
+  
+  ActorBackgroundColor Plum
+  ActorFontColor Indigo
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Admin" as admin
+participant "Class Management\nInterface" as ui
+participant "Class Management\nController" as controller
+participant "Class\nRepository" as classRepo
+participant "Department\nRepository" as deptRepo
+participant "Student\nRepository" as studentRepo
+participant "Activity\nLogger" as logger
+
+autonumber
+
+== View Class List ==
+
+admin -> ui: Navigate to class management
+ui -> controller: getAllClasses()
+controller -> classRepo: findAll()
+classRepo --> controller: Return class list
+controller --> ui: Return classes data
+ui --> admin: Display class list
+
+== Filter Classes by Department ==
+
+admin -> ui: Select department filter
+ui -> controller: getClassesByDepartment(departmentId)
+controller -> deptRepo: findById(departmentId)
+deptRepo --> controller: Return department data
+controller -> classRepo: findByDepartment(departmentId)
+classRepo --> controller: Return filtered classes
+controller --> ui: Return filtered data
+ui --> admin: Display filtered class list
+
+== Search Classes ==
+
+admin -> ui: Enter search term
+ui -> controller: searchClasses(searchTerm)
+controller -> classRepo: findByNameContaining(searchTerm)
+classRepo --> controller: Return matching classes
+controller --> ui: Return search results
+ui --> admin: Display search results
+
+== Create New Class ==
+
+admin -> ui: Click "Thêm lớp mới"
+ui -> controller: getDepartments()
+controller -> deptRepo: findAll()
+deptRepo --> controller: Return available departments
+controller --> ui: Return department data
+ui --> admin: Display class creation form
+
+admin -> ui: Enter class details and submit
+ui -> controller: createClass(classData)
+controller -> controller: validateClassData(classData)
+controller -> classRepo: findByName(className)
+classRepo --> controller: Check if class name exists
+
+alt Class Name Already Exists
+    controller --> ui: Class name already in use
+    ui --> admin: Display error message
+else Class Name Available
+    controller -> classRepo: save(newClass)
+    classRepo --> controller: Return created class
+    controller -> logger: logActivity(adminId, "Created class", classId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display success message
+end
+
+== Edit Class Details ==
+
+admin -> ui: Select class and click "Edit"
+ui -> controller: getClassDetails(classId)
+controller -> classRepo: findById(classId)
+classRepo --> controller: Return class details
+controller -> deptRepo: findAll()
+deptRepo --> controller: Return departments
+controller --> ui: Return class and department data
+ui --> admin: Display class edit form
+
+admin -> ui: Modify class details and submit
+ui -> controller: updateClass(classId, classData)
+controller -> controller: validateClassData(classData)
+controller -> classRepo: update(classId, classData)
+classRepo --> controller: Return updated class
+controller -> logger: logActivity(adminId, "Updated class", classId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display success message
+
+== Delete Class ==
+
+admin -> ui: Select class and click "Delete"
+ui --> admin: Display confirmation dialog
+admin -> ui: Confirm deletion
+ui -> controller: deleteClass(classId)
+controller -> studentRepo: findByClassId(classId)
+studentRepo --> controller: Return students in class
+
+alt Class Has Students
+    controller --> ui: Cannot delete class with students
+    ui --> admin: Display error message
+else Class Has No Students
+    controller -> classRepo: delete(classId)
+    classRepo --> controller: Return success
+    controller -> logger: logActivity(adminId, "Deleted class", classId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display deletion confirmation
+end
+
+@enduml 

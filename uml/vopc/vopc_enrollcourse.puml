@@ -1,0 +1,118 @@
+@startuml
+title Course Enrollment - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor PaleGreen
+  ArrowColor ForestGreen
+  BorderColor DarkGreen
+}
+
+skinparam package {
+  BackgroundColor Honeydew
+  BorderColor MediumSeaGreen
+}
+
+package "Boundary" {
+  class "EnrollmentInterface" as EI {
+    + displayAvailableCourses()
+    + showCourseDetails(courseId: Integer)
+    + displayConfirmationDialog()
+    + showEnrollmentSuccess(enrollment: Enrollment)
+    + showError(message: String)
+    + displayEnrollmentCode()
+  }
+}
+
+package "Controller" {
+  class "EnrollmentController" as EC {
+    + getAvailableCourses(studentId: Integer): List<Course>
+    + createEnrollment(studentId: Integer, courseId: Integer): Enrollment
+    + validateEnrollmentCode(code: String, courseId: Integer): Boolean
+    + checkPrerequisites(studentId: Integer, courseId: Integer): Boolean
+    + checkEnrollmentCapacity(courseId: Integer): Boolean
+    + notifyTeacher(enrollment: Enrollment): Boolean
+  }
+}
+
+package "Entity" {
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - description: String
+    - createdBy: Integer
+    - isPublished: Boolean
+    - startDate: Date
+    - endDate: Date
+    - maxStudents: Integer
+    - enrollmentCode: String
+    - hasPrerequisites: Boolean
+    + getEnrollments(): List<Enrollment>
+    + getAvailableSlots(): Integer
+    + requiresCode(): Boolean
+  }
+  
+  class "Enrollment" as E {
+    - enrollmentId: Integer
+    - studentId: Integer
+    - courseId: Integer
+    - enrollmentDate: DateTime
+    - status: EnrollmentStatus
+    - completionPercentage: Double
+    + getCompletedLessons(): List<CompletedLesson>
+    + getProgress(): Double
+    + updateStatus(status: EnrollmentStatus): Boolean
+  }
+  
+  class "Student" as S {
+    - userId: Integer
+    - classId: Integer
+    + getEnrollments(): List<Enrollment>
+    + hasCompletedCourse(courseId: Integer): Boolean
+    + isEligibleForCourse(courseId: Integer): Boolean
+  }
+  
+  class "CompletedLesson" as CL {
+    - completionId: Integer
+    - enrollmentId: Integer
+    - lessonId: Integer
+    - completedDate: DateTime
+    - timeSpent: Integer
+  }
+  
+  class "PrerequisiteCourse" as PC {
+    - prerequisiteId: Integer
+    - courseId: Integer
+    - requiredCourseId: Integer
+    - minimumGrade: Double
+  }
+  
+  enum "EnrollmentStatus" as ES {
+    ACTIVE
+    COMPLETED
+    DROPPED
+    PENDING_APPROVAL
+  }
+  
+  class "EnrollmentNotification" as EN {
+    - notificationId: Integer
+    - enrollmentId: Integer
+    - teacherId: Integer
+    - sent: Boolean
+    - sentAt: DateTime
+    + markAsSent(): Boolean
+  }
+}
+
+' Relationships
+EI ..> EC : requests action
+EC --> C : validates
+EC --> E : creates
+EC --> PC : checks
+EC --> EN : sends
+S "1" -- "0..*" E : has
+E "1" -- "1" C : references
+E "1" -- "0..*" CL : tracks
+C "0..*" -- "0..*" PC : requires
+E "1" -- "0..1" EN : generates
+
+@enduml 

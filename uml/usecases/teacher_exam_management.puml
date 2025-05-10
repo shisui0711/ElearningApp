@@ -1,0 +1,139 @@
+@startuml
+' Teacher Exam Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Teacher" as teacher #lightsalmon
+
+' Define use cases
+usecase "Create Exam" as createexam
+usecase "Add Questions" as addquestions
+usecase "Grade Exam" as gradeexam
+usecase "View Results" as viewresults
+usecase "Edit Exam" as editexam
+usecase "Preview Exam" as previewexam
+
+' Relationships
+teacher --> createexam
+teacher --> gradeexam
+teacher --> viewresults
+teacher --> editexam
+createexam ..> addquestions : <<include>> #purple
+createexam ..> previewexam : <<extend>> #purple
+editexam ..> previewexam : <<extend>> #purple
+gradeexam ..> viewresults : <<include>> #purple
+
+' Use case specification documentation
+note right of createexam
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Create Exam
+  
+  <b>Actors:</b> Teacher (Primary)
+  
+  <b>Description:</b> This use case allows teachers to create exams with questions and make them available to students.
+  
+  <b>Preconditions:</b>
+  1. Teacher is logged into the system with a Teacher role
+  2. Teacher has a valid teacher record in the database
+  
+  <b>Postconditions:</b>
+  1. Exam is created in the system
+  2. Questions are associated with the exam
+  3. Exam is available for students to attempt
+  
+  <b>Main Flow:</b>
+  1. Teacher navigates to the exam management section
+  2. Teacher creates a new exam with:
+     - Exam title
+     - Instructions
+     - Time limits (if applicable)
+  3. Teacher adds questions to the exam:
+     - Question content
+     - Point value
+     - Question type (multiple choice, essay, etc.)
+     - Answer options for multiple choice
+     - Correct answers
+  4. Teacher configures exam settings:
+     - Availability dates
+     - Time limits
+     - Attempts allowed
+  5. Teacher publishes the exam
+  6. System makes the exam available to students
+  
+  <b>Alternative Flows:</b>
+  A1. Edit existing exam
+    1. Teacher selects an existing exam to modify
+    2. System loads exam information
+    3. Teacher makes changes to questions or settings
+    4. System saves the updated exam
+  
+  A2. Preview exam
+    1. Teacher previews the exam from student perspective
+    2. System displays the exam as students will see it
+    3. Teacher confirms exam is correctly configured
+  
+  <b>Exception Flows:</b>
+  E1. Incomplete exam setup
+    1. Teacher attempts to publish exam without required elements
+    2. System identifies missing components
+    3. Teacher must complete exam setup before publishing
+end note
+
+note right of gradeexam
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Grade Exam
+  
+  <b>Actors:</b> Teacher (Primary)
+  
+  <b>Description:</b> This use case allows teachers to grade student exam attempts and provide feedback.
+  
+  <b>Preconditions:</b>
+  1. Teacher is logged into the system
+  2. Students have submitted exam attempts
+  3. Teacher has access to the course and exam
+  
+  <b>Postconditions:</b>
+  1. Exam attempts are graded
+  2. Feedback is provided to students
+  3. Grades are recorded in the system
+  
+  <b>Main Flow:</b>
+  1. Teacher navigates to the exam management section
+  2. Teacher selects an exam to view student attempts
+  3. System displays list of student attempts
+  4. Teacher selects a specific attempt to grade
+  5. System displays student responses
+  6. Teacher reviews auto-graded questions
+  7. Teacher manually grades essay/open-ended questions
+  8. Teacher provides feedback on specific answers
+  9. Teacher submits the final grade
+  10. System saves grades and feedback
+  11. System makes results available to students
+  
+  <b>Alternative Flows:</b>
+  A1. Batch grading
+    1. Teacher selects multiple student answers to grade together
+    2. System displays grouped responses
+    3. Teacher applies the same feedback or points to multiple students
+  
+  A2. Partial grading
+    1. Teacher saves partial grading progress
+    2. Teacher completes grading later
+    3. System saves the partial grades
+  
+  <b>Exception Flows:</b>
+  E1. Grading conflicts
+    1. System detects inconsistencies in grading
+    2. System alerts teacher to review specific questions
+    3. Teacher resolves inconsistencies
+end note
+@enduml 

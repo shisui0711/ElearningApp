@@ -1,0 +1,465 @@
+@startuml
+title Course Enrollment - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor PaleGreen
+  ArrowColor ForestGreen
+  BorderColor DarkGreen
+}
+
+skinparam package {
+  BackgroundColor Honeydew
+  BorderColor LimeGreen
+}
+
+package "Presentation Layer" {
+  class "EnrollmentView" as EV {
+    - courseListPanel: Panel
+    - courseDetailsPanel: Panel
+    - enrollmentFormPanel: Panel
+    - notificationArea: NotificationComponent
+    - waitlistPanel: Panel
+    + displayAvailableCourses(courses: List<CourseDTO>): void
+    + displayCourseDetails(course: CourseDetailsDTO): void
+    + displayPrerequisiteRequirements(prerequisites: List<PrerequisiteDTO>): void
+    + promptForEnrollmentCode(): void
+    + displayEnrollmentConfirmation(enrollment: EnrollmentDTO): void
+    + displayWaitlistOption(): void
+    + displayWaitlistConfirmation(waitlist: WaitlistDTO): void
+    + setEnrollCourseHandler(handler: EventHandler): void
+    + setViewCourseDetailsHandler(handler: EventHandler): void
+    + setJoinWaitlistHandler(handler: EventHandler): void
+    + displayNotification(message: String, type: NotificationType): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "EnrollmentController" as EC {
+    - courseService: CourseService
+    - studentService: StudentService
+    - enrollmentService: EnrollmentService
+    - notificationService: NotificationService
+    + getAvailableCourses(studentId: Long): List<CourseDTO>
+    + getCourseDetails(courseId: Long): CourseDetailsDTO
+    + checkPrerequisites(studentId: Long, courseId: Long): PrerequisiteResult
+    + validateEnrollmentCode(code: String, courseId: Long): boolean
+    + createEnrollment(studentId: Long, courseId: Long): EnrollmentDTO
+    + addToWaitlist(studentId: Long, courseId: Long): WaitlistDTO
+    + filterCoursesForStudent(courses: List<Course>, student: Student): List<Course>
+  }
+  
+  class "CourseService" as CS {
+    - courseRepository: CourseRepository
+    - categoryRepository: CategoryRepository
+    - subjectRepository: SubjectRepository
+    + findAvailableCourses(): List<Course>
+    + findById(courseId: Long): Course
+    + getCoursePrerequisites(courseId: Long): List<Prerequisite>
+    + checkEnrollmentCapacity(courseId: Long): EnrollmentCapacityStatus
+    + checkEnrollmentCode(code: String, courseId: Long): boolean
+    + mapToDTO(course: Course): CourseDTO
+    + mapToDetailsDTO(course: Course): CourseDetailsDTO
+  }
+  
+  class "StudentService" as SS {
+    - studentRepository: StudentRepository
+    - enrollmentRepository: EnrollmentRepository
+    - completionRepository: CompletionRepository
+    + getStudent(studentId: Long): Student
+    + getCompletedCourses(studentId: Long): List<CompletedCourse>
+    + isEligibleForCourse(studentId: Long, courseId: Long): boolean
+    + hasTakenCourse(studentId: Long, courseId: Long): boolean
+    + getStudentEnrollments(studentId: Long): List<Enrollment>
+    + mapToDTO(student: Student): StudentDTO
+  }
+  
+  class "EnrollmentService" as ES {
+    - enrollmentRepository: EnrollmentRepository
+    - waitlistRepository: WaitlistRepository
+    - courseRepository: CourseRepository
+    - studentRepository: StudentRepository
+    + save(studentId: Long, courseId: Long): Enrollment
+    + cancelEnrollment(enrollmentId: Long): boolean
+    + createWaitlistEntry(studentId: Long, courseId: Long): Waitlist
+    + isStudentEnrolled(studentId: Long, courseId: Long): boolean
+    + isStudentWaitlisted(studentId: Long, courseId: Long): boolean
+    + getEnrollmentCountForCourse(courseId: Long): int
+    + mapToDTO(enrollment: Enrollment): EnrollmentDTO
+    + mapToWaitlistDTO(waitlist: Waitlist): WaitlistDTO
+  }
+  
+  class "NotificationService" as NS {
+    - emailService: EmailService
+    - notificationRepository: NotificationRepository
+    - userRepository: UserRepository
+    + sendEnrollmentNotification(teacherId: Long, enrollmentId: Long): void
+    + sendCourseFullNotification(teacherId: Long, courseId: Long): void
+    + sendWaitlistNotification(studentId: Long, courseId: Long): void
+    + sendEnrollmentConfirmationToStudent(studentId: Long, courseId: Long): void
+    + markNotificationAsRead(notificationId: Long): void
+  }
+  
+  class "PrerequisiteResult" as PR {
+    - prerequisitesMet: boolean
+    - missingPrerequisites: List<Prerequisite>
+    - alternativeOptions: List<Course>
+    + arePrerequisitesMet(): boolean
+    + getMissingPrerequisites(): List<Prerequisite>
+    + hasAlternativeOptions(): boolean
+    + getAlternativeOptions(): List<Course>
+  }
+  
+  enum "EnrollmentCapacityStatus" as ECS {
+    AVAILABLE
+    ALMOST_FULL
+    FULL
+    UNLIMITED
+  }
+}
+
+package "Domain Layer" {
+  interface "CourseRepository" as CR {
+    + findById(courseId: Long): Optional<Course>
+    + findAll(): List<Course>
+    + findByStatus(status: CourseStatus): List<Course>
+    + findByCategory(categoryId: Long): List<Course>
+    + findBySubject(subjectId: Long): List<Course>
+    + findByInstructor(instructorId: Long): List<Course>
+    + getCourseEnrollmentCount(courseId: Long): int
+    + findWithPrerequisites(courseId: Long): Course
+  }
+  
+  interface "StudentRepository" as SR {
+    + findById(studentId: Long): Optional<Student>
+    + findByUserId(userId: Long): Optional<Student>
+    + findByClassId(classId: Long): List<Student>
+    + saveStudent(student: Student): Student
+    + getCompletedCoursesByStudent(studentId: Long): List<CompletedCourse>
+  }
+  
+  interface "EnrollmentRepository" as ER {
+    + findById(enrollmentId: Long): Optional<Enrollment>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Enrollment>
+    + findByStudent(studentId: Long): List<Enrollment>
+    + findByCourse(courseId: Long): List<Enrollment>
+    + save(enrollment: Enrollment): Enrollment
+    + countByCourse(courseId: Long): int
+    + deleteById(enrollmentId: Long): void
+  }
+  
+  interface "WaitlistRepository" as WR {
+    + findById(waitlistId: Long): Optional<Waitlist>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Waitlist>
+    + findByCourse(courseId: Long): List<Waitlist>
+    + save(waitlist: Waitlist): Waitlist
+    + getPositionInWaitlist(waitlistId: Long): int
+    + countByCourse(courseId: Long): int
+    + deleteById(waitlistId: Long): void
+  }
+  
+  interface "CompletionRepository" as COR {
+    + findById(completionId: Long): Optional<CompletedCourse>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<CompletedCourse>
+    + findByStudent(studentId: Long): List<CompletedCourse>
+    + save(completedCourse: CompletedCourse): CompletedCourse
+  }
+  
+  class "Course" as C {
+    - courseId: Long
+    - title: String
+    - description: String
+    - createdBy: Long
+    - subject: Subject
+    - category: Category
+    - isPublished: boolean
+    - enrollmentCapacity: Integer
+    - enrollmentCode: String
+    - startDate: LocalDateTime
+    - endDate: LocalDateTime
+    - prerequisites: List<Prerequisite>
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - enrollments: List<Enrollment>
+    - waitlist: List<Waitlist>
+    + hasPrerequisites(): boolean
+    + isCodeRequired(): boolean
+    + validateEnrollmentCode(code: String): boolean
+    + hasUnlimitedCapacity(): boolean
+    + getRemainingCapacity(): int
+    + isCapacityReached(): boolean
+    + isActive(): boolean
+    + isOpenForEnrollment(): boolean
+    + getEnrollmentCount(): int
+    + getWaitlistCount(): int
+  }
+  
+  class "Student" as S {
+    - studentId: Long
+    - userId: Long
+    - classId: Long
+    - enrollmentDate: LocalDateTime
+    - status: StudentStatus
+    - completedCourses: List<CompletedCourse>
+    - enrollments: List<Enrollment>
+    - waitlists: List<Waitlist>
+    + isActive(): boolean
+    + hasCompletedCourse(courseId: Long): boolean
+    + hasTakenPrerequisites(prerequisites: List<Prerequisite>): boolean
+    + isEnrolledIn(courseId: Long): boolean
+    + isWaitlistedFor(courseId: Long): boolean
+    + canEnrollInCourse(course: Course): boolean
+    + getEnrollmentCount(): int
+  }
+  
+  class "Enrollment" as EN {
+    - enrollmentId: Long
+    - studentId: Long
+    - courseId: Long
+    - enrollmentDate: LocalDateTime
+    - status: EnrollmentStatus
+    - completionPercentage: double
+    - lastAccessDate: LocalDateTime
+    - grade: String
+    - certificateIssued: boolean
+    + isActive(): boolean
+    + isCompleted(): boolean
+    + calculateProgress(): double
+    + markAsCompleted(): void
+    + updateLastAccess(): void
+    + cancel(): void
+  }
+  
+  class "Waitlist" as W {
+    - waitlistId: Long
+    - studentId: Long
+    - courseId: Long
+    - joinDate: LocalDateTime
+    - position: Integer
+    - notificationSent: boolean
+    - status: WaitlistStatus
+    + getWaitTime(): Duration
+    + isActive(): boolean
+    + isNotified(): boolean
+    + markAsNotified(): void
+    + convertToEnrollment(): Enrollment
+    + cancel(): void
+  }
+  
+  class "Prerequisite" as PRE {
+    - prerequisiteId: Long
+    - courseId: Long
+    - requiredCourseId: Long
+    - minimumGrade: String
+    - isOptional: boolean
+    - alternativePrerequisiteId: Long
+    + isAlternative(): boolean
+    + hasAlternative(): boolean
+    + getAlternativePrerequisite(): Prerequisite
+    + getMinimumGradeValue(): double
+  }
+  
+  class "CompletedCourse" as CC {
+    - completionId: Long
+    - studentId: Long
+    - courseId: Long
+    - completionDate: LocalDateTime
+    - grade: String
+    - certificateId: String
+    - feedbackProvided: boolean
+    + isPassingGrade(): boolean
+    + getGradeValue(): double
+    + hasCertificate(): boolean
+    + isRecentlyCompleted(): boolean
+  }
+  
+  enum "EnrollmentStatus" as EST {
+    ACTIVE
+    COMPLETED
+    DROPPED
+    FAILED
+    PENDING
+  }
+  
+  enum "WaitlistStatus" as WS {
+    ACTIVE
+    ENROLLED
+    EXPIRED
+    CANCELLED
+  }
+  
+  enum "StudentStatus" as SST {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    SUSPENDED
+    ON_LEAVE
+  }
+}
+
+package "Infrastructure Layer" {
+  class "CourseRepositoryImpl" as CRI {
+    - dataSource: DataSource
+    + findById(courseId: Long): Optional<Course>
+    + findAll(): List<Course>
+    + findByStatus(status: CourseStatus): List<Course>
+    + findByCategory(categoryId: Long): List<Course>
+    + findBySubject(subjectId: Long): List<Course>
+    + findByInstructor(instructorId: Long): List<Course>
+    + getCourseEnrollmentCount(courseId: Long): int
+    + findWithPrerequisites(courseId: Long): Course
+    - mapResultSetToCourse(rs: ResultSet): Course
+  }
+  
+  class "EnrollmentRepositoryImpl" as ERI {
+    - dataSource: DataSource
+    + findById(enrollmentId: Long): Optional<Enrollment>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Enrollment>
+    + findByStudent(studentId: Long): List<Enrollment>
+    + findByCourse(courseId: Long): List<Enrollment>
+    + save(enrollment: Enrollment): Enrollment
+    + countByCourse(courseId: Long): int
+    + deleteById(enrollmentId: Long): void
+    - mapResultSetToEnrollment(rs: ResultSet): Enrollment
+  }
+  
+  class "WaitlistRepositoryImpl" as WRI {
+    - dataSource: DataSource
+    + findById(waitlistId: Long): Optional<Waitlist>
+    + findByStudentAndCourse(studentId: Long, courseId: Long): Optional<Waitlist>
+    + findByCourse(courseId: Long): List<Waitlist>
+    + save(waitlist: Waitlist): Waitlist
+    + getPositionInWaitlist(waitlistId: Long): int
+    + countByCourse(courseId: Long): int
+    + deleteById(waitlistId: Long): void
+    - mapResultSetToWaitlist(rs: ResultSet): Waitlist
+  }
+  
+  class "EmailServiceImpl" as ESI {
+    - emailConfig: EmailConfiguration
+    - templateRepository: TemplateRepository
+    + sendEmail(recipientEmail: String, templateName: String, data: Map<String, Object>): void
+    + sendBulkEmail(recipientEmails: List<String>, templateName: String, data: Map<String, Object>): void
+    + getEmailTemplate(templateName: String): String
+    + processTemplate(template: String, data: Map<String, Object>): String
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "CourseDTO" as CDTO {
+    - courseId: Long
+    - title: String
+    - description: String
+    - instructorName: String
+    - subjectName: String
+    - categoryName: String
+    - enrollmentCount: int
+    - capacity: int
+    - hasPrerequisites: boolean
+    - requiresCode: boolean
+    - startDate: String
+    - endDate: String
+  }
+  
+  class "CourseDetailsDTO" as CDDTO {
+    - courseId: Long
+    - title: String
+    - description: String
+    - instructorName: String
+    - instructorBio: String
+    - subjectName: String
+    - categoryName: String
+    - enrollmentCount: int
+    - capacity: int
+    - syllabus: String
+    - startDate: String
+    - endDate: String
+    - duration: String
+    - prerequisites: List<PrerequisiteDTO>
+    - enrollmentDeadline: String
+    - hasWaitlist: boolean
+  }
+  
+  class "PrerequisiteDTO" as PDTO {
+    - prerequisiteId: Long
+    - courseId: Long
+    - requiredCourseTitle: String
+    - minimumGrade: String
+    - isOptional: boolean
+    - alternativePrerequisiteTitle: String
+    - isCompleted: boolean
+  }
+  
+  class "EnrollmentDTO" as EDTO {
+    - enrollmentId: Long
+    - courseId: Long
+    - courseTitle: String
+    - studentName: String
+    - enrollmentDate: String
+    - status: String
+    - completionPercentage: double
+  }
+  
+  class "WaitlistDTO" as WDTO {
+    - waitlistId: Long
+    - courseId: Long
+    - courseTitle: String
+    - studentName: String
+    - joinDate: String
+    - position: int
+    - status: String
+    - estimatedEnrollmentDate: String
+  }
+  
+  class "StudentDTO" as SDTO {
+    - studentId: Long
+    - fullName: String
+    - email: String
+    - className: String
+    - enrollmentDate: String
+    - status: String
+    - completedCoursesCount: int
+    - activeEnrollmentsCount: int
+  }
+}
+
+' Relationships
+EV ..> EC : uses
+EC --> CS : uses
+EC --> SS : uses
+EC --> ES : uses
+EC --> NS : uses
+CS --> CR : uses
+SS --> SR : uses
+SS --> COR : uses
+ES --> ER : uses
+ES --> WR : uses
+NS --> ESI : uses
+CRI ..|> CR : implements
+ERI ..|> ER : implements
+WRI ..|> WR : implements
+EC ..> PR : returns
+EC ..> ECS : uses
+C "1" -- "0..*" EN : has
+C "1" -- "0..*" W : has
+C "1" -- "0..*" PRE : requires
+S "1" -- "0..*" EN : enrolls in
+S "1" -- "0..*" W : waitlists for
+S "1" -- "0..*" CC : completes
+EN "1" -- "1" EST : has status
+W "1" -- "1" WS : has status
+S "1" -- "1" SST : has status
+CS ..> CDTO : produces
+CS ..> CDDTO : produces
+ES ..> EDTO : produces
+ES ..> WDTO : produces
+SS ..> SDTO : produces
+
+@enduml 

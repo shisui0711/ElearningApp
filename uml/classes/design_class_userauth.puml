@@ -1,0 +1,186 @@
+@startuml
+title User Authentication - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightBlue
+  ArrowColor DeepSkyBlue
+  BorderColor Navy
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor CornflowerBlue
+}
+
+package "Presentation Layer" {
+  class "LoginView" as LV {
+    - loginForm: Form
+    - errorMessage: Label
+    - rememberMeCheckbox: Checkbox
+    - submitButton: Button
+    + displayLoginForm(): void
+    + displayErrorMessage(message: String): void
+    + isRememberMeSelected(): boolean
+    + getUsername(): String
+    + getPassword(): String
+    + setSubmitHandler(handler: EventHandler): void
+    + redirectToDashboard(): void
+  }
+}
+
+package "Application Layer" {
+  class "AuthenticationController" as AC {
+    - userRepository: UserRepository
+    - sessionManager: SessionManager
+    - dashboardService: DashboardService
+    + validateCredentials(username: String, password: String): boolean
+    + determineUserRole(userId: Long): UserRole
+    + requestPersistentSession(userId: Long): String
+    + authenticateUser(username: String, password: String): AuthResult
+    + handleSystemError(error: Exception): void
+  }
+
+  class "SessionManager" as SM {
+    - sessionRepository: SessionRepository
+    + createSession(userId: Long): Session
+    + createPersistentSession(userId: Long): Session
+    + validateSession(token: String): boolean
+    + invalidateSession(token: String): void
+    + getSessionByToken(token: String): Session
+  }
+  
+  class "DashboardService" as DS {
+    - dashboardRepository: DashboardRepository
+    + redirectToDashboard(role: UserRole): Dashboard
+    + getDashboardForUser(userId: Long): Dashboard
+    + getAvailableWidgets(role: UserRole): List<Widget>
+  }
+  
+  enum "AuthResult" as AR {
+    SUCCESS
+    INVALID_CREDENTIALS
+    ACCOUNT_LOCKED
+    SYSTEM_ERROR
+  }
+}
+
+package "Domain Layer" {
+  interface "UserRepository" as UR {
+    + findUserByUsername(username: String): User
+    + findUserById(userId: Long): User
+    + saveUser(user: User): User
+  }
+  
+  interface "SessionRepository" as SR {
+    + save(session: Session): Session
+    + findByToken(token: String): Session
+    + deleteByToken(token: String): void
+    + deleteExpiredSessions(): void
+  }
+  
+  interface "DashboardRepository" as DR {
+    + findByUserId(userId: Long): Dashboard
+    + findByRole(role: UserRole): Dashboard
+  }
+  
+  class "User" as U {
+    - userId: Long
+    - username: String
+    - email: String
+    - passwordHash: String
+    - role: UserRole
+    - isActive: boolean
+    - failedLoginAttempts: int
+    - lastLoginAt: LocalDateTime
+    + verifyPassword(password: String): boolean
+    + getUserRole(): UserRole
+    + incrementFailedLoginAttempts(): void
+    + resetFailedLoginAttempts(): void
+    + isAccountLocked(): boolean
+    + updateLastLogin(): void
+  }
+  
+  class "Session" as S {
+    - sessionId: Long
+    - userId: Long
+    - token: String
+    - createdAt: LocalDateTime
+    - expiresAt: LocalDateTime
+    - isPersistent: boolean
+    - deviceInfo: String
+    + isValid(): boolean
+    + isExpired(): boolean
+    + extend(duration: Duration): void
+    + invalidate(): void
+  }
+  
+  enum "UserRole" as UR2 {
+    ADMIN
+    TEACHER
+    STUDENT
+    GUEST
+  }
+  
+  class "Dashboard" as D {
+    - dashboardId: Long
+    - userId: Long
+    - role: UserRole
+    - widgets: List<Widget>
+    - layout: LayoutConfig
+    + getContent(): DashboardContent
+    + getWidgets(): List<Widget>
+    + getLayoutConfig(): LayoutConfig
+    + isCustomized(): boolean
+  }
+  
+  class "Widget" as W {
+    - widgetId: Long
+    - type: WidgetType
+    - title: String
+    - data: Map<String, Object>
+    - position: Position
+    + render(): Element
+    + updateData(data: Map<String, Object>): void
+    + getConfiguration(): WidgetConfig
+  }
+}
+
+package "Infrastructure Layer" {
+  class "UserRepositoryImpl" as URI {
+    - dataSource: DataSource
+    + findUserByUsername(username: String): User
+    + findUserById(userId: Long): User
+    + saveUser(user: User): User
+    - mapResultSetToUser(rs: ResultSet): User
+  }
+  
+  class "SessionRepositoryImpl" as SRI {
+    - dataSource: DataSource
+    + save(session: Session): Session
+    + findByToken(token: String): Session
+    + deleteByToken(token: String): void
+    + deleteExpiredSessions(): void
+    - mapResultSetToSession(rs: ResultSet): Session
+  }
+  
+  class "PasswordEncoder" as PE {
+    + encode(rawPassword: String): String
+    + matches(rawPassword: String, encodedPassword: String): boolean
+  }
+}
+
+' Relationships
+LV ..> AC : uses
+AC --> UR : uses
+AC --> SM : uses
+AC --> DS : uses
+SM --> SR : uses
+DS --> DR : uses
+URI ..|> UR : implements
+SRI ..|> SR : implements
+AC ..> AR : returns
+U "1" -- "0..*" S : has
+U "1" -- "1" UR2 : has
+D "1" o-- "0..*" W : contains
+
+@enduml 

@@ -1,0 +1,165 @@
+@startuml
+title Analytics - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor DeepSkyBlue
+  ActorBorderColor DeepSkyBlue
+  LifeLineBorderColor SteelBlue
+  LifeLineBackgroundColor LightCyan
+  
+  ParticipantBorderColor DeepSkyBlue
+  ParticipantBackgroundColor DeepSkyBlue
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightCyan
+  
+  ActorBackgroundColor LightBlue
+  ActorFontColor DeepSkyBlue
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Admin/Teacher" as user
+participant "Analytics\nInterface" as ui
+participant "Analytics\nController" as controller
+participant "User\nRepository" as userRepo
+participant "Course\nRepository" as courseRepo
+participant "Student\nRepository" as studentRepo
+participant "Enrollment\nRepository" as enrollRepo
+participant "Result\nRepository" as resultRepo
+participant "Activity\nRepository" as activityRepo
+participant "Report\nGenerator" as reportGen
+participant "Chart\nService" as chartService
+participant "Export\nService" as exportService
+
+autonumber
+
+== Access Analytics Dashboard ==
+
+user -> ui: Navigate to analytics dashboard
+ui -> controller: getDashboardData(userId, role)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user data
+controller -> controller: checkAnalyticsAccess(user)
+
+alt Role is Admin
+    controller -> controller: getAdminDashboardData()
+    controller -> studentRepo: getTotalStudentsCount()
+    studentRepo --> controller: Return student count
+    controller -> courseRepo: getTotalCoursesCount()
+    courseRepo --> controller: Return course count
+    controller -> enrollRepo: getRecentEnrollmentsCount()
+    enrollRepo --> controller: Return recent enrollments
+    controller -> resultRepo: getSystemwidePerformanceMetrics()
+    resultRepo --> controller: Return performance metrics
+else Role is Teacher
+    controller -> controller: getTeacherDashboardData(teacherId)
+    controller -> courseRepo: getCoursesByTeacher(teacherId)
+    courseRepo --> controller: Return teacher's courses
+    controller -> studentRepo: getStudentCountByTeacherCourses(courseIds)
+    studentRepo --> controller: Return student count
+    controller -> resultRepo: getPerformanceMetricsByTeacherCourses(courseIds)
+    resultRepo --> controller: Return performance metrics
+end
+
+controller -> chartService: generateDashboardCharts(dashboardData)
+chartService --> controller: Return chart data
+controller --> ui: Return dashboard data and charts
+ui --> user: Display analytics dashboard
+
+== View Enrollment Statistics ==
+
+user -> ui: Select "Enrollment Statistics"
+ui -> controller: getEnrollmentStatistics(dateRange)
+controller -> enrollRepo: getEnrollmentsByDateRange(dateRange)
+enrollRepo --> controller: Return enrollment data
+controller -> courseRepo: getCoursesById(courseIds)
+courseRepo --> controller: Return course details
+controller -> controller: calculateEnrollmentMetrics(enrollments, courses)
+controller -> chartService: generateEnrollmentCharts(metrics)
+chartService --> controller: Return chart data
+controller --> ui: Return enrollment statistics and charts
+ui --> user: Display enrollment statistics
+
+== View Performance Metrics ==
+
+user -> ui: Select "Performance Metrics"
+ui -> controller: getPerformanceMetrics(filters)
+controller -> resultRepo: getExamResultsByFilters(filters)
+resultRepo --> controller: Return exam results
+controller -> studentRepo: getStudentsByIds(studentIds)
+studentRepo --> controller: Return student details
+controller -> courseRepo: getCoursesById(courseIds)
+courseRepo --> controller: Return course details
+controller -> controller: calculatePerformanceMetrics(results, students, courses)
+controller -> chartService: generatePerformanceCharts(metrics)
+chartService --> controller: Return chart data
+controller --> ui: Return performance metrics and charts
+ui --> user: Display performance metrics
+
+== Apply Filters ==
+
+user -> ui: Apply custom filters
+ui -> controller: getFilteredAnalytics(filterParams)
+
+alt Department Filter
+    controller -> controller: filterByDepartment(departmentId)
+else Date Range Filter
+    controller -> controller: filterByDateRange(startDate, endDate)
+else Course Filter
+    controller -> controller: filterByCourse(courseId)
+else Student Group Filter
+    controller -> controller: filterByStudentGroup(groupId)
+end
+
+controller -> chartService: regenerateCharts(filteredData)
+chartService --> controller: Return updated chart data
+controller --> ui: Return filtered data and charts
+ui --> user: Display filtered analytics
+
+== Generate Report ==
+
+user -> ui: Select "Generate Report"
+ui --> user: Display report options
+user -> ui: Configure report parameters
+ui -> controller: generateReport(reportType, filters)
+controller -> reportGen: createReport(reportType, filters)
+
+alt Student Performance Report
+    reportGen -> resultRepo: getStudentPerformanceData(filters)
+    resultRepo --> reportGen: Return performance data
+else Course Engagement Report
+    reportGen -> activityRepo: getCourseEngagementData(filters)
+    activityRepo --> reportGen: Return engagement data
+else Enrollment Trend Report
+    reportGen -> enrollRepo: getEnrollmentTrendData(filters)
+    enrollRepo --> reportGen: Return trend data
+end
+
+reportGen -> chartService: generateReportCharts(reportData)
+chartService --> reportGen: Return chart data
+reportGen --> controller: Return compiled report
+controller --> ui: Return report preview
+ui --> user: Display report preview
+
+== Export Data ==
+
+user -> ui: Select "Export Data"
+ui --> user: Display export options
+user -> ui: Select export format and content
+ui -> controller: exportData(format, dataType, filters)
+controller -> exportService: prepareExport(format, dataType, filters)
+
+alt CSV Export
+    exportService -> exportService: formatAsCSV(data)
+else PDF Export
+    exportService -> exportService: formatAsPDF(data, charts)
+else Excel Export
+    exportService -> exportService: formatAsExcel(data, charts)
+end
+
+exportService --> controller: Return export file
+controller --> ui: Return download link
+ui --> user: Initiate download
+
+@enduml 

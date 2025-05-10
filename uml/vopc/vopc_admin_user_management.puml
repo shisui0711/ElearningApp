@@ -1,0 +1,149 @@
+@startuml
+title Admin User Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor Lavender
+  ArrowColor Indigo
+  BorderColor DarkSlateBlue
+}
+
+skinparam package {
+  BackgroundColor GhostWhite
+  BorderColor MediumPurple
+}
+
+package "Boundary" {
+  class "UserManagementInterface" as UMI {
+    + displayUserList()
+    + showUserForm()
+    + displayUserDetails(userId: Integer)
+    + showConfirmationDialog(message: String)
+    + displayNotification(message: String)
+    + showRoleOptions()
+    + displayDepartmentAndClassOptions()
+  }
+}
+
+package "Controller" {
+  class "UserManagementController" as UMC {
+    + getAllUsers(): List<User>
+    + getUsersByRole(role: Role): List<User>
+    + createUser(userData: UserData): User
+    + updateUser(userId: Integer, userData: UserData): Boolean
+    + deleteUser(userId: Integer): Boolean
+    + assignRole(userId: Integer, role: Role): Boolean
+    + assignToDepartment(userId: Integer, departmentId: Integer): Boolean
+    + assignToClass(userId: Integer, classId: Integer): Boolean
+    + resetUserPassword(userId: Integer): String
+    + toggleUserStatus(userId: Integer, isActive: Boolean): Boolean
+  }
+}
+
+package "Entity" {
+  class "User" as U {
+    - userId: Integer
+    - username: String
+    - email: String
+    - passwordHash: String
+    - firstName: String
+    - lastName: String
+    - role: Role
+    - isActive: Boolean
+    - createdAt: DateTime
+    - lastLogin: DateTime
+    + getFullName(): String
+    + isStudent(): Boolean
+    + isTeacher(): Boolean
+    + isAdmin(): Boolean
+    + getAssignedClasses(): List<Class>
+    + getAssignedDepartments(): List<Department>
+  }
+  
+  class "Student" as S {
+    - studentId: Integer
+    - userId: Integer
+    - classId: Integer
+    - enrollmentNumber: String
+    - yearOfAdmission: Integer
+    + getEnrollments(): List<Enrollment>
+    + getExamAttempts(): List<ExamAttempt>
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    - employeeId: String
+    - specialization: String
+    - joiningDate: Date
+    + getManagedCourses(): List<Course>
+    + getCreatedExams(): List<Exam>
+  }
+  
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    - isSystemAdmin: Boolean
+    + hasPermission(permission: String): Boolean
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - description: String
+    - code: String
+    + getTeachers(): List<Teacher>
+    + getSubjects(): List<Subject>
+  }
+  
+  class "Class" as C {
+    - classId: Integer
+    - name: String
+    - academicYear: String
+    - departmentId: Integer
+    + getStudents(): List<Student>
+  }
+  
+  enum "Role" as R {
+    ADMIN
+    TEACHER
+    STUDENT
+  }
+  
+  enum "AdminPermissions" as AP {
+    USER_MANAGEMENT
+    COURSE_MANAGEMENT
+    DEPARTMENT_MANAGEMENT
+    CLASS_MANAGEMENT
+    SYSTEM_SETTINGS
+    ANALYTICS
+    ALL
+  }
+  
+  class "UserActivity" as UA {
+    - activityId: Integer
+    - userId: Integer
+    - activityType: String
+    - description: String
+    - performedAt: DateTime
+    - ipAddress: String
+  }
+}
+
+' Relationships
+UMI ..> UMC : requests action
+UMC --> U : manages
+UMC --> S : creates/updates
+UMC --> T : creates/updates
+UMC --> A : creates/updates
+UMC --> UA : logs
+U "1" -- "0..1" S : has profile as
+U "1" -- "0..1" T : has profile as
+U "1" -- "0..1" A : has profile as
+U "1" -- "0..*" UA : generates
+S "0..*" -- "1" C : belongs to
+T "0..*" -- "1" D : belongs to
+U "1" -- "1" R : has
+
+@enduml 

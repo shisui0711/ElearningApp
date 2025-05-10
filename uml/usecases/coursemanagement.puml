@@ -1,0 +1,94 @@
+@startuml
+' Course Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Teacher" as teacher #lightsalmon
+
+' Define use cases
+usecase "Manage Course" as managecourse
+usecase "Create Course" as createcourse
+usecase "Add Lessons" as addlessons
+usecase "Upload Documents" as uploaddocs
+usecase "Create Assignments" as createassignments
+
+' Relationships
+teacher --> managecourse
+managecourse ..> createcourse : <<include>> #purple
+managecourse ..> addlessons : <<include>> #purple
+managecourse ..> uploaddocs : <<include>> #purple
+managecourse ..> createassignments : <<include>> #purple
+
+' Use case specification documentation
+note right of managecourse
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Course
+  
+  <b>Actors:</b> Teacher (Primary)
+  
+  <b>Description:</b> This use case allows teachers to create and manage courses including lessons, documents, and assignments.
+  
+  <b>Preconditions:</b>
+  1. Teacher is logged into the system with a Teacher role
+  2. Teacher has a valid teacher record in the database
+  
+  <b>Postconditions:</b>
+  1. Course is created or updated in the system
+  2. Course materials (lessons, documents, assignments) are associated with the course
+  3. Course is available for student enrollment
+  
+  <b>Main Flow:</b>
+  1. Teacher navigates to the course management area
+  2. Teacher creates a new course with basic details:
+     - Course name
+     - Description
+     - Department
+     - Image (optional)
+  3. System creates course record and associates it with the teacher
+  4. Teacher adds lessons to the course structure with:
+     - Lesson title
+     - Description
+     - Position/order
+     - Video URL (optional)
+  5. Teacher uploads documents for the course or specific lessons:
+     - Document name
+     - Description
+     - File upload
+  6. Teacher creates assignments for the course:
+     - Assignment title
+     - Description
+     - Due date
+     - Instructions
+  7. System saves all changes and makes the course available
+  
+  <b>Alternative Flows:</b>
+  A1. Update existing course
+    1. Teacher selects an existing course to edit
+    2. System loads course information
+    3. Teacher modifies course details, lessons, or materials
+    4. System saves changes to the course
+  
+  A2. Manage course visibility
+    1. Teacher configures course visibility settings
+    2. System updates course availability for students
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Teacher submits invalid or incomplete course information
+    2. System highlights problematic fields
+    3. Teacher must correct issues before proceeding
+  
+  E2. File upload failures
+    1. Teacher attempts to upload invalid document files
+    2. System displays error message
+    3. Teacher must select valid files to upload
+end note
+@enduml 

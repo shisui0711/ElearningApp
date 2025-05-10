@@ -1,0 +1,47 @@
+@startuml
+' Admin User Management Overview Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases
+usecase "Manage Users" as manageusers
+usecase "Manage Teachers" as manageteachers
+usecase "Manage Students" as managestudents
+usecase "Manage Classes" as manageclasses
+usecase "Manage Departments" as managedepartments
+
+' Relationships
+admin --> manageusers
+manageusers ..> manageteachers : <<include>> #purple
+manageusers ..> managestudents : <<include>> #purple
+manageusers ..> manageclasses : <<include>> #purple
+manageusers ..> managedepartments : <<include>> #purple
+
+' Use case specification documentation
+note right of manageusers
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Admin User Management Overview
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This overview diagram shows the main areas of user management
+  that administrators can perform in the e-learning system.
+  
+  <b>Details:</b>
+  For detailed specifications of each management area, please see:
+  - Teacher Management: admin_teacher_management.puml
+  - Student Management: admin_student_management.puml
+  - Class Management: admin_class_management.puml
+  - Department Management: admin_department_management.puml
+end note
+@enduml 

@@ -1,0 +1,151 @@
+@startuml
+title Admin Department Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor ForestGreen
+  ActorBorderColor ForestGreen
+  LifeLineBorderColor DarkGreen
+  LifeLineBackgroundColor LightGreen
+  
+  ParticipantBorderColor ForestGreen
+  ParticipantBackgroundColor ForestGreen
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightGreen
+  
+  ActorBackgroundColor MediumSeaGreen
+  ActorFontColor DarkGreen
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Admin" as admin
+participant "Department Management\nInterface" as ui
+participant "Department Management\nController" as controller
+participant "Department\nRepository" as deptRepo
+participant "Course\nRepository" as courseRepo
+participant "Teacher\nRepository" as teacherRepo
+participant "Class\nRepository" as classRepo
+participant "Activity\nLogger" as logger
+
+autonumber
+
+== View Department List ==
+
+admin -> ui: Navigate to department management
+ui -> controller: getAllDepartments()
+controller -> deptRepo: findAll()
+deptRepo --> controller: Return department list
+controller --> ui: Return departments data
+ui --> admin: Display department list
+
+== Create Department ==
+
+admin -> ui: Click "Create New Department"
+ui --> admin: Display department creation form
+
+admin -> ui: Enter department details and submit
+ui -> controller: createDepartment(departmentData)
+controller -> controller: validateDepartmentData(departmentData)
+controller -> deptRepo: findByName(departmentName)
+deptRepo --> controller: Check if department name exists
+
+alt Department Already Exists
+    controller --> ui: Department name already in use
+    ui --> admin: Display error message
+else Department Name Available
+    controller -> deptRepo: save(newDepartment)
+    deptRepo --> controller: Return created department
+    controller -> logger: logActivity(adminId, "Created department", deptId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display success message
+end
+
+== Edit Department Details ==
+
+admin -> ui: Select department and click "Edit"
+ui -> controller: getDepartmentDetails(departmentId)
+controller -> deptRepo: findById(departmentId)
+deptRepo --> controller: Return department details
+controller --> ui: Return department data
+ui --> admin: Display department edit form
+
+admin -> ui: Modify department details and submit
+ui -> controller: updateDepartment(departmentId, departmentData)
+controller -> controller: validateDepartmentData(departmentData)
+controller -> deptRepo: update(departmentId, departmentData)
+deptRepo --> controller: Return updated department
+controller -> logger: logActivity(adminId, "Updated department", departmentId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display success message
+
+== Deactivate Department ==
+
+admin -> ui: Select department and click "Deactivate"
+ui --> admin: Display confirmation dialog with dependency warning
+admin -> ui: Confirm deactivation
+ui -> controller: deactivateDepartment(departmentId)
+controller -> classRepo: findByDepartmentId(departmentId)
+classRepo --> controller: Return related classes
+controller -> courseRepo: findByDepartmentId(departmentId)
+courseRepo --> controller: Return related courses
+
+alt Has Active Dependencies
+    controller --> ui: Cannot deactivate department with active dependencies
+    ui --> admin: Display error message
+else No Active Dependencies
+    controller -> deptRepo: deactivate(departmentId)
+    deptRepo --> controller: Return success
+    controller -> logger: logActivity(adminId, "Deactivated department", departmentId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display deactivation confirmation
+end
+
+== Manage Department Courses ==
+
+admin -> ui: Select "Manage Courses" for department
+ui -> controller: getDepartmentCourses(departmentId)
+controller -> deptRepo: findById(departmentId)
+deptRepo --> controller: Return department data
+controller -> courseRepo: findByDepartmentId(departmentId)
+courseRepo --> controller: Return department courses
+controller -> courseRepo: findAvailableCourses()
+courseRepo --> controller: Return available courses
+controller --> ui: Return course data
+ui --> admin: Display course management interface
+
+admin -> ui: Add/remove courses and submit
+ui -> controller: updateDepartmentCourses(departmentId, courseIds)
+controller -> deptRepo: updateCourses(departmentId, courseIds)
+deptRepo --> controller: Return updated department
+controller -> logger: logActivity(adminId, "Updated department courses", departmentId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display success message
+
+== Manage Department Teachers ==
+
+admin -> ui: Select "Manage Teachers" for department
+ui -> controller: getDepartmentTeachers(departmentId)
+controller -> deptRepo: findById(departmentId)
+deptRepo --> controller: Return department data
+controller -> teacherRepo: findByDepartmentId(departmentId)
+teacherRepo --> controller: Return department teachers
+controller -> teacherRepo: findAvailableTeachers()
+teacherRepo --> controller: Return available teachers
+controller --> ui: Return teacher data
+ui --> admin: Display teacher management interface
+
+admin -> ui: Add/remove teachers and submit
+ui -> controller: updateDepartmentTeachers(departmentId, teacherIds)
+controller -> deptRepo: updateTeachers(departmentId, teacherIds)
+deptRepo --> controller: Return updated department
+controller -> logger: logActivity(adminId, "Updated department teachers", departmentId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display success message
+
+@enduml 

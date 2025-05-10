@@ -1,0 +1,105 @@
+@startuml
+title Course Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor DarkCyan
+  ActorBorderColor DarkCyan
+  LifeLineBorderColor DarkSlateGray
+  LifeLineBackgroundColor LightCyan
+  
+  ParticipantBorderColor DarkCyan
+  ParticipantBackgroundColor DarkCyan
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightCyan
+  
+  ActorBackgroundColor aqua
+  ActorFontColor DarkCyan
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor Teacher as teacher
+participant "Course Management\nInterface" as ui
+participant "Course\nController" as controller
+participant "Course\nRepository" as courseRepo
+participant "Lesson\nRepository" as lessonRepo
+participant "Subject\nRepository" as subjectRepo
+participant "File Storage\nService" as storage
+
+autonumber
+
+== Create Course ==
+
+teacher -> ui: Navigate to course management
+ui -> controller: getUserCourses(teacherId)
+controller -> courseRepo: findByTeacher(teacherId)
+courseRepo --> controller: Return teacher's courses
+controller --> ui: Display course list
+ui --> teacher: Show courses and creation option
+
+teacher -> ui: Select "Create New Course"
+ui --> teacher: Display course creation form
+
+teacher -> ui: Fill in course details and submit
+ui -> controller: createCourse(courseData)
+controller -> subjectRepo: findById(subjectId)
+subjectRepo --> controller: Return subject data
+controller -> courseRepo: save(newCourse)
+courseRepo --> controller: Return saved course
+controller --> ui: Return success
+ui --> teacher: Display success message and new course
+
+== Add Lesson to Course ==
+
+teacher -> ui: Select course to manage
+ui -> controller: getCourseDetails(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller --> ui: Return course details
+ui --> teacher: Display course content and lesson options
+
+teacher -> ui: Select "Add Lesson"
+ui --> teacher: Display lesson creation form
+
+teacher -> ui: Fill lesson details and upload materials
+ui -> controller: addLesson(courseId, lessonData)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller -> storage: uploadFiles(lessonMaterials)
+storage --> controller: Return file URLs
+
+controller -> lessonRepo: save(newLesson)
+lessonRepo --> controller: Return saved lesson
+controller --> ui: Return success
+ui --> teacher: Display success message and updated course content
+
+== Publish Course ==
+
+teacher -> ui: Select "Publish Course" option
+ui -> controller: publishCourse(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller -> controller: validateCourseContent(course)
+controller -> courseRepo: updateStatus(courseId, published=true)
+courseRepo --> controller: Return updated course
+controller --> ui: Return success
+ui --> teacher: Display publication confirmation
+
+== Update Course ==
+
+teacher -> ui: Select course and edit option
+ui -> controller: getCourseDetails(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller --> ui: Return course details
+ui --> teacher: Display course edit form
+
+teacher -> ui: Modify course details and submit
+ui -> controller: updateCourse(courseId, updatedData)
+controller -> courseRepo: update(courseId, updatedData)
+courseRepo --> controller: Return updated course
+controller --> ui: Return success
+ui --> teacher: Display success message and updated course
+
+@enduml 

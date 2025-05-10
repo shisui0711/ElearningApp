@@ -1,0 +1,156 @@
+@startuml
+title Student View Results - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightPink
+  ArrowColor HotPink
+  BorderColor DeepPink
+}
+
+skinparam package {
+  BackgroundColor MistyRose
+  BorderColor LightCoral
+}
+
+package "Boundary" {
+  class "ResultsInterface" as RI {
+    + displayCourseList()
+    + showExamResults(courseId: Integer)
+    + displayExamDetails(examId: Integer, attemptId: Integer)
+    + showPerformanceChart()
+    + displayFeedback(attemptId: Integer)
+    + downloadCertificate(courseId: Integer)
+  }
+}
+
+package "Controller" {
+  class "ResultsController" as RC {
+    + getStudentCourses(studentId: Integer): List<Course>
+    + getExamResults(studentId: Integer, courseId: Integer): List<ExamResult>
+    + getExamDetails(attemptId: Integer): ExamAttempt
+    + getStudentPerformanceData(studentId: Integer): PerformanceData
+    + getExamFeedback(attemptId: Integer): String
+    + generateCertificate(studentId: Integer, courseId: Integer): Certificate
+  }
+}
+
+package "Entity" {
+  class "Student" as S {
+    - userId: Integer
+    - studentId: Integer
+    - classId: Integer
+    + getEnrollments(): List<Enrollment>
+    + getExamAttempts(): List<ExamAttempt>
+    + getExamResults(): List<ExamResult>
+    + getCompletedCourses(): List<Course>
+  }
+  
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - description: String
+    + getExams(): List<Exam>
+    + isCompleted(studentId: Integer): Boolean
+    + getCompletionPercentage(studentId: Integer): Double
+  }
+  
+  class "Exam" as E {
+    - examId: Integer
+    - courseId: Integer
+    - title: String
+    + getMaxScore(): Double
+    + getPassingScore(): Double
+    + getAverageScore(): Double
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Integer
+    - examId: Integer
+    - studentId: Integer
+    - startTime: DateTime
+    - endTime: DateTime
+    - status: AttemptStatus
+    + getSubmittedAnswers(): List<SubmittedAnswer>
+    + getResult(): ExamResult
+    + getTimeSpent(): Integer
+  }
+  
+  class "ExamResult" as ER {
+    - resultId: Integer
+    - attemptId: Integer
+    - score: Double
+    - percentageScore: Double
+    - feedbackText: String
+    - passStatus: Boolean
+    - gradedAt: DateTime
+    + getProficiencyLevel(): ProficiencyLevel
+    + getGrade(): String
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Integer
+    - attemptId: Integer
+    - questionId: Integer
+    - answerId: Integer
+    - isCorrect: Boolean
+    + getQuestion(): Question
+    + getSelectedAnswer(): Answer
+  }
+  
+  class "PerformanceData" as PD {
+    - studentId: Integer
+    - averageScore: Double
+    - completedExams: Integer
+    - passedExams: Integer
+    - failedExams: Integer
+    - bestSubject: String
+    - weakestSubject: String
+    + getScoreBySubject(): Map<String, Double>
+    + getProgressOverTime(): List<ProgressPoint>
+  }
+  
+  class "Certificate" as CE {
+    - certificateId: Integer
+    - studentId: Integer
+    - courseId: Integer
+    - issueDate: DateTime
+    - downloadUrl: String
+    - verificationCode: String
+    + download(): File
+    + verify(code: String): Boolean
+  }
+  
+  enum "AttemptStatus" as AS {
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    EXPIRED
+  }
+  
+  enum "ProficiencyLevel" as PL {
+    EXCELLENT
+    GOOD
+    SATISFACTORY
+    NEEDS_IMPROVEMENT
+    FAILED
+  }
+}
+
+' Relationships
+RI ..> RC : requests action
+RC --> S : retrieves data for
+RC --> C : gets courses for
+RC --> ER : accesses
+RC --> EA : retrieves details from
+RC --> PD : generates
+RC --> CE : creates
+S "1" -- "0..*" EA : makes
+S "1" -- "0..*" C : enrolled in
+C "1" -- "0..*" E : contains
+E "1" -- "0..*" EA : has attempts
+EA "1" -- "1" ER : produces
+EA "1" -- "0..*" SA : contains
+C "1" -- "0..*" CE : generates
+S "1" -- "1" PD : has
+
+@enduml 

@@ -1,0 +1,98 @@
+@startuml
+title Course Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightCyan
+  ArrowColor DarkCyan
+  BorderColor DarkSlateGray
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Boundary" {
+  class "CourseManagementInterface" as CMI {
+    + displayCourseForm()
+    + showCourseList()
+    + showLessonEditor()
+    + displayNotification(message: String)
+  }
+}
+
+package "Controller" {
+  class "CourseController" as CC {
+    + createCourse(courseData: CourseData): Course
+    + updateCourse(courseId: Integer, courseData: CourseData): Boolean
+    + deleteCourse(courseId: Integer): Boolean
+    + publishCourse(courseId: Integer): Boolean
+    + addLesson(courseId: Integer, lessonData: LessonData): Lesson
+  }
+}
+
+package "Entity" {
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - description: String
+    - createdBy: Integer
+    - subject: Subject
+    - isPublished: Boolean
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getLessons(): List<Lesson>
+    + getEnrollments(): List<Enrollment>
+    + updateStatus(status: Boolean): Boolean
+  }
+  
+  class "Lesson" as L {
+    - lessonId: Integer
+    - courseId: Integer
+    - title: String
+    - content: Text
+    - order: Integer
+    - type: LessonType
+    + getDocuments(): List<Document>
+    + getCompletionStatus(): CompletionStatus
+  }
+  
+  class "Document" as D {
+    - documentId: Integer
+    - lessonId: Integer
+    - title: String
+    - fileUrl: String
+    - fileType: String
+    - uploadedAt: DateTime
+  }
+  
+  class "Subject" as S {
+    - subjectId: Integer
+    - name: String
+    - departmentId: Integer
+    + getCourses(): List<Course>
+  }
+  
+  class "Teacher" as T {
+    - userId: Integer
+    - departmentId: Integer
+    + getManagedCourses(): List<Course>
+  }
+  
+  enum "LessonType" as LT {
+    TEXT
+    VIDEO
+    ASSIGNMENT
+  }
+}
+
+' Relationships
+CMI ..> CC : requests action
+CC --> C : manages
+CC --> L : creates/modifies
+T "1" -- "0..*" C : creates
+C "1" -- "0..*" L : contains
+L "1" -- "0..*" D : has
+C "0..*" -- "1" S : belongs to
+
+@enduml 

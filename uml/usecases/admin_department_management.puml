@@ -1,0 +1,104 @@
+@startuml
+' Admin Department Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases
+usecase "Manage Departments" as managedepartments
+usecase "Create Department" as createDepartment
+usecase "Edit Department Details" as editDepartment
+usecase "Deactivate Department" as deactivateDepartment
+usecase "View Department List" as viewDepartments
+usecase "Manage Department Courses" as manageDepartmentCourses
+usecase "Manage Department Teachers" as manageDepartmentTeachers
+
+' Relationships
+admin --> managedepartments
+managedepartments ..> createDepartment : <<include>> #purple
+managedepartments ..> editDepartment : <<include>> #purple
+managedepartments ..> deactivateDepartment : <<include>> #purple
+managedepartments ..> viewDepartments : <<include>> #purple
+managedepartments ..> manageDepartmentCourses : <<include>> #purple
+managedepartments ..> manageDepartmentTeachers : <<include>> #purple
+
+' Use case specification documentation
+note right of managedepartments
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Departments
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to manage departments in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. Admin is logged into the system with Admin role
+  2. Admin has appropriate privileges
+  
+  <b>Postconditions:</b>
+  1. Departments are created, updated, or managed as needed
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the admin dashboard
+  2. Admin selects the department management section
+  3. System displays existing departments with management options
+  4. Admin can:
+     - Create new departments
+     - Edit existing department details
+     - Deactivate departments
+     - View department list
+     - Manage courses within departments
+     - Manage teachers within departments
+  
+  <b>Alternative Flows:</b>
+  A1. Create Department
+    1. Admin selects "Create New Department"
+    2. Admin enters department details (name, description, etc.)
+    3. System validates input
+    4. System creates the department
+  
+  A2. Edit Department Details
+    1. Admin selects a department from the list
+    2. Admin modifies department information
+    3. System validates changes
+    4. System updates department record
+  
+  A3. Deactivate Department
+    1. Admin selects a department
+    2. Admin chooses to deactivate the department
+    3. System prompts for confirmation and warns about dependencies
+    4. System deactivates the department but preserves data
+  
+  A4. Manage Department Courses
+    1. Admin selects a department
+    2. Admin views courses assigned to the department
+    3. Admin can add or remove courses
+    4. System updates department course assignments
+  
+  A5. Manage Department Teachers
+    1. Admin selects a department
+    2. Admin views teachers assigned to the department
+    3. Admin can add or remove teachers
+    4. System updates department teacher assignments
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Admin enters invalid data for creation/editing
+    2. System highlights problematic fields
+    3. Admin must correct issues before proceeding
+  
+  E2. Deletion constraints
+    1. Admin attempts to deactivate department with active classes/courses
+    2. System prevents operation and displays warning
+    3. Admin must resolve dependencies before proceeding
+end note
+@enduml 

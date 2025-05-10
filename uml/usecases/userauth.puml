@@ -1,0 +1,71 @@
+@startuml
+' User Authentication Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Guest" as guest #palegreen
+
+' Define use cases
+usecase "Sign In" as signin
+usecase "Sign In with Email/Password" as signinpassword
+usecase "Navigate to Dashboard" as navigate
+
+' Relationships
+guest --> signin
+signin ..> signinpassword : <<include>> #purple
+signin ..> navigate : <<include>> #purple
+
+' Use case specification documentation
+note right of signin
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Sign In
+  
+  <b>Actors:</b> Guest (Primary)
+  
+  <b>Description:</b> This use case allows a guest user to authenticate and access the e-learning system with their role-specific features.
+  
+  <b>Preconditions:</b>
+  1. User has a valid account in the system
+  2. User is not currently signed in
+  
+  <b>Postconditions:</b>
+  1. User is authenticated and signed in
+  2. User gains access to their role-specific dashboard (Admin, Teacher, or Student)
+  3. System logs the sign-in activity in the session table
+  
+  <b>Main Flow:</b>
+  1. User navigates to the sign-in page
+  2. User enters their username/email and password
+  3. User submits the sign-in form
+  4. System validates the credentials against the passwordHash in the User table
+  5. System creates a session record for the user
+  6. System redirects user to their role-specific dashboard:
+     - Admin: Admin dashboard
+     - Teacher: Teacher course management
+     - Student: Course listing/enrollment
+  
+  <b>Alternative Flows:</b>
+  A1. Remember session
+    1. System issues a persistent session token
+    2. User remains signed in across browser sessions
+  
+  <b>Exception Flows:</b>
+  E1. Invalid credentials
+    1. User enters incorrect username/password
+    2. System displays error message
+    3. User is prompted to try again
+  
+  E2. System unavailable
+    1. System encounters technical issues during authentication
+    2. User receives an error message
+    3. User is advised to try again later
+end note
+@enduml 

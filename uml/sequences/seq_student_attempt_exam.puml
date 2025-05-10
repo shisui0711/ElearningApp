@@ -1,0 +1,108 @@
+@startuml
+title Student Attempt Exam - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor Crimson
+  ActorBorderColor Crimson
+  LifeLineBorderColor DarkRed
+  LifeLineBackgroundColor MistyRose
+  
+  ParticipantBorderColor Crimson
+  ParticipantBackgroundColor Crimson
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor MistyRose
+  
+  ActorBackgroundColor LightPink
+  ActorFontColor Crimson
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor Student as student
+participant "Exam Attempt\nInterface" as ui
+participant "Exam Attempt\nController" as controller
+participant "Exam\nRepository" as examRepo
+participant "Question\nRepository" as questionRepo
+participant "ExamAttempt\nRepository" as attemptRepo
+participant "Timer\nService" as timer
+
+autonumber
+
+== Start Exam Attempt ==
+
+student -> ui: Navigate to course exams
+ui -> controller: getAvailableExams(studentId)
+controller -> examRepo: findAvailableForStudent(studentId)
+examRepo --> controller: Return available exams
+controller --> ui: Return exam list
+ui --> student: Display available exams
+
+student -> ui: Select exam to take
+ui -> controller: getExamDetails(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller -> controller: checkEligibility(studentId, examId)
+controller --> ui: Return exam details
+ui --> student: Display exam instructions and start button
+
+student -> ui: Click "Start Exam"
+ui -> controller: startExamAttempt(examId, studentId)
+controller -> attemptRepo: create(examId, studentId)
+attemptRepo --> controller: Return attempt object
+controller -> timer: startExamTimer(attemptId, timeLimit)
+timer --> controller: Timer started
+controller --> ui: Return attempt started
+ui --> student: Display first question
+
+== Answer Questions ==
+
+student -> ui: Answer question and click "Next"
+ui -> controller: saveAnswer(attemptId, questionId, answerId)
+controller -> attemptRepo: saveStudentAnswer(attemptId, questionId, answerId)
+attemptRepo --> controller: Return success
+controller -> questionRepo: getNextQuestion(examId, currentQuestionId)
+questionRepo --> controller: Return next question
+controller --> ui: Return next question data
+ui --> student: Display next question
+
+loop for each question until last
+    student -> ui: Answer question and click "Next"
+    ui -> controller: saveAnswer(attemptId, questionId, answerId)
+    controller -> attemptRepo: saveStudentAnswer(attemptId, questionId, answerId)
+    attemptRepo --> controller: Return success
+    controller -> questionRepo: getNextQuestion(examId, currentQuestionId)
+    questionRepo --> controller: Return next question
+    controller --> ui: Return next question data
+    ui --> student: Display next question
+end
+
+student -> ui: Answer final question and click "Submit Exam"
+ui -> controller: saveAnswer(attemptId, questionId, answerId)
+controller -> attemptRepo: saveStudentAnswer(attemptId, questionId, answerId)
+attemptRepo --> controller: Return success
+
+== Submit Exam ==
+
+student -> ui: Confirm submission
+ui -> controller: submitExam(attemptId)
+controller -> timer: stopExamTimer(attemptId)
+timer --> controller: Return time taken
+controller -> attemptRepo: updateStatus(attemptId, status="SUBMITTED")
+attemptRepo --> controller: Return updated attempt
+controller -> controller: calculatePreliminaryScore(attemptId)
+controller --> ui: Return submission confirmation
+ui --> student: Display submission confirmation and preliminary results
+
+== Alternative Flow: Time Expires ==
+
+timer -> controller: notifyTimeExpired(attemptId)
+controller -> attemptRepo: updateStatus(attemptId, status="EXPIRED")
+attemptRepo --> controller: Return updated attempt
+controller -> ui: notifyTimeExpired()
+ui --> student: Display time expired notification
+controller -> controller: calculatePreliminaryScore(attemptId)
+controller -> ui: displayResults(results)
+ui --> student: Display preliminary results
+
+@enduml 

@@ -1,0 +1,188 @@
+@startuml
+title Admin Class Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightGreen
+  ArrowColor SeaGreen
+  BorderColor DarkGreen
+}
+
+skinparam package {
+  BackgroundColor Honeydew
+  BorderColor MediumSeaGreen
+}
+
+package "Boundary" {
+  class "AdminClassInterface" as ACI {
+    + displayClassList()
+    + showClassForm()
+    + displayClassDetails(classId: Integer)
+    + showClassStatistics(classId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showStudentManagementPanel(classId: Integer)
+    + displayAssignmentDialog()
+  }
+}
+
+package "Controller" {
+  class "AdminClassController" as ACC {
+    + getAllClasses(): List<Class>
+    + getClassesByDepartment(departmentId: Integer): List<Class>
+    + getClassById(classId: Integer): Class
+    + createClass(classData: ClassData): Class
+    + updateClass(classId: Integer, classData: ClassData): Boolean
+    + deleteClass(classId: Integer): Boolean
+    + getClassStatistics(classId: Integer): ClassStatistics
+    + assignStudentToClass(classId: Integer, studentId: Integer): Boolean
+    + removeStudentFromClass(classId: Integer, studentId: Integer): Boolean
+    + assignClassTeacher(classId: Integer, teacherId: Integer): Boolean
+    + assignCourseToClass(classId: Integer, courseId: Integer): Boolean
+    + generateClassReport(classId: Integer): ClassReport
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasClassPermission(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Class" as C {
+    - classId: Integer
+    - name: String
+    - code: String
+    - departmentId: Integer
+    - academicYear: String
+    - startDate: Date
+    - endDate: Date
+    - classTeacherId: Integer
+    - status: ClassStatus
+    - maxStudents: Integer
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getStudents(): List<Student>
+    + getDepartment(): Department
+    + getClassTeacher(): Teacher
+    + getAssignedCourses(): List<Course>
+    + getStudentCount(): Integer
+    + isActive(): Boolean
+  }
+  
+  class "Student" as S {
+    - studentId: Integer
+    - userId: Integer
+    - classId: Integer
+    - enrollmentNumber: String
+    - joinDate: Date
+    - status: StudentStatus
+    + getClass(): Class
+    + getName(): String
+    + getEnrollments(): List<Enrollment>
+    + getExamResults(): List<ExamResult>
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    + getManagedClasses(): List<Class>
+    + getName(): String
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    + getClasses(): List<Class>
+  }
+  
+  class "Course" as CO {
+    - courseId: Integer
+    - title: String
+    - departmentId: Integer
+    + getAssignedClasses(): List<Class>
+  }
+  
+  class "ClassStatistics" as CS {
+    - classId: Integer
+    - totalStudents: Integer
+    - activeStudents: Integer
+    - averageAttendance: Double
+    - averagePerformance: Double
+    - courseCompletionRate: Double
+    - examPassRate: Double
+    + getPerformanceTrend(): List<PerformancePoint>
+    + getAttendanceTrend(): List<AttendancePoint>
+    + getStudentPerformanceDistribution(): Map<String, Integer>
+    + getPerformanceByCourse(): Map<String, Double>
+  }
+  
+  class "ClassReport" as CR {
+    - reportId: Integer
+    - classId: Integer
+    - generatedAt: DateTime
+    - academicPeriod: String
+    - reportData: JSON
+    - generatedBy: Integer
+    + downloadPDF(): File
+    + getStatistics(): ClassStatistics
+    + getStudentList(): List<Student>
+    + getCoursePerformance(): List<CoursePerformance>
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - classId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getClass(): Class
+  }
+  
+  enum "AdminPermissions" as AP {
+    CLASS_VIEW
+    CLASS_CREATE
+    CLASS_EDIT
+    CLASS_DELETE
+    STUDENT_MANAGE
+    FULL_ACCESS
+  }
+  
+  enum "ClassStatus" as CST {
+    ACTIVE
+    INACTIVE
+    COMPLETED
+    PENDING
+  }
+  
+  enum "StudentStatus" as SS {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    TRANSFERRED
+    SUSPENDED
+  }
+}
+
+' Relationships
+ACI ..> ACC : requests action
+ACC --> A : verifies permissions
+ACC --> C : manages
+ACC --> S : manages
+ACC --> CS : generates
+ACC --> CR : creates
+ACC --> AA : logs actions
+A "1" -- "0..*" AA : generates
+C "1" -- "0..*" S : has
+C "0..*" -- "1" D : belongs to
+C "0..*" -- "1" T : managed by
+C "0..*" -- "0..*" CO : has assigned
+C "1" -- "1" CS : has
+C "1" -- "0..*" CR : generates
+
+@enduml 

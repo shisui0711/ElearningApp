@@ -1,0 +1,197 @@
+@startuml
+title Admin Student Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightGoldenRodYellow
+  ArrowColor Gold
+  BorderColor Goldenrod
+}
+
+skinparam package {
+  BackgroundColor LemonChiffon
+  BorderColor Khaki
+}
+
+package "Boundary" {
+  class "AdminStudentInterface" as ASI {
+    + displayStudentList()
+    + showStudentForm()
+    + displayStudentDetails(studentId: Integer)
+    + showStudentPerformance(studentId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showClassAssignmentDialog()
+    + displayBulkImportForm()
+    + showSearchFilters()
+  }
+}
+
+package "Controller" {
+  class "AdminStudentController" as ASC {
+    + getAllStudents(): List<Student>
+    + getStudentsByClass(classId: Integer): List<Student>
+    + getStudentsByDepartment(departmentId: Integer): List<Student>
+    + getStudentById(studentId: Integer): Student
+    + createStudent(studentData: StudentData): Student
+    + updateStudent(studentId: Integer, studentData: StudentData): Boolean
+    + deleteStudent(studentId: Integer): Boolean
+    + getStudentPerformance(studentId: Integer): StudentPerformance
+    + assignStudentToClass(studentId: Integer, classId: Integer): Boolean
+    + bulkImportStudents(importData: List<StudentData>): ImportResult
+    + generateStudentIDCard(studentId: Integer): IDCard
+    + resetStudentPassword(studentId: Integer): String
+    + toggleStudentStatus(studentId: Integer, status: StudentStatus): Boolean
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasStudentPermission(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Student" as S {
+    - studentId: Integer
+    - userId: Integer
+    - classId: Integer
+    - enrollmentNumber: String
+    - firstName: String
+    - lastName: String
+    - email: String
+    - phone: String
+    - address: String
+    - dateOfBirth: Date
+    - joinDate: Date
+    - status: StudentStatus
+    - parentContact: String
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getClass(): Class
+    + getDepartment(): Department
+    + getName(): String
+    + getEnrollments(): List<Enrollment>
+    + getExamResults(): List<ExamResult>
+    + getAttendance(): List<Attendance>
+    + isActive(): Boolean
+  }
+  
+  class "Class" as C {
+    - classId: Integer
+    - name: String
+    - departmentId: Integer
+    - academicYear: String
+    + getStudents(): List<Student>
+    + getDepartment(): Department
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    + getClasses(): List<Class>
+  }
+  
+  class "StudentPerformance" as SP {
+    - studentId: Integer
+    - overallGPA: Double
+    - attendanceRate: Double
+    - courseCompletionRate: Double
+    - examPassRate: Double
+    - activeEnrollments: Integer
+    - completedCourses: Integer
+    - strengths: List<String>
+    - weaknesses: List<String>
+    + getPerformanceBySubject(): Map<String, Double>
+    + getAttendanceTrend(): List<AttendancePoint>
+    + getGradeTrend(): List<GradePoint>
+    + getRecentExamResults(): List<ExamResult>
+  }
+  
+  class "IDCard" as IC {
+    - cardId: Integer
+    - studentId: Integer
+    - issueDate: Date
+    - expiryDate: Date
+    - cardNumber: String
+    - qrCode: String
+    - photoUrl: String
+    + generatePDF(): File
+    + isValid(): Boolean
+  }
+  
+  class "ImportResult" as IR {
+    - totalRecords: Integer
+    - successCount: Integer
+    - failedCount: Integer
+    - warningCount: Integer
+    - importedAt: DateTime
+    - errors: List<ImportError>
+    - warnings: List<ImportWarning>
+    + getSuccessRate(): Double
+    + downloadErrorReport(): File
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - studentId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getStudent(): Student
+  }
+  
+  class "Attendance" as AT {
+    - attendanceId: Integer
+    - studentId: Integer
+    - courseId: Integer
+    - date: Date
+    - status: AttendanceStatus
+    - recordedBy: Integer
+    + getCourse(): Course
+  }
+  
+  enum "AdminPermissions" as AP {
+    STUDENT_VIEW
+    STUDENT_CREATE
+    STUDENT_EDIT
+    STUDENT_DELETE
+    CLASS_ASSIGN
+    FULL_ACCESS
+  }
+  
+  enum "StudentStatus" as SS {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    TRANSFERRED
+    SUSPENDED
+  }
+  
+  enum "AttendanceStatus" as AS {
+    PRESENT
+    ABSENT
+    LATE
+    EXCUSED
+  }
+}
+
+' Relationships
+ASI ..> ASC : requests action
+ASC --> A : verifies permissions
+ASC --> S : manages
+ASC --> SP : generates
+ASC --> IC : creates
+ASC --> IR : produces
+ASC --> AA : logs actions
+A "1" -- "0..*" AA : generates
+S "0..*" -- "1" C : belongs to
+C "0..*" -- "1" D : belongs to
+S "1" -- "1" SP : has
+S "1" -- "0..1" IC : has
+S "1" -- "0..*" AT : has
+
+@enduml 

@@ -1,0 +1,177 @@
+@startuml
+title Admin Teacher Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor Thistle
+  ArrowColor MediumOrchid
+  BorderColor DarkOrchid
+}
+
+skinparam package {
+  BackgroundColor Lavender
+  BorderColor MediumPurple
+}
+
+package "Boundary" {
+  class "AdminTeacherInterface" as ATI {
+    + displayTeacherList()
+    + showTeacherForm()
+    + displayTeacherDetails(teacherId: Integer)
+    + showTeacherPerformance(teacherId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showDepartmentAssignmentDialog()
+    + displayCourseAssignmentDialog(teacherId: Integer)
+    + showSearchFilters()
+  }
+}
+
+package "Controller" {
+  class "AdminTeacherController" as ATC {
+    + getAllTeachers(): List<Teacher>
+    + getTeachersByDepartment(departmentId: Integer): List<Teacher>
+    + getTeacherById(teacherId: Integer): Teacher
+    + createTeacher(teacherData: TeacherData): Teacher
+    + updateTeacher(teacherId: Integer, teacherData: TeacherData): Boolean
+    + deleteTeacher(teacherId: Integer): Boolean
+    + getTeacherPerformance(teacherId: Integer): TeacherPerformance
+    + assignTeacherToDepartment(teacherId: Integer, departmentId: Integer): Boolean
+    + assignCourseToTeacher(teacherId: Integer, courseId: Integer): Boolean
+    + makeHeadOfDepartment(teacherId: Integer, departmentId: Integer): Boolean
+    + resetTeacherPassword(teacherId: Integer): String
+    + toggleTeacherStatus(teacherId: Integer, status: TeacherStatus): Boolean
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasTeacherPermission(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    - employeeId: String
+    - firstName: String
+    - lastName: String
+    - email: String
+    - phone: String
+    - address: String
+    - dateOfBirth: Date
+    - joiningDate: Date
+    - specialization: String
+    - qualifications: String
+    - experience: Integer
+    - isHeadOfDepartment: Boolean
+    - status: TeacherStatus
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getDepartment(): Department
+    + getName(): String
+    + getManagedCourses(): List<Course>
+    + getManagedClasses(): List<Class>
+    + isActive(): Boolean
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    - headOfDepartmentId: Integer
+    + getTeachers(): List<Teacher>
+    + getHeadOfDepartment(): Teacher
+  }
+  
+  class "Course" as C {
+    - courseId: Integer
+    - title: String
+    - departmentId: Integer
+    - teacherId: Integer
+    + getTeacher(): Teacher
+    + getDepartment(): Department
+    + getStudentCount(): Integer
+  }
+  
+  class "Class" as CL {
+    - classId: Integer
+    - name: String
+    - departmentId: Integer
+    - classTeacherId: Integer
+    + getClassTeacher(): Teacher
+  }
+  
+  class "TeacherPerformance" as TP {
+    - teacherId: Integer
+    - courseCount: Integer
+    - activeStudentCount: Integer
+    - averageStudentPerformance: Double
+    - averageCourseCompletionRate: Double
+    - courseSuccessRate: Double
+    - studentFeedbackRating: Double
+    - contentCreationFrequency: Double
+    - strengths: List<String>
+    - areasForImprovement: List<String>
+    + getStudentPerformanceByMonth(): Map<String, Double>
+    + getCourseRatings(): Map<String, Double>
+    + getAssessmentCompletionTimes(): Map<String, Double>
+    + getStudentEngagementMetrics(): StudentEngagementMetrics
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - teacherId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getTeacher(): Teacher
+  }
+  
+  class "StudentEngagementMetrics" as SEM {
+    - teacherId: Integer
+    - averageResponseTime: Double
+    - forumParticipationRate: Double
+    - feedbackPromptness: Double
+    - contentUpdateFrequency: Double
+    + getMetricsByMonth(): Map<String, Double>
+  }
+  
+  enum "AdminPermissions" as AP {
+    TEACHER_VIEW
+    TEACHER_CREATE
+    TEACHER_EDIT
+    TEACHER_DELETE
+    DEPARTMENT_ASSIGN
+    COURSE_ASSIGN
+    FULL_ACCESS
+  }
+  
+  enum "TeacherStatus" as TS {
+    ACTIVE
+    INACTIVE
+    ON_LEAVE
+    TERMINATED
+    SABBATICAL
+  }
+}
+
+' Relationships
+ATI ..> ATC : requests action
+ATC --> A : verifies permissions
+ATC --> T : manages
+ATC --> TP : generates
+ATC --> AA : logs actions
+A "1" -- "0..*" AA : generates
+T "0..*" -- "1" D : belongs to
+T "1" -- "0..*" C : manages
+T "1" -- "0..*" CL : manages as class teacher
+T "1" -- "1" TP : has
+TP "1" -- "1" SEM : includes
+D "0..1" -- "0..1" T : headed by
+
+@enduml 

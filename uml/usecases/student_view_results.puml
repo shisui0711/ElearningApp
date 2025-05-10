@@ -1,0 +1,69 @@
+@startuml
+' Student Exam Taking - View Exam Results Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+actor "System" as system
+
+' Define use cases
+usecase "Submit Exam" as submitexam
+usecase "View Exam Results" as viewresults
+
+' Relationships
+student --> viewresults
+submitexam ..> viewresults : <<include>> #purple
+
+' Use case specification documentation
+note right of viewresults
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> View Exam Results
+  
+  <b>Actors:</b> Student (Primary)
+  
+  <b>Description:</b> This use case allows students to view results and feedback for completed exams.
+  
+  <b>Preconditions:</b>
+  1. Student is logged into the system
+  2. Student has completed an exam attempt
+  3. Results are available (either immediately or after teacher grading)
+  
+  <b>Postconditions:</b>
+  1. Student has viewed their exam results and feedback
+  
+  <b>Main Flow:</b>
+  1. Student navigates to exam results section
+  2. System displays list of completed exam attempts
+  3. Student selects a specific attempt to view results
+  4. System displays:
+     - Overall score
+     - Question-by-question results
+     - Correct answers (if configured to show)
+     - Teacher feedback (if provided)
+  5. Student reviews results and feedback
+  
+  <b>Alternative Flows:</b>
+  A1. Results not yet available
+    1. System indicates results are pending
+    2. Student is notified when results become available
+  
+  A2. Compare multiple attempts
+    1. Student chooses to compare multiple attempts of the same exam
+    2. System displays comparative view of attempts
+    3. Student can analyze performance improvements
+  
+  <b>Exception Flows:</b>
+  E1. Access restriction
+    1. Student attempts to access results before release date
+    2. System displays appropriate message
+    3. Student must wait until results are released
+end note
+@enduml 

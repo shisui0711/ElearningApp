@@ -1,0 +1,108 @@
+@startuml
+' Admin Exam Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases based on implemented functionality
+usecase "Manage Exams" as manageExams
+usecase "Create New Exam" as createExam
+usecase "Edit Exam Details" as editExam
+usecase "Delete Exam" as deleteExam
+usecase "Filter Exams by Course" as filterByCourse
+usecase "Filter Exams by Department" as filterByDepartment
+usecase "Search Exams" as searchExams
+usecase "View Exam List" as viewExams
+
+' Relationships
+admin --> manageExams
+manageExams ..> createExam : <<include>> #purple
+manageExams ..> editExam : <<include>> #purple
+manageExams ..> deleteExam : <<include>> #purple
+manageExams ..> filterByCourse : <<include>> #purple
+manageExams ..> filterByDepartment : <<include>> #purple
+manageExams ..> searchExams : <<include>> #purple
+manageExams ..> viewExams : <<include>> #purple
+
+' Use case specification documentation
+note right of manageExams
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Exams
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to manage exams in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. Admin is logged into the system with Admin role
+  2. Admin has appropriate privileges
+  
+  <b>Postconditions:</b>
+  1. Exams are created, updated, or deleted as needed
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the admin dashboard
+  2. Admin selects the exam management section
+  3. System displays existing exams with management options
+  4. Admin can:
+     - Create new exams
+     - Edit existing exam details
+     - Delete exams
+     - Filter exams by course or department
+     - Search for exams by name
+     - View paginated exam list
+  
+  <b>Alternative Flows:</b>
+  A1. Create New Exam
+    1. Admin clicks "Thêm đề thi mới" button
+    2. Admin enters exam name, selects course, and configures settings
+    3. Admin adds questions and answer options
+    4. System validates input
+    5. System creates the exam
+  
+  A2. Edit Exam Details
+    1. Admin clicks the edit button for an exam
+    2. Admin modifies exam name, course, settings, or questions
+    3. System validates changes
+    4. System updates exam record
+  
+  A3. Delete Exam
+    1. Admin clicks the delete button for an exam
+    2. System prompts for confirmation
+    3. System checks if exam has been attempted by students
+    4. If no attempts, system deletes the exam
+    5. If exam has been attempted, system shows warning or option to archive
+  
+  A4. Filter Exams by Course
+    1. Admin selects a course from dropdown
+    2. System filters exam list to show only exams in selected course
+  
+  A5. Filter Exams by Department
+    1. Admin selects a department from dropdown
+    2. System filters exam list to show only exams in selected department's courses
+  
+  A6. Search Exams
+    1. Admin enters search term in search field
+    2. System filters exam list to show only exams matching search term
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Admin enters invalid data for creation/editing
+    2. System shows error message
+    3. Admin must correct issues before proceeding
+  
+  E2. Cannot delete exam with attempts
+    1. Admin attempts to delete exam with student attempts
+    2. System shows warning message
+    3. Admin must choose to archive instead of delete or override the warning
+end note
+@enduml 

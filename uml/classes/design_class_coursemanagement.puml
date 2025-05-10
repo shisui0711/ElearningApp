@@ -1,0 +1,324 @@
+@startuml
+title Course Management - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightCyan
+  ArrowColor DarkCyan
+  BorderColor DarkSlateGray
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Presentation Layer" {
+  class "CourseManagementView" as CMV {
+    - courseListPanel: Panel
+    - courseFormPanel: Panel
+    - lessonEditorPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayCourseList(courses: List<CourseDTO>): void
+    + displayCourseForm(subjects: List<SubjectDTO>): void
+    + displayLessonEditor(course: CourseDTO): void
+    + showCourseDetails(course: CourseDTO): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setAddLessonHandler(handler: EventHandler): void
+    + setPublishCourseHandler(handler: EventHandler): void
+    + setUpdateCourseHandler(handler: EventHandler): void
+    + setCourseFormData(formData: Map<String, Object>): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "CourseController" as CC {
+    - courseService: CourseService
+    - lessonService: LessonService
+    - fileStorageService: FileStorageService
+    - subjectService: SubjectService
+    + getUserCourses(teacherId: Long): List<CourseDTO>
+    + getCourseDetails(courseId: Long): CourseDTO
+    + createCourse(courseData: CourseCreateRequest): CourseDTO
+    + updateCourse(courseId: Long, updatedData: CourseUpdateRequest): CourseDTO
+    + publishCourse(courseId: Long): CourseDTO
+    + addLesson(courseId: Long, lessonData: LessonCreateRequest): LessonDTO
+    + validateCourseContent(course: Course): ValidationResult
+  }
+  
+  class "CourseService" as CS {
+    - courseRepository: CourseRepository
+    - teacherRepository: TeacherRepository
+    - subjectRepository: SubjectRepository
+    + findByTeacherId(teacherId: Long): List<Course>
+    + findById(courseId: Long): Course
+    + save(course: Course): Course
+    + update(courseId: Long, courseData: CourseUpdateRequest): Course
+    + updateStatus(courseId: Long, isPublished: boolean): Course
+    + validateCourseForPublication(course: Course): ValidationResult
+    + mapToDTO(course: Course): CourseDTO
+    + mapFromCreateRequest(request: CourseCreateRequest): Course
+  }
+  
+  class "LessonService" as LS {
+    - lessonRepository: LessonRepository
+    - courseRepository: CourseRepository
+    + findByCourseId(courseId: Long): List<Lesson>
+    + save(lesson: Lesson): Lesson
+    + update(lessonId: Long, lessonData: LessonUpdateRequest): Lesson
+    + updateOrder(lessonId: Long, newOrder: int): void
+    + mapToDTO(lesson: Lesson): LessonDTO
+    + mapFromCreateRequest(request: LessonCreateRequest): Lesson
+  }
+  
+  class "FileStorageService" as FSS {
+    - storageConfig: StorageConfiguration
+    - cloudProvider: CloudStorageProvider
+    + uploadFiles(files: List<MultipartFile>): List<FileMetadata>
+    + deleteFile(fileUrl: String): boolean
+    + generatePresignedUrl(fileUrl: String): String
+    + validateFile(file: MultipartFile): ValidationResult
+  }
+  
+  class "SubjectService" as SS {
+    - subjectRepository: SubjectRepository
+    + findById(subjectId: Long): Subject
+    + findAll(): List<Subject>
+    + findByDepartmentId(departmentId: Long): List<Subject>
+    + mapToDTO(subject: Subject): SubjectDTO
+  }
+}
+
+package "Domain Layer" {
+  interface "CourseRepository" as CR {
+    + findById(courseId: Long): Optional<Course>
+    + findByTeacherId(teacherId: Long): List<Course>
+    + save(course: Course): Course
+    + update(courseId: Long, courseData: Map<String, Object>): Course
+    + updateStatus(courseId: Long, status: boolean): Course
+    + delete(courseId: Long): void
+  }
+  
+  interface "LessonRepository" as LR {
+    + findById(lessonId: Long): Optional<Lesson>
+    + findByCourseId(courseId: Long): List<Lesson>
+    + save(lesson: Lesson): Lesson
+    + update(lessonId: Long, lessonData: Map<String, Object>): Lesson
+    + delete(lessonId: Long): void
+    + getMaxOrderForCourse(courseId: Long): int
+  }
+  
+  interface "SubjectRepository" as SR {
+    + findById(subjectId: Long): Optional<Subject>
+    + findAll(): List<Subject>
+    + findByDepartmentId(departmentId: Long): List<Subject>
+  }
+  
+  class "Course" as C {
+    - courseId: Long
+    - title: String
+    - description: String
+    - createdBy: Long
+    - subject: Subject
+    - isPublished: boolean
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - lessons: List<Lesson>
+    - enrollmentCount: int
+    - status: CourseStatus
+    + addLesson(lesson: Lesson): void
+    + removeLesson(lessonId: Long): boolean
+    + updateLesson(lesson: Lesson): boolean
+    + isReadyForPublication(): boolean
+    + publish(): void
+    + unpublish(): void
+    + getEnrollmentCount(): int
+    + getProgress(): int
+    + getLessonCount(): int
+  }
+  
+  class "Lesson" as L {
+    - lessonId: Long
+    - courseId: Long
+    - title: String
+    - content: String
+    - order: int
+    - type: LessonType
+    - estimatedDuration: int
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - documents: List<Document>
+    + addDocument(document: Document): void
+    + removeDocument(documentId: Long): boolean
+    + moveUp(): void
+    + moveDown(): void
+    + getDuration(): int
+    + getDocumentCount(): int
+  }
+  
+  class "Document" as D {
+    - documentId: Long
+    - lessonId: Long
+    - title: String
+    - fileUrl: String
+    - fileType: String
+    - fileSize: long
+    - uploadedAt: LocalDateTime
+    + getDownloadUrl(): String
+    + getExtension(): String
+    + getFileSizeFormatted(): String
+  }
+  
+  class "Subject" as S {
+    - subjectId: Long
+    - name: String
+    - description: String
+    - departmentId: Long
+    - courses: List<Course>
+    + getCourseCount(): int
+    + getDepartment(): Department
+  }
+  
+  enum "LessonType" as LT {
+    TEXT
+    VIDEO
+    ASSIGNMENT
+    PRESENTATION
+    INTERACTIVE
+  }
+  
+  enum "CourseStatus" as CST {
+    DRAFT
+    PUBLISHED
+    ARCHIVED
+    SUSPENDED
+  }
+  
+  class "ValidationResult" as VR {
+    - valid: boolean
+    - messages: List<String>
+    + isValid(): boolean
+    + getMessages(): List<String>
+    + addMessage(message: String): void
+  }
+}
+
+package "Infrastructure Layer" {
+  class "CourseRepositoryImpl" as CRI {
+    - dataSource: DataSource
+    + findById(courseId: Long): Optional<Course>
+    + findByTeacherId(teacherId: Long): List<Course>
+    + save(course: Course): Course
+    + update(courseId: Long, courseData: Map<String, Object>): Course
+    + updateStatus(courseId: Long, status: boolean): Course
+    + delete(courseId: Long): void
+    - mapResultSetToCourse(rs: ResultSet): Course
+  }
+  
+  class "LessonRepositoryImpl" as LRI {
+    - dataSource: DataSource
+    + findById(lessonId: Long): Optional<Lesson>
+    + findByCourseId(courseId: Long): List<Lesson>
+    + save(lesson: Lesson): Lesson
+    + update(lessonId: Long, lessonData: Map<String, Object>): Lesson
+    + delete(lessonId: Long): void
+    + getMaxOrderForCourse(courseId: Long): int
+    - mapResultSetToLesson(rs: ResultSet): Lesson
+  }
+  
+  class "CloudStorageProviderImpl" as CSPI {
+    - credentials: StorageCredentials
+    - bucketName: String
+    + uploadFile(file: MultipartFile, path: String): FileMetadata
+    + deleteFile(path: String): boolean
+    + generatePresignedUrl(path: String, expiry: Duration): String
+    + listFiles(prefix: String): List<FileMetadata>
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "CourseDTO" as CDTO {
+    - courseId: Long
+    - title: String
+    - description: String
+    - teacherName: String
+    - subjectName: String
+    - isPublished: boolean
+    - lessonCount: int
+    - enrollmentCount: int
+    - createdAt: String
+    - updatedAt: String
+  }
+  
+  class "LessonDTO" as LDTO {
+    - lessonId: Long
+    - courseId: Long
+    - title: String
+    - type: String
+    - order: int
+    - documentCount: int
+    - estimatedDuration: int
+  }
+  
+  class "SubjectDTO" as SDTO {
+    - subjectId: Long
+    - name: String
+    - description: String
+    - departmentName: String
+  }
+  
+  class "CourseCreateRequest" as CCR {
+    - title: String
+    - description: String
+    - subjectId: Long
+    - teacherId: Long
+  }
+  
+  class "CourseUpdateRequest" as CUR {
+    - title: String
+    - description: String
+    - subjectId: Long
+  }
+  
+  class "LessonCreateRequest" as LCR {
+    - title: String
+    - content: String
+    - type: String
+    - estimatedDuration: int
+    - files: List<MultipartFile>
+  }
+}
+
+' Relationships
+CMV ..> CC : uses
+CC --> CS : uses
+CC --> LS : uses
+CC --> FSS : uses
+CC --> SS : uses
+CS --> CR : uses
+LS --> LR : uses
+SS --> SR : uses
+CS ..> CDTO : produces
+LS ..> LDTO : produces
+SS ..> SDTO : produces
+CS ..> CCR : consumes
+CS ..> CUR : consumes
+LS ..> LCR : consumes
+FSS --> CSPI : uses
+CRI ..|> CR : implements
+LRI ..|> LR : implements
+C "1" -- "0..*" L : contains
+C "0..*" -- "1" S : belongs to
+L "1" -- "0..*" D : has
+C "1" -- "1" CST : has
+L "1" -- "1" LT : has
+CS ..> VR : uses
+
+@enduml 

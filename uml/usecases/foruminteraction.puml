@@ -1,0 +1,94 @@
+@startuml
+' Forum Interaction Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+actor "Teacher" as teacher #lightsalmon
+
+' Define use cases
+usecase "Browse Forum" as browseforum
+usecase "Create Topic" as createtopic
+usecase "Reply to Topic" as replytopic
+usecase "Like Posts" as likeposts
+usecase "Search Forum" as searchforum
+
+' Relationships
+student --> browseforum
+teacher --> browseforum
+student --> createtopic
+teacher --> createtopic
+student --> replytopic
+teacher --> replytopic
+student --> likeposts
+teacher --> likeposts
+browseforum ..> searchforum : <<include>> #purple
+
+' Use case specification documentation
+note right of browseforum
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Browse Forum
+  
+  <b>Actors:</b> Student (Primary), Teacher (Primary)
+  
+  <b>Description:</b> This use case allows users to browse, search, and interact with forum topics and posts.
+  
+  <b>Preconditions:</b>
+  1. User is logged into the system
+  2. User has access to the forum
+  
+  <b>Postconditions:</b>
+  1. User can view forum categories, topics, and posts
+  2. User can interact with forum content
+  
+  <b>Main Flow:</b>
+  1. User navigates to the forum section
+  2. System displays forum categories and recent topics
+  3. User selects a category or topic of interest
+  4. System displays topics within that category or posts within that topic
+  5. User reads through the discussion
+  6. User can:
+     - Create new topics
+     - Reply to existing topics
+     - Like/unlike posts
+     - Search for specific content
+  
+  <b>Alternative Flows:</b>
+  A1. Create new topic
+    1. User selects "Create New Topic" option
+    2. System displays topic creation form
+    3. User enters topic title and content
+    4. User selects appropriate category
+    5. User submits the topic
+    6. System creates the topic in ForumTopic table
+    7. System displays the new topic
+  
+  A2. Reply to topic
+    1. User views a topic
+    2. User selects "Reply" option
+    3. System displays reply form
+    4. User enters reply content
+    5. User submits the reply
+    6. System creates entry in ForumPost table
+    7. System displays the reply in the topic thread
+  
+  <b>Exception Flows:</b>
+  E1. Empty submission
+    1. User attempts to submit empty topic or reply
+    2. System displays validation error
+    3. User must enter content before submitting
+  
+  E2. Access restricted
+    1. User attempts to access restricted forum section
+    2. System displays access denied message
+    3. User is redirected to accessible areas
+end note
+@enduml 

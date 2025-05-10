@@ -1,0 +1,571 @@
+@startuml
+title Department Management - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightGreen
+  ArrowColor DarkGreen
+  BorderColor ForestGreen
+}
+
+skinparam package {
+  BackgroundColor Honeydew
+  BorderColor LimeGreen
+}
+
+package "Presentation Layer" {
+  class "DepartmentManagementView" as DMV {
+    - departmentListPanel: Panel
+    - departmentDetailsPanel: Panel
+    - teacherListPanel: Panel
+    - classListPanel: Panel
+    - subjectListPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayDepartments(departments: List<DepartmentDTO>): void
+    + displayDepartmentDetails(departmentDetails: DepartmentDetailsDTO): void
+    + displayTeacherList(teachers: List<TeacherDTO>): void
+    + displayClassList(classes: List<ClassDTO>): void
+    + displaySubjectList(subjects: List<SubjectDTO>): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewDepartmentDetailsHandler(handler: EventHandler): void
+    + setCreateDepartmentHandler(handler: EventHandler): void
+    + setUpdateDepartmentHandler(handler: EventHandler): void
+    + setAssignTeacherHandler(handler: EventHandler): void
+    + setAssignSubjectHandler(handler: EventHandler): void
+    + setManageClassesHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "DepartmentController" as DC {
+    - departmentService: DepartmentService
+    - teacherService: TeacherService
+    - classService: ClassService
+    - subjectService: SubjectService
+    - notificationService: NotificationService
+    + getAllDepartments(): List<DepartmentDTO>
+    + getDepartmentById(departmentId: Long): DepartmentDetailsDTO
+    + getTeachersByDepartment(departmentId: Long): List<TeacherDTO>
+    + getClassesByDepartment(departmentId: Long): List<ClassDTO>
+    + getSubjectsByDepartment(departmentId: Long): List<SubjectDTO>
+    + createDepartment(departmentData: DepartmentCreateRequest): DepartmentDTO
+    + updateDepartment(departmentId: Long, departmentData: DepartmentUpdateRequest): DepartmentDTO
+    + assignTeacherToDepartment(departmentId: Long, teacherId: Long): boolean
+    + assignSubjectToDepartment(departmentId: Long, subjectId: Long): boolean
+    + removeDepartment(departmentId: Long): boolean
+    + generateDepartmentReport(departmentId: Long): DepartmentReportDTO
+  }
+  
+  class "DepartmentService" as DS {
+    - departmentRepository: DepartmentRepository
+    - teacherRepository: TeacherRepository
+    - classRepository: ClassRepository
+    - subjectRepository: SubjectRepository
+    + findAll(): List<Department>
+    + findById(departmentId: Long): Department
+    + findByName(name: String): Optional<Department>
+    + findByHeadTeacher(teacherId: Long): Optional<Department>
+    + save(department: Department): Department
+    + update(departmentId: Long, departmentData: Map<String, Object>): Department
+    + delete(departmentId: Long): boolean
+    + assignTeacher(departmentId: Long, teacherId: Long): boolean
+    + removeTeacher(departmentId: Long, teacherId: Long): boolean
+    + assignSubject(departmentId: Long, subjectId: Long): boolean
+    + removeSubject(departmentId: Long, subjectId: Long): boolean
+    + getDepartmentStatistics(departmentId: Long): DepartmentStatistics
+    + mapToDTO(department: Department): DepartmentDTO
+    + mapToDetailsDTO(department: Department): DepartmentDetailsDTO
+  }
+  
+  class "TeacherService" as TS {
+    - teacherRepository: TeacherRepository
+    - userRepository: UserRepository
+    - departmentRepository: DepartmentRepository
+    + findAll(): List<Teacher>
+    + findById(teacherId: Long): Teacher
+    + findByDepartment(departmentId: Long): List<Teacher>
+    + findAvailableTeachers(): List<Teacher>
+    + save(teacher: Teacher): Teacher
+    + update(teacherId: Long, teacherData: Map<String, Object>): Teacher
+    + delete(teacherId: Long): boolean
+    + assignToDepartment(teacherId: Long, departmentId: Long): boolean
+    + getTeacherWorkload(teacherId: Long): TeacherWorkload
+    + mapToDTO(teacher: Teacher): TeacherDTO
+  }
+  
+  class "SubjectService" as SS {
+    - subjectRepository: SubjectRepository
+    - departmentRepository: DepartmentRepository
+    - courseRepository: CourseRepository
+    + findAll(): List<Subject>
+    + findById(subjectId: Long): Subject
+    + findByDepartment(departmentId: Long): List<Subject>
+    + findByName(name: String): Optional<Subject>
+    + save(subject: Subject): Subject
+    + update(subjectId: Long, subjectData: Map<String, Object>): Subject
+    + delete(subjectId: Long): boolean
+    + assignToDepartment(subjectId: Long, departmentId: Long): boolean
+    + getSubjectStatistics(subjectId: Long): SubjectStatistics
+    + mapToDTO(subject: Subject): SubjectDTO
+  }
+  
+  class "NotificationService" as NS {
+    - notificationRepository: NotificationRepository
+    - emailService: EmailService
+    - userRepository: UserRepository
+    + sendDepartmentCreationNotification(departmentId: Long): void
+    + sendTeacherAssignmentNotification(teacherId: Long, departmentId: Long): void
+    + sendSubjectAssignmentNotification(subjectId: Long, departmentId: Long): void
+    + sendDepartmentUpdateNotification(departmentId: Long, message: String): void
+    + notifyHeadOfDepartment(departmentId: Long, message: String): void
+    + markNotificationAsRead(notificationId: Long): void
+  }
+  
+  class "DepartmentStatistics" as DST {
+    - teacherCount: int
+    - classCount: int
+    - studentCount: int
+    - subjectCount: int
+    - activeClassesCount: int
+    - averageClassSize: double
+    - teacherStudentRatio: double
+    - departmentPerformance: double
+    + getTeacherStudentRatio(): double
+    + getDepartmentPerformanceRating(): String
+    + getUtilizationRate(): double
+    + getResourceEfficiency(): double
+    + getDepartmentGrowthRate(): double
+  }
+  
+  class "TeacherWorkload" as TW {
+    - classCount: int
+    - totalHours: int
+    - studentCount: int
+    - subjectsCount: int
+    - administrativeDuties: List<String>
+    - workloadStatus: WorkloadStatus
+    + isOverloaded(): boolean
+    + isUnderloaded(): boolean
+    + getWorkloadPercentage(): double
+    + getRecommendedClassCount(): int
+    + getWorkHoursDistribution(): Map<String, Integer>
+  }
+  
+  class "SubjectStatistics" as SST {
+    - courseCount: int
+    - studentEnrollmentCount: int
+    - teacherCount: int
+    - averagePerformance: double
+    - popularityIndex: double
+    + isHighDemand(): boolean
+    + getEnrollmentTrend(): String
+    + getSuccessRate(): double
+    + getAverageTeachingQuality(): double
+  }
+  
+  enum "WorkloadStatus" as WS {
+    OPTIMAL
+    OVERLOADED
+    UNDERLOADED
+    CRITICAL
+  }
+}
+
+package "Domain Layer" {
+  interface "DepartmentRepository" as DR {
+    + findById(departmentId: Long): Optional<Department>
+    + findAll(): List<Department>
+    + findByName(name: String): Optional<Department>
+    + findByHeadTeacher(teacherId: Long): Optional<Department>
+    + save(department: Department): Department
+    + update(departmentId: Long, departmentData: Map<String, Object>): Department
+    + delete(departmentId: Long): boolean
+    + getTeachersByDepartment(departmentId: Long): List<Teacher>
+    + getClassesByDepartment(departmentId: Long): List<Class>
+    + getSubjectsByDepartment(departmentId: Long): List<Subject>
+  }
+  
+  interface "TeacherRepository" as TR {
+    + findById(teacherId: Long): Optional<Teacher>
+    + findAll(): List<Teacher>
+    + findByDepartment(departmentId: Long): List<Teacher>
+    + findWithoutDepartment(): List<Teacher>
+    + save(teacher: Teacher): Teacher
+    + update(teacherId: Long, teacherData: Map<String, Object>): Teacher
+    + delete(teacherId: Long): boolean
+    + assignToDepartment(teacherId: Long, departmentId: Long): boolean
+    + removeFromDepartment(teacherId: Long): boolean
+  }
+  
+  interface "SubjectRepository" as SR {
+    + findById(subjectId: Long): Optional<Subject>
+    + findAll(): List<Subject>
+    + findByDepartment(departmentId: Long): List<Subject>
+    + findByName(name: String): Optional<Subject>
+    + save(subject: Subject): Subject
+    + update(subjectId: Long, subjectData: Map<String, Object>): Subject
+    + delete(subjectId: Long): boolean
+    + assignToDepartment(subjectId: Long, departmentId: Long): boolean
+    + removeFromDepartment(subjectId: Long): boolean
+  }
+  
+  class "Department" as D {
+    - departmentId: Long
+    - name: String
+    - description: String
+    - code: String
+    - establishedDate: LocalDate
+    - headTeacherId: Long
+    - status: DepartmentStatus
+    - location: String
+    - contact: String
+    - website: String
+    - logoUrl: String
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - teachers: List<Teacher>
+    - classes: List<Class>
+    - subjects: List<Subject>
+    + getTeacherCount(): int
+    + getClassCount(): int
+    + getStudentCount(): int
+    + getSubjectCount(): int
+    + isActive(): boolean
+    + hasHeadTeacher(): boolean
+    + assignHeadTeacher(teacherId: Long): boolean
+    + addTeacher(teacher: Teacher): boolean
+    + removeTeacher(teacherId: Long): boolean
+    + addSubject(subject: Subject): boolean
+    + removeSubject(subjectId: Long): boolean
+    + addClass(classObj: Class): boolean
+    + removeClass(classId: Long): boolean
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Long
+    - userId: Long
+    - departmentId: Long
+    - specialization: String
+    - hireDate: LocalDate
+    - status: TeacherStatus
+    - assignedClasses: List<Class>
+    - expertise: List<Subject>
+    - qualifications: List<Qualification>
+    - contractType: ContractType
+    - isHeadOfDepartment: boolean
+    + getFullName(): String
+    + getEmail(): String
+    + getClassLoad(): int
+    + isAssignedToDepartment(departmentId: Long): boolean
+    + hasExpertise(subjectId: Long): boolean
+    + assignToDepartment(departmentId: Long): boolean
+    + unassignFromDepartment(): boolean
+    + addExpertise(subject: Subject): boolean
+    + removeExpertise(subjectId: Long): boolean
+    + promoteToHeadOfDepartment(): boolean
+    + demoteFromHeadOfDepartment(): boolean
+  }
+  
+  class "Subject" as SU {
+    - subjectId: Long
+    - name: String
+    - description: String
+    - code: String
+    - departmentId: Long
+    - creditHours: int
+    - level: String
+    - prerequisites: List<Subject>
+    - status: SubjectStatus
+    - courses: List<Course>
+    + isActive(): boolean
+    + hasPrerequisites(): boolean
+    + getPrerequisitesCount(): int
+    + getCourseCount(): int
+    + getTeachingTeachers(): List<Teacher>
+    + assignToDepartment(departmentId: Long): boolean
+    + removeFromDepartment(): boolean
+    + addPrerequisite(subjectId: Long): boolean
+    + removePrerequisite(subjectId: Long): boolean
+  }
+  
+  class "Class" as CL {
+    - classId: Long
+    - name: String
+    - academicYear: String
+    - semester: String
+    - departmentId: Long
+    - primaryTeacherId: Long
+    - assistantTeacherIds: List<Long>
+    - status: ClassStatus
+    - students: List<Student>
+    + getStudentCount(): int
+    + getDepartment(): Department
+    + getPrimaryTeacher(): Teacher
+    + getAssistantTeachers(): List<Teacher>
+    + getSchedule(): Schedule
+    + assignToDepartment(departmentId: Long): boolean
+    + removeFromDepartment(): boolean
+  }
+  
+  class "Qualification" as Q {
+    - qualificationId: Long
+    - teacherId: Long
+    - name: String
+    - institution: String
+    - acquisitionDate: LocalDate
+    - level: QualificationLevel
+    - documentUrl: String
+    - isVerified: boolean
+    + isHigherEducation(): boolean
+    + isSpecialization(): boolean
+    + isRelevantFor(subjectId: Long): boolean
+    + verify(): void
+    + getAcquisitionYear(): int
+  }
+  
+  enum "DepartmentStatus" as DST1 {
+    ACTIVE
+    INACTIVE
+    PENDING
+    MERGED
+    DISSOLVED
+  }
+  
+  enum "TeacherStatus" as TS1 {
+    ACTIVE
+    INACTIVE
+    ON_LEAVE
+    TERMINATED
+    RETIRED
+  }
+  
+  enum "ContractType" as CT {
+    FULL_TIME
+    PART_TIME
+    VISITING
+    ADJUNCT
+    EMERITUS
+  }
+  
+  enum "SubjectStatus" as SST1 {
+    ACTIVE
+    INACTIVE
+    ARCHIVED
+    UNDER_REVIEW
+    DEPRECATED
+  }
+  
+  enum "QualificationLevel" as QL {
+    BACHELOR
+    MASTER
+    DOCTORATE
+    PROFESSIONAL
+    CERTIFICATE
+  }
+}
+
+package "Infrastructure Layer" {
+  class "DepartmentRepositoryImpl" as DRI {
+    - dataSource: DataSource
+    + findById(departmentId: Long): Optional<Department>
+    + findAll(): List<Department>
+    + findByName(name: String): Optional<Department>
+    + findByHeadTeacher(teacherId: Long): Optional<Department>
+    + save(department: Department): Department
+    + update(departmentId: Long, departmentData: Map<String, Object>): Department
+    + delete(departmentId: Long): boolean
+    + getTeachersByDepartment(departmentId: Long): List<Teacher>
+    + getClassesByDepartment(departmentId: Long): List<Class>
+    + getSubjectsByDepartment(departmentId: Long): List<Subject>
+    - mapResultSetToDepartment(rs: ResultSet): Department
+  }
+  
+  class "TeacherRepositoryImpl" as TRI {
+    - dataSource: DataSource
+    + findById(teacherId: Long): Optional<Teacher>
+    + findAll(): List<Teacher>
+    + findByDepartment(departmentId: Long): List<Teacher>
+    + findWithoutDepartment(): List<Teacher>
+    + save(teacher: Teacher): Teacher
+    + update(teacherId: Long, teacherData: Map<String, Object>): Teacher
+    + delete(teacherId: Long): boolean
+    + assignToDepartment(teacherId: Long, departmentId: Long): boolean
+    + removeFromDepartment(teacherId: Long): boolean
+    - mapResultSetToTeacher(rs: ResultSet): Teacher
+  }
+  
+  class "SubjectRepositoryImpl" as SRI {
+    - dataSource: DataSource
+    + findById(subjectId: Long): Optional<Subject>
+    + findAll(): List<Subject>
+    + findByDepartment(departmentId: Long): List<Subject>
+    + findByName(name: String): Optional<Subject>
+    + save(subject: Subject): Subject
+    + update(subjectId: Long, subjectData: Map<String, Object>): Subject
+    + delete(subjectId: Long): boolean
+    + assignToDepartment(subjectId: Long, departmentId: Long): boolean
+    + removeFromDepartment(subjectId: Long): boolean
+    - mapResultSetToSubject(rs: ResultSet): Subject
+  }
+  
+  class "EmailServiceImpl" as ESI {
+    - emailConfig: EmailConfiguration
+    - templateEngine: TemplateEngine
+    + sendEmail(recipient: String, subject: String, body: String): void
+    + sendBulkEmail(recipients: List<String>, subject: String, body: String): void
+    + sendDepartmentNotification(departmentId: Long, subject: String, messageTemplate: String, variables: Map<String, Object>): void
+    + notifyTeachers(teacherIds: List<Long>, subject: String, messageTemplate: String, variables: Map<String, Object>): void
+    + generateMessageFromTemplate(templateName: String, variables: Map<String, Object>): String
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "DepartmentDTO" as DDTO {
+    - departmentId: Long
+    - name: String
+    - description: String
+    - code: String
+    - headTeacherName: String
+    - teacherCount: int
+    - classCount: int
+    - studentCount: int
+    - subjectCount: int
+    - status: String
+    - location: String
+    - establishedDate: String
+  }
+  
+  class "DepartmentDetailsDTO" as DDDTO {
+    - departmentId: Long
+    - name: String
+    - description: String
+    - code: String
+    - headTeacher: TeacherDTO
+    - teacherCount: int
+    - classCount: int
+    - studentCount: int
+    - subjectCount: int
+    - status: String
+    - location: String
+    - contact: String
+    - website: String
+    - logoUrl: String
+    - establishedDate: String
+  }
+  
+  class "TeacherDTO" as TDTO {
+    - teacherId: Long
+    - fullName: String
+    - email: String
+    - departmentName: String
+    - specialization: String
+    - status: String
+    - contractType: String
+    - classLoad: int
+    - isHeadOfDepartment: boolean
+    - hireDate: String
+  }
+  
+  class "SubjectDTO" as SDTO {
+    - subjectId: Long
+    - name: String
+    - description: String
+    - code: String
+    - departmentName: String
+    - creditHours: int
+    - level: String
+    - prerequisiteCount: int
+    - courseCount: int
+    - status: String
+  }
+  
+  class "ClassDTO" as CDTO {
+    - classId: Long
+    - name: String
+    - academicYear: String
+    - semester: String
+    - departmentName: String
+    - primaryTeacherName: String
+    - studentCount: int
+    - status: String
+  }
+  
+  class "DepartmentReportDTO" as DRDTO {
+    - departmentId: Long
+    - departmentName: String
+    - teacherBreakdown: Map<String, Integer>
+    - classDistribution: Map<String, Integer>
+    - studentEnrollmentTrend: List<EnrollmentTrendDTO>
+    - subjectPerformance: Map<String, Double>
+    - teacherPerformance: Map<String, Double>
+    - resourceUtilization: double
+    - budgetUtilization: double
+    - comparativeStats: ComparativeStatsDTO
+  }
+  
+  class "DepartmentCreateRequest" as DCR {
+    - name: String
+    - description: String
+    - code: String
+    - headTeacherId: Long
+    - location: String
+    - contact: String
+    - website: String
+    - establishedDate: String
+  }
+  
+  class "DepartmentUpdateRequest" as DUR {
+    - name: String
+    - description: String
+    - headTeacherId: Long
+    - status: String
+    - location: String
+    - contact: String
+    - website: String
+  }
+}
+
+' Relationships
+DMV ..> DC : uses
+DC --> DS : uses
+DC --> TS : uses
+DC --> SS : uses
+DC --> NS : uses
+DS --> DR : uses
+TS --> TR : uses
+SS --> SR : uses
+NS --> ESI : uses
+DRI ..|> DR : implements
+TRI ..|> TR : implements
+SRI ..|> SR : implements
+DC ..> DST : uses
+DC ..> TW : uses
+DC ..> SST : uses
+D "1" -- "0..*" T : employs
+D "1" -- "0..*" SU : offers
+D "1" -- "0..*" CL : manages
+D "1" -- "1" DST1 : has status
+T "1" -- "1" TS1 : has status
+T "1" -- "1" CT : has contract
+T "1" -- "0..*" Q : has
+SU "1" -- "1" SST1 : has status
+Q "1" -- "1" QL : has level
+DS ..> DDTO : produces
+DS ..> DDDTO : produces
+TS ..> TDTO : produces
+SS ..> SDTO : produces
+TS ..> TW : produces
+SS ..> SST : produces
+DS ..> DST : produces
+DC ..> DCR : consumes
+DC ..> DUR : consumes
+DC ..> DRDTO : produces
+
+@enduml 

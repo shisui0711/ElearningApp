@@ -1,0 +1,145 @@
+@startuml
+title Update Profile - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor Chocolate
+  ActorBorderColor Chocolate
+  LifeLineBorderColor SaddleBrown
+  LifeLineBackgroundColor PeachPuff
+  
+  ParticipantBorderColor Chocolate
+  ParticipantBackgroundColor Chocolate
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor PeachPuff
+  
+  ActorBackgroundColor Bisque
+  ActorFontColor Chocolate
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "User" as user
+participant "Profile\nInterface" as ui
+participant "Profile\nController" as controller
+participant "User\nRepository" as userRepo
+participant "Profile\nRepository" as profileRepo
+participant "Notification\nRepository" as notifRepo
+participant "Preference\nRepository" as prefRepo
+participant "File\nStorage" as storage
+participant "Activity\nLogger" as logger
+
+autonumber
+
+== View Profile ==
+
+user -> ui: Navigate to profile page
+ui -> controller: getUserProfile(userId)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user data
+controller -> profileRepo: findByUserId(userId)
+profileRepo --> controller: Return profile data
+controller -> notifRepo: getNotificationSettings(userId)
+notifRepo --> controller: Return notification settings
+controller -> prefRepo: getUserPreferences(userId)
+prefRepo --> controller: Return preferences
+controller --> ui: Return complete profile data
+ui --> user: Display profile information
+
+== Update Basic Profile Information ==
+
+user -> ui: Edit profile information
+ui --> user: Display profile edit form
+user -> ui: Update fields and submit
+ui -> controller: updateUserDetails(userId, profileData)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user data
+controller -> controller: validateProfileData(profileData)
+controller -> profileRepo: update(profileId, profileData)
+profileRepo --> controller: Return updated profile
+controller -> logger: logActivity(userId, "Updated profile")
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> user: Display success message and updated profile
+
+== Change Password ==
+
+user -> ui: Select "Change Password" option
+ui --> user: Display password change form
+user -> ui: Enter current and new password
+ui -> controller: changePassword(userId, oldPassword, newPassword)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user data
+controller -> controller: validateCurrentPassword(user, oldPassword)
+
+alt Current Password Valid
+    controller -> controller: validateNewPassword(newPassword)
+    alt New Password Valid
+        controller -> userRepo: updatePassword(userId, newPasswordHash)
+        userRepo --> controller: Return success
+        controller -> logger: logActivity(userId, "Changed password")
+        logger --> controller: Activity logged
+        controller --> ui: Return success
+        ui --> user: Display success message
+    else New Password Invalid
+        controller --> ui: Password does not meet requirements
+        ui --> user: Display password requirements
+    end
+else Current Password Invalid
+    controller --> ui: Current password incorrect
+    ui --> user: Display error message
+end
+
+== Upload Profile Picture ==
+
+user -> ui: Click "Change Profile Picture"
+ui --> user: Display image upload dialog
+user -> ui: Select image and submit
+ui -> controller: uploadProfilePicture(userId, imageFile)
+controller -> controller: validateImage(imageFile)
+controller -> storage: storeImage(imageFile)
+storage --> controller: Return image URL
+controller -> profileRepo: updateProfilePicture(profileId, imageUrl)
+profileRepo --> controller: Return updated profile
+controller -> logger: logActivity(userId, "Changed profile picture")
+logger --> controller: Activity logged
+controller --> ui: Return success with new image URL
+ui --> user: Display updated profile picture
+
+== Update Notification Settings ==
+
+user -> ui: Navigate to notification settings
+ui -> controller: getNotificationSettings(userId)
+controller -> notifRepo: findByUserId(userId)
+notifRepo --> controller: Return settings
+controller --> ui: Return notification settings
+ui --> user: Display notification preferences
+
+user -> ui: Update notification preferences
+ui -> controller: updateNotificationSettings(userId, settings)
+controller -> notifRepo: update(userId, settings)
+notifRepo --> controller: Return updated settings
+controller -> logger: logActivity(userId, "Updated notification settings")
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> user: Display success message
+
+== Update Display Preferences ==
+
+user -> ui: Navigate to display preferences
+ui -> controller: getUserPreferences(userId)
+controller -> prefRepo: findByUserId(userId)
+prefRepo --> controller: Return preferences
+controller --> ui: Return user preferences
+ui --> user: Display preference options
+
+user -> ui: Update preferences and submit
+ui -> controller: updatePreferences(userId, preferences)
+controller -> prefRepo: update(userId, preferences)
+prefRepo --> controller: Return updated preferences
+controller -> logger: logActivity(userId, "Updated preferences")
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> user: Apply and display updated preferences
+
+@enduml 

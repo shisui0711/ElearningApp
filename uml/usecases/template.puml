@@ -1,0 +1,54 @@
+@startuml
+' Use case diagram template
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors as needed
+actor "Actor1" as actor1
+actor "Actor2" as actor2
+
+' Define the use case
+usecase "Use Case Name" as uc1
+
+' Relationships
+actor1 --> uc1
+actor2 --> uc1
+
+' Use case specification documentation
+note right of uc1
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> [Name]
+  
+  <b>Actors:</b> [Primary and Secondary Actors]
+  
+  <b>Description:</b> [Brief description]
+  
+  <b>Preconditions:</b>
+  1. [Precondition 1]
+  2. [Precondition 2]
+  
+  <b>Postconditions:</b>
+  1. [Postcondition 1]
+  2. [Postcondition 2]
+  
+  <b>Main Flow:</b>
+  1. [Step 1]
+  2. [Step 2]
+  3. [Step 3]
+  
+  <b>Alternative Flows:</b>
+  A1. [Alternative flow 1]
+  A2. [Alternative flow 2]
+  
+  <b>Exception Flows:</b>
+  E1. [Exception flow 1]
+  E2. [Exception flow 2]
+end note
+@enduml 

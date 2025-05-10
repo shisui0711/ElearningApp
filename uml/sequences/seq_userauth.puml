@@ -1,0 +1,73 @@
+@startuml
+title User Authentication - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor DeepSkyBlue
+  ActorBorderColor DeepSkyBlue
+  LifeLineBorderColor blue
+  LifeLineBackgroundColor #A9DCDF
+  
+  ParticipantBorderColor DeepSkyBlue
+  ParticipantBackgroundColor DodgerBlue
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor #A9DCDF
+  
+  ActorBackgroundColor aqua
+  ActorFontColor DeepSkyBlue
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor Guest as user
+participant "Login Interface" as ui
+participant "Authentication\nController" as auth
+participant "User Repository" as repo
+participant "Session Manager" as session
+participant "Dashboard" as dash
+
+autonumber
+
+== Normal Flow ==
+
+user -> ui: Navigate to login page
+ui -> user: Display login form
+
+user -> ui: Enter credentials and submit
+ui -> auth: validateCredentials(username, password)
+auth -> repo: findUserByUsername(username)
+repo --> auth: Return user data
+
+auth -> auth: Verify password hash
+alt Authentication Successful
+    auth --> ui: Authentication successful
+    auth -> session: createSession(userId)
+    session --> auth: Return session token
+    auth -> auth: determineUserRole(userId)
+    auth -> dash: redirectToDashboard(role)
+    dash --> ui: Display role-specific dashboard
+    ui --> user: Show dashboard interface
+else Authentication Failed
+    auth --> ui: Authentication failed
+    ui --> user: Display error message
+end
+
+== Alternative Flow - Remember Session ==
+
+user -> ui: Select "Remember Me" option
+ui -> auth: requestPersistentSession()
+auth -> session: createPersistentSession(userId)
+session --> auth: Return persistent token
+auth --> ui: Return success with token
+ui --> user: Set persistent cookie
+
+== Exception Flow - System Unavailable ==
+
+user -> ui: Enter credentials and submit
+ui -> auth: validateCredentials(username, password)
+auth ->x repo: findUserByUsername(username)
+note right: System error occurs
+auth --> ui: System unavailable
+ui --> user: Display error message
+
+@enduml 

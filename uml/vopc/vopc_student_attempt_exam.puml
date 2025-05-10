@@ -1,0 +1,139 @@
+@startuml
+title Student Exam Attempt - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor MistyRose
+  ArrowColor Crimson
+  BorderColor DarkRed
+}
+
+skinparam package {
+  BackgroundColor LavenderBlush
+  BorderColor PaleVioletRed
+}
+
+package "Boundary" {
+  class "ExamAttemptInterface" as EAI {
+    + displayExamInstructions()
+    + showQuestion()
+    + displayTimer()
+    + showExamSummary()
+    + submitAnswer(questionId: Integer, answerId: Integer)
+    + confirmSubmission()
+    + showConfirmationDialog(message: String)
+  }
+}
+
+package "Controller" {
+  class "ExamAttemptController" as EAC {
+    + startExamAttempt(examId: Integer, studentId: Integer): ExamAttempt
+    + saveAnswer(attemptId: Integer, questionId: Integer, answerId: Integer): Boolean
+    + submitExam(attemptId: Integer): Boolean
+    + getNextQuestion(attemptId: Integer, currentQuestionId: Integer): Question
+    + checkTimeRemaining(attemptId: Integer): Integer
+    + calculatePreliminaryScore(attemptId: Integer): Double
+  }
+}
+
+package "Entity" {
+  class "Exam" as E {
+    - examId: Integer
+    - title: String
+    - description: String
+    - courseId: Integer
+    - timeLimit: Integer
+    - isPublished: Boolean
+    - passingScore: Double
+    - accessCode: String
+    + getQuestions(): List<Question>
+    + isAvailable(): Boolean
+    + validateAccessCode(code: String): Boolean
+  }
+  
+  class "Question" as Q {
+    - questionId: Integer
+    - examId: Integer
+    - text: String
+    - type: QuestionType
+    - points: Double
+    - order: Integer
+    + getAnswers(): List<Answer>
+    + isLastQuestion(): Boolean
+  }
+  
+  class "Answer" as A {
+    - answerId: Integer
+    - questionId: Integer
+    - text: String
+    - isCorrect: Boolean
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Integer
+    - examId: Integer
+    - studentId: Integer
+    - startTime: DateTime
+    - endTime: DateTime
+    - status: AttemptStatus
+    - currentQuestionIndex: Integer
+    + getSubmittedAnswers(): List<SubmittedAnswer>
+    + getRemainingTime(): Integer
+    + hasTimeExpired(): Boolean
+    + isCompleted(): Boolean
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Integer
+    - attemptId: Integer
+    - questionId: Integer
+    - answerId: Integer
+    - submittedAt: DateTime
+    + isCorrect(): Boolean
+  }
+  
+  class "Student" as S {
+    - userId: Integer
+    - classId: Integer
+    + getExamAttempts(): List<ExamAttempt>
+    + isEligibleForExam(examId: Integer): Boolean
+  }
+  
+  enum "QuestionType" as QT {
+    MULTIPLE_CHOICE
+    SINGLE_CHOICE
+    TRUE_FALSE
+    FILL_BLANK
+    ESSAY
+  }
+  
+  enum "AttemptStatus" as AS {
+    NOT_STARTED
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    EXPIRED
+  }
+  
+  class "ExamResult" as ER {
+    - resultId: Integer
+    - attemptId: Integer
+    - score: Double
+    - feedbackText: String
+    - passStatus: Boolean
+    + viewFeedback(): String
+  }
+}
+
+' Relationships
+EAI ..> EAC : requests action
+EAC --> E : accesses
+EAC --> EA : manages
+EAC --> SA : records
+S "1" -- "0..*" EA : attempts
+EA "1" -- "1" E : references
+EA "1" -- "0..*" SA : contains
+SA "0..*" -- "1" Q : answers
+Q "1" -- "0..*" A : has
+EA "1" -- "0..1" ER : produces
+
+@enduml 

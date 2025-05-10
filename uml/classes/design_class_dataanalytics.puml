@@ -1,0 +1,601 @@
+@startuml
+title Data Analytics - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightSkyBlue
+  ArrowColor RoyalBlue
+  BorderColor DarkBlue
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Presentation Layer" {
+  class "AnalyticsView" as AV {
+    - dashboardPanel: Panel
+    - learningAnalyticsPanel: Panel
+    - teachingAnalyticsPanel: Panel
+    - systemAnalyticsPanel: Panel
+    - reportingPanel: Panel
+    - filterPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayDashboard(dashboard: DashboardDTO): void
+    + displayLearningAnalytics(analytics: LearningAnalyticsDTO): void
+    + displayTeachingAnalytics(analytics: TeachingAnalyticsDTO): void
+    + displaySystemAnalytics(analytics: SystemAnalyticsDTO): void
+    + displayReportOptions(options: List<ReportOptionDTO>): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewDashboardHandler(handler: EventHandler): void
+    + setGenerateReportHandler(handler: EventHandler): void
+    + setExportDataHandler(handler: EventHandler): void
+    + setFilterDataHandler(handler: EventHandler): void
+    + setCustomQueryHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "AnalyticsController" as AC {
+    - dashboardService: DashboardService
+    - learningAnalyticsService: LearningAnalyticsService
+    - teachingAnalyticsService: TeachingAnalyticsService
+    - systemAnalyticsService: SystemAnalyticsService
+    - reportingService: ReportingService
+    - userService: UserService
+    + getDashboard(userId: Long, role: UserRole): DashboardDTO
+    + getLearningAnalytics(filters: AnalyticsFilterDTO): LearningAnalyticsDTO
+    + getTeachingAnalytics(filters: AnalyticsFilterDTO): TeachingAnalyticsDTO
+    + getSystemAnalytics(filters: AnalyticsFilterDTO): SystemAnalyticsDTO
+    + getReportOptions(userId: Long, role: UserRole): List<ReportOptionDTO>
+    + generateReport(reportConfig: ReportConfigDTO): ReportDTO
+    + exportData(exportConfig: ExportConfigDTO): ExportResultDTO
+    + executeCustomQuery(query: AnalyticsQueryDTO): QueryResultDTO
+    + saveUserPreferences(userId: Long, preferences: AnalyticsPreferencesDTO): void
+  }
+  
+  class "DashboardService" as DS {
+    - learningAnalyticsService: LearningAnalyticsService
+    - teachingAnalyticsService: TeachingAnalyticsService
+    - systemAnalyticsService: SystemAnalyticsService
+    - userPreferenceRepository: UserPreferenceRepository
+    - chartGenerator: ChartGenerator
+    + generateStudentDashboard(studentId: Long): DashboardDTO
+    + generateTeacherDashboard(teacherId: Long): DashboardDTO
+    + generateAdminDashboard(adminId: Long): DashboardDTO
+    + getUserInsights(userId: Long): List<InsightDTO>
+    + getActiveMetrics(userId: Long, role: UserRole): Map<String, MetricDTO>
+    + saveUserDashboard(userId: Long, layout: DashboardLayoutDTO): void
+    + getUserDashboardLayout(userId: Long): DashboardLayoutDTO
+    + mapToDTO(dashboard: Dashboard): DashboardDTO
+  }
+  
+  class "LearningAnalyticsService" as LAS {
+    - attemptRepository: ExamAttemptRepository
+    - enrollmentRepository: EnrollmentRepository
+    - studentRepository: StudentRepository
+    - courseRepository: CourseRepository
+    - progressRepository: ProgressRepository
+    - chartGenerator: ChartGenerator
+    + getStudentPerformance(studentId: Long): StudentPerformanceDTO
+    + getCourseEngagement(courseId: Long): CourseEngagementDTO
+    + getCompletionStats(studentId: Long): CompletionStatsDTO
+    + getPeerComparison(studentId: Long, courseId: Long): PeerComparisonDTO
+    + getLearningPathProgress(studentId: Long): LearningPathDTO
+    + getPredictiveAnalytics(studentId: Long): PredictiveAnalyticsDTO
+    + getTimeSpentAnalysis(studentId: Long): TimeAnalysisDTO
+    + generatePerformanceReport(studentId: Long): PerformanceReportDTO
+  }
+  
+  class "TeachingAnalyticsService" as TAS {
+    - examRepository: ExamRepository
+    - courseRepository: CourseRepository
+    - teacherRepository: TeacherRepository
+    - attemptRepository: ExamAttemptRepository
+    - feedbackRepository: FeedbackRepository
+    - chartGenerator: ChartGenerator
+    + getExamStatistics(examId: Long): ExamStatisticsDTO
+    + getCourseStatistics(courseId: Long): CourseStatisticsDTO
+    + getTeacherPerformance(teacherId: Long): TeacherPerformanceDTO
+    + getTeachingWorkload(teacherId: Long): WorkloadDTO
+    + getFeedbackAnalysis(teacherId: Long): FeedbackAnalysisDTO
+    + getStudentProgressByTeacher(teacherId: Long): StudentProgressDTO
+    + getContentEffectiveness(courseId: Long): ContentEffectivenessDTO
+    + generateTeachingReport(teacherId: Long): TeachingReportDTO
+  }
+  
+  class "SystemAnalyticsService" as SAS {
+    - userRepository: UserRepository
+    - logRepository: LogRepository
+    - courseRepository: CourseRepository
+    - enrollmentRepository: EnrollmentRepository
+    - metricRepository: MetricRepository
+    - chartGenerator: ChartGenerator
+    + getSystemUsage(timeRange: TimeRangeDTO): SystemUsageDTO
+    + getUserActivity(filters: ActivityFilterDTO): UserActivityDTO
+    + getEnrollmentTrends(timeRange: TimeRangeDTO): EnrollmentTrendsDTO
+    + getResourceUtilization(): ResourceUtilizationDTO
+    + getSystemPerformance(timeRange: TimeRangeDTO): SystemPerformanceDTO
+    + getAnomalyDetection(): AnomalyDetectionDTO
+    + getRevenueTrends(timeRange: TimeRangeDTO): RevenueTrendsDTO
+    + generateSystemReport(timeRange: TimeRangeDTO): SystemReportDTO
+  }
+  
+  class "ReportingService" as RS {
+    - reportTemplateRepository: ReportTemplateRepository
+    - reportRepository: ReportRepository
+    - learningAnalyticsService: LearningAnalyticsService
+    - teachingAnalyticsService: TeachingAnalyticsService
+    - systemAnalyticsService: SystemAnalyticsService
+    - pdfGenerator: PDFGenerator
+    - excelGenerator: ExcelGenerator
+    + getAvailableReportTemplates(userRole: UserRole): List<ReportTemplateDTO>
+    + generateReport(templateId: Long, parameters: Map<String, Object>): ReportDTO
+    + scheduleReport(scheduleConfig: ReportScheduleDTO): ScheduledReportDTO
+    + getUserReports(userId: Long): List<ReportDTO>
+    + exportReportToFormat(reportId: Long, format: ExportFormat): ExportResultDTO
+    + saveCustomReport(report: CustomReportDTO): ReportTemplateDTO
+    + deleteReport(reportId: Long): boolean
+  }
+  
+  class "ChartGenerator" as CG {
+    - chartConfig: ChartConfiguration
+    - colorScheme: ColorScheme
+    + createLineChart(data: Map<String, Object>, options: ChartOptions): Chart
+    + createBarChart(data: Map<String, Object>, options: ChartOptions): Chart
+    + createPieChart(data: Map<String, Object>, options: ChartOptions): Chart
+    + createRadarChart(data: Map<String, Object>, options: ChartOptions): Chart
+    + createHeatmap(data: Map<String, Object>, options: ChartOptions): Chart
+    + createScatterPlot(data: Map<String, Object>, options: ChartOptions): Chart
+    + convertToBase64Image(chart: Chart, width: int, height: int): String
+    + generateInteractiveChartScript(chart: Chart): String
+  }
+  
+  enum "ExportFormat" as EF {
+    PDF
+    EXCEL
+    CSV
+    JSON
+    HTML
+  }
+  
+  enum "ChartType" as CT {
+    LINE
+    BAR
+    PIE
+    RADAR
+    HEATMAP
+    SCATTER
+    BUBBLE
+    AREA
+  }
+}
+
+package "Domain Layer" {
+  interface "UserPreferenceRepository" as UPR {
+    + findByUserId(userId: Long): Optional<UserPreference>
+    + save(preference: UserPreference): UserPreference
+    + update(userId: Long, preferenceData: Map<String, Object>): UserPreference
+    + delete(userId: Long): boolean
+  }
+  
+  interface "MetricRepository" as MR {
+    + findByName(name: String): Optional<Metric>
+    + findByCategory(category: MetricCategory): List<Metric>
+    + findTrendData(metricId: Long, timeRange: TimeRange): List<MetricDataPoint>
+    + saveMetricValue(metricId: Long, value: double, timestamp: LocalDateTime): MetricDataPoint
+    + getLatestValue(metricId: Long): MetricDataPoint
+    + getAverageValue(metricId: Long, timeRange: TimeRange): double
+    + getMaxValue(metricId: Long, timeRange: TimeRange): double
+    + getMinValue(metricId: Long, timeRange: TimeRange): double
+  }
+  
+  interface "LogRepository" as LR {
+    + findByTimeRange(startTime: LocalDateTime, endTime: LocalDateTime): List<Log>
+    + findByUser(userId: Long): List<Log>
+    + findByAction(action: String): List<Log>
+    + findByModule(module: String): List<Log>
+    + findByErrorLevel(level: ErrorLevel): List<Log>
+    + getActivityCount(timeRange: TimeRange): int
+    + getUserActivityDistribution(timeRange: TimeRange): Map<Long, Integer>
+    + getErrorCount(timeRange: TimeRange): int
+  }
+  
+  interface "ReportTemplateRepository" as RTR {
+    + findById(templateId: Long): Optional<ReportTemplate>
+    + findAll(): List<ReportTemplate>
+    + findByCreator(userId: Long): List<ReportTemplate>
+    + findByCategory(category: ReportCategory): List<ReportTemplate>
+    + findByUserRole(role: UserRole): List<ReportTemplate>
+    + save(template: ReportTemplate): ReportTemplate
+    + update(templateId: Long, templateData: Map<String, Object>): ReportTemplate
+    + delete(templateId: Long): boolean
+  }
+  
+  interface "ReportRepository" as RR {
+    + findById(reportId: Long): Optional<Report>
+    + findByUser(userId: Long): List<Report>
+    + findByTemplate(templateId: Long): List<Report>
+    + findByTimeRange(startTime: LocalDateTime, endTime: LocalDateTime): List<Report>
+    + save(report: Report): Report
+    + delete(reportId: Long): boolean
+    + getReportCount(timeRange: TimeRange): int
+    + getMostRequestedReports(limit: int): List<ReportSummary>
+  }
+  
+  class "UserPreference" as UP {
+    - preferenceId: Long
+    - userId: Long
+    - dashboardLayout: String
+    - visibleMetrics: List<String>
+    - chartPreferences: Map<String, String>
+    - notificationSettings: NotificationSettings
+    - timezone: String
+    - lastUpdated: LocalDateTime
+    + getDashboardLayoutObject(): DashboardLayout
+    + getVisibleMetrics(): List<String>
+    + getChartPreference(chartId: String): String
+    + setChartPreference(chartId: String, preference: String): void
+    + updateLayout(layout: DashboardLayout): void
+    + enableMetric(metricId: String): void
+    + disableMetric(metricId: String): void
+  }
+  
+  class "Metric" as M {
+    - metricId: Long
+    - name: String
+    - description: String
+    - category: MetricCategory
+    - unit: String
+    - isActive: boolean
+    - formula: String
+    - dataPoints: List<MetricDataPoint>
+    - thresholds: MetricThresholds
+    + getValue(): double
+    + getLatestDataPoint(): MetricDataPoint
+    + getTrend(timeRange: TimeRange): TrendDirection
+    + isAboveThreshold(): boolean
+    + getHistoricalValues(timeRange: TimeRange): List<MetricDataPoint>
+    + calculateAverage(timeRange: TimeRange): double
+    + calculateGrowthRate(timeRange: TimeRange): double
+  }
+  
+  class "MetricDataPoint" as MDP {
+    - pointId: Long
+    - metricId: Long
+    - value: double
+    - timestamp: LocalDateTime
+    - source: String
+    - isAggregated: boolean
+    + getValue(): double
+    + getFormattedTimestamp(): String
+    + getAge(): Duration
+  }
+  
+  class "Log" as L {
+    - logId: Long
+    - userId: Long
+    - action: String
+    - module: String
+    - timestamp: LocalDateTime
+    - ipAddress: String
+    - userAgent: String
+    - details: String
+    - level: ErrorLevel
+    - duration: Long
+    + isError(): boolean
+    + getFormattedTimestamp(): String
+    + getActionCategory(): String
+    + getDurationMs(): long
+    + getUserIdentifier(): String
+  }
+  
+  class "ReportTemplate" as RT {
+    - templateId: Long
+    - name: String
+    - description: String
+    - category: ReportCategory
+    - creatorId: Long
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - allowedRoles: List<UserRole>
+    - parameters: List<ReportParameter>
+    - sections: List<ReportSection>
+    - isPublic: boolean
+    + canBeUsedBy(role: UserRole): boolean
+    + validateParameters(parameters: Map<String, Object>): boolean
+    + getRequiredParameters(): List<ReportParameter>
+    + getSectionById(sectionId: Long): Optional<ReportSection>
+    + addSection(section: ReportSection): void
+    + removeSection(sectionId: Long): boolean
+    + clone(): ReportTemplate
+  }
+  
+  class "ReportParameter" as RP {
+    - parameterId: Long
+    - name: String
+    - description: String
+    - type: ParameterType
+    - isRequired: boolean
+    - defaultValue: String
+    - validationRule: String
+    - options: List<String>
+    + validate(value: String): boolean
+    + getTypedValue(value: String): Object
+    + formatForDisplay(value: Object): String
+    + isSelectType(): boolean
+    + hasDefaultValue(): boolean
+  }
+  
+  class "ReportSection" as RS {
+    - sectionId: Long
+    - title: String
+    - description: String
+    - orderIndex: int
+    - dataSource: String
+    - queryTemplate: String
+    - charts: List<ChartDefinition>
+    - tables: List<TableDefinition>
+    - isExpandable: boolean
+    + generateContent(parameters: Map<String, Object>): SectionContent
+    + getFormattedQuery(parameters: Map<String, Object>): String
+    + getChartDefinitions(): List<ChartDefinition>
+    + getTableDefinitions(): List<TableDefinition>
+    + clone(): ReportSection
+  }
+  
+  class "Report" as R {
+    - reportId: Long
+    - templateId: Long
+    - userId: Long
+    - generatedAt: LocalDateTime
+    - parameters: Map<String, Object>
+    - content: List<SectionContent>
+    - format: ExportFormat
+    - fileUrl: String
+    - isScheduled: boolean
+    - scheduledReportId: Long
+    + getTemplate(): ReportTemplate
+    + getUser(): User
+    + getGeneratedDate(): String
+    + getSectionContent(sectionId: Long): Optional<SectionContent>
+    + getAllSections(): List<SectionContent>
+    + getDownloadUrl(): String
+    + isScheduled(): boolean
+    + getParameters(): Map<String, Object>
+  }
+  
+  class "Chart" as CH {
+    - chartId: String
+    - type: ChartType
+    - title: String
+    - description: String
+    - data: Map<String, Object>
+    - options: ChartOptions
+    - imageBase64: String
+    - interactiveScript: String
+    + getImageUrl(): String
+    + getChartHtml(): String
+    + getChartData(): String
+    + getChartOptions(): String
+    + isInteractive(): boolean
+    + getWidth(): int
+    + getHeight(): int
+  }
+  
+  enum "MetricCategory" as MC {
+    LEARNING
+    TEACHING
+    SYSTEM
+    FINANCIAL
+    ENGAGEMENT
+    PERFORMANCE
+  }
+  
+  enum "TrendDirection" as TD {
+    UP
+    DOWN
+    STABLE
+    VOLATILE
+    UNKNOWN
+  }
+  
+  enum "ErrorLevel" as EL {
+    INFO
+    WARNING
+    ERROR
+    CRITICAL
+  }
+  
+  enum "ReportCategory" as RC {
+    PERFORMANCE
+    ENGAGEMENT
+    FINANCIAL
+    SYSTEM
+    CUSTOM
+  }
+  
+  enum "ParameterType" as PT {
+    TEXT
+    NUMBER
+    DATE
+    DATE_RANGE
+    BOOLEAN
+    SELECT
+    MULTI_SELECT
+  }
+}
+
+package "Infrastructure Layer" {
+  class "UserPreferenceRepositoryImpl" as UPRI {
+    - dataSource: DataSource
+    + findByUserId(userId: Long): Optional<UserPreference>
+    + save(preference: UserPreference): UserPreference
+    + update(userId: Long, preferenceData: Map<String, Object>): UserPreference
+    + delete(userId: Long): boolean
+    - mapResultSetToUserPreference(rs: ResultSet): UserPreference
+  }
+  
+  class "MetricRepositoryImpl" as MRI {
+    - dataSource: DataSource
+    + findByName(name: String): Optional<Metric>
+    + findByCategory(category: MetricCategory): List<Metric>
+    + findTrendData(metricId: Long, timeRange: TimeRange): List<MetricDataPoint>
+    + saveMetricValue(metricId: Long, value: double, timestamp: LocalDateTime): MetricDataPoint
+    + getLatestValue(metricId: Long): MetricDataPoint
+    + getAverageValue(metricId: Long, timeRange: TimeRange): double
+    + getMaxValue(metricId: Long, timeRange: TimeRange): double
+    + getMinValue(metricId: Long, timeRange: TimeRange): double
+    - mapResultSetToMetric(rs: ResultSet): Metric
+    - mapResultSetToDataPoint(rs: ResultSet): MetricDataPoint
+  }
+  
+  class "PDFGeneratorImpl" as PDFI {
+    - templateEngine: TemplateEngine
+    - fontProvider: FontProvider
+    - imageService: ImageService
+    + generatePDF(template: String, data: Map<String, Object>): byte[]
+    + generateReportPDF(report: Report): byte[]
+    + addTableToPDF(pdf: PDFDocument, table: Table): void
+    + addChartToPDF(pdf: PDFDocument, chart: Chart): void
+    + applyWatermark(pdf: byte[], text: String): byte[]
+    + applyHeaderFooter(pdf: byte[], header: String, footer: String): byte[]
+  }
+  
+  class "ExcelGeneratorImpl" as EGI {
+    - styleProvider: ExcelStyleProvider
+    + generateExcel(data: List<Table>, sheetNames: List<String>): byte[]
+    + generateReportExcel(report: Report): byte[]
+    + addChart(workbook: Workbook, chart: Chart, sheetName: String): void
+    + formatCell(cell: Cell, format: String): void
+    + createHeaderRow(sheet: Sheet, headers: List<String>): Row
+    + applyConditionalFormatting(sheet: Sheet, range: CellRangeAddress, rule: FormatRule): void
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "DashboardDTO" as DDTO {
+    - userId: Long
+    - userRole: String
+    - metrics: Map<String, MetricDTO>
+    - charts: List<ChartDTO>
+    - insights: List<InsightDTO>
+    - quickLinks: List<QuickLinkDTO>
+    - lastUpdated: String
+    - layout: DashboardLayoutDTO
+  }
+  
+  class "LearningAnalyticsDTO" as LADTO {
+    - studentId: Long
+    - performance: StudentPerformanceDTO
+    - engagement: CourseEngagementDTO
+    - completion: CompletionStatsDTO
+    - peerComparison: PeerComparisonDTO
+    - learningPath: LearningPathDTO
+    - predictiveAnalytics: PredictiveAnalyticsDTO
+    - timeAnalysis: TimeAnalysisDTO
+  }
+  
+  class "TeachingAnalyticsDTO" as TADTO {
+    - teacherId: Long
+    - examStatistics: List<ExamStatisticsDTO>
+    - courseStatistics: List<CourseStatisticsDTO>
+    - teacherPerformance: TeacherPerformanceDTO
+    - workload: WorkloadDTO
+    - feedbackAnalysis: FeedbackAnalysisDTO
+    - studentProgress: StudentProgressDTO
+    - contentEffectiveness: ContentEffectivenessDTO
+  }
+  
+  class "SystemAnalyticsDTO" as SADTO {
+    - systemUsage: SystemUsageDTO
+    - userActivity: UserActivityDTO
+    - enrollmentTrends: EnrollmentTrendsDTO
+    - resourceUtilization: ResourceUtilizationDTO
+    - systemPerformance: SystemPerformanceDTO
+    - anomalyDetection: AnomalyDetectionDTO
+    - revenueTrends: RevenueTrendsDTO
+  }
+  
+  class "ReportDTO" as RDTO {
+    - reportId: Long
+    - name: String
+    - description: String
+    - category: String
+    - generatedDate: String
+    - generatedBy: String
+    - format: String
+    - downloadUrl: String
+    - sections: List<SectionContentDTO>
+    - parameters: Map<String, String>
+  }
+  
+  class "AnalyticsFilterDTO" as AFDTO {
+    - timeRange: TimeRangeDTO
+    - courseIds: List<Long>
+    - departmentIds: List<Long>
+    - userIds: List<Long>
+    - metricIds: List<Long>
+    - groupBy: String
+    - sortBy: String
+    - limit: Integer
+  }
+  
+  class "ChartDTO" as CHTDTO {
+    - chartId: String
+    - type: String
+    - title: String
+    - description: String
+    - dataJson: String
+    - optionsJson: String
+    - imageUrl: String
+    - interactiveUrl: String
+  }
+}
+
+' Relationships
+AV ..> AC : uses
+AC --> DS : uses
+AC --> LAS : uses
+AC --> TAS : uses
+AC --> SAS : uses
+AC --> RS : uses
+DS --> UPR : uses
+DS --> CG : uses
+LAS --> CG : uses
+TAS --> CG : uses
+SAS --> MR : uses
+SAS --> LR : uses
+RS --> RTR : uses
+RS --> RR : uses
+RS --> PDFI : uses
+RS --> EGI : uses
+UPRI ..|> UPR : implements
+MRI ..|> MR : implements
+UP "1" -- "1" L : logs
+M "1" -- "0..*" MDP : records
+RT "1" -- "0..*" RP : requires
+RT "1" -- "1..*" RS : contains
+R "1" -- "1" RT : based on
+CH "1" -- "1" CT : has type
+M "1" -- "1" MC : belongs to
+L "1" -- "1" EL : has level
+RT "1" -- "1" RC : belongs to
+RP "1" -- "1" PT : has type
+DS ..> DDTO : produces
+LAS ..> LADTO : produces
+TAS ..> TADTO : produces
+SAS ..> SADTO : produces
+RS ..> RDTO : produces
+CG ..> CHTDTO : produces
+AC ..> AFDTO : consumes
+
+@enduml 

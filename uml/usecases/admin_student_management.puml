@@ -1,0 +1,104 @@
+@startuml
+' Admin Student Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases
+usecase "Manage Students" as managestudents
+usecase "Create Student Account" as createStudent
+usecase "Edit Student Details" as editStudent
+usecase "Deactivate Student Account" as deactivateStudent
+usecase "Assign Class" as assignClass
+usecase "View Student List" as viewStudents
+usecase "Manage Enrollments" as manageEnrollments
+
+' Relationships
+admin --> managestudents
+managestudents ..> createStudent : <<include>> #purple
+managestudents ..> editStudent : <<include>> #purple
+managestudents ..> deactivateStudent : <<include>> #purple
+managestudents ..> assignClass : <<include>> #purple
+managestudents ..> viewStudents : <<include>> #purple
+managestudents ..> manageEnrollments : <<include>> #purple
+
+' Use case specification documentation
+note right of managestudents
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Students
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to manage student accounts in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. Admin is logged into the system with Admin role
+  2. Admin has appropriate privileges
+  
+  <b>Postconditions:</b>
+  1. Student accounts are created, updated, or managed as needed
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the admin dashboard
+  2. Admin selects the student management section
+  3. System displays existing student records with management options
+  4. Admin can:
+     - Create new student accounts
+     - Edit existing student details
+     - Deactivate student accounts
+     - Assign students to classes
+     - View student list with filters
+     - Manage course enrollments
+  
+  <b>Alternative Flows:</b>
+  A1. Create Student Account
+    1. Admin selects "Create New Student"
+    2. Admin enters student details (name, email, ID, etc.)
+    3. System validates input
+    4. System creates the student account
+    5. System sends credentials to the student's email
+  
+  A2. Edit Student Details
+    1. Admin selects a student from the list
+    2. Admin modifies student information
+    3. System validates changes
+    4. System updates student record
+  
+  A3. Deactivate Student Account
+    1. Admin selects a student account
+    2. Admin chooses to deactivate the account
+    3. System prompts for confirmation
+    4. System deactivates the account but preserves data
+  
+  A4. Assign Class
+    1. Admin selects a student
+    2. Admin assigns or changes class
+    3. System updates class assignment
+  
+  A5. Manage Enrollments
+    1. Admin selects a student
+    2. Admin views current course enrollments
+    3. Admin can add or remove course enrollments
+    4. System updates enrollment records
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Admin enters invalid data for creation/editing
+    2. System highlights problematic fields
+    3. Admin must correct issues before proceeding
+  
+  E2. Class capacity limits
+    1. Admin attempts to assign student to full class
+    2. System shows warning about class capacity
+    3. Admin must resolve capacity issues before proceeding
+end note
+@enduml 

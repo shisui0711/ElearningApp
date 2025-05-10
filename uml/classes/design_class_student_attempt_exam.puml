@@ -1,0 +1,531 @@
+@startuml
+title Student Exam Attempt - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor MistyRose
+  ArrowColor Crimson
+  BorderColor DarkRed
+}
+
+skinparam package {
+  BackgroundColor LavenderBlush
+  BorderColor PaleVioletRed
+}
+
+package "Presentation Layer" {
+  class "ExamAttemptView" as EAV {
+    - examInfoPanel: Panel
+    - questionPanel: Panel
+    - answerPanel: Panel
+    - timerComponent: TimerDisplay
+    - navigationButtons: NavigationComponent
+    - confirmationDialog: ConfirmationDialog
+    + displayExamList(exams: List<ExamDTO>): void
+    + displayExamInstructions(exam: ExamDetailsDTO): void
+    + displayQuestion(question: QuestionDTO, attemptId: Long): void
+    + displayTimer(remainingTime: Duration): void
+    + updateTimerDisplay(remainingTime: Duration): void
+    + displayExamSummary(attempt: AttemptSummaryDTO): void
+    + displayTimeExpiredNotification(): void
+    + displaySubmissionConfirmation(result: PreliminaryResultDTO): void
+    + setStartExamHandler(handler: EventHandler): void
+    + setSubmitAnswerHandler(handler: EventHandler): void
+    + setSubmitExamHandler(handler: EventHandler): void
+    + setNavigationHandlers(previousHandler: EventHandler, nextHandler: EventHandler): void
+    + showConfirmationDialog(message: String, confirmHandler: EventHandler): void
+  }
+  
+  class "TimerDisplay" as TD {
+    - timeRemaining: Duration
+    - warningThreshold: Duration
+    - criticalThreshold: Duration
+    - format: TimerFormat
+    + updateTime(remainingTime: Duration): void
+    + setTimerWarningHandler(handler: EventHandler): void
+    + setTimerExpiredHandler(handler: EventHandler): void
+    + startCountdown(): void
+    + pauseCountdown(): void
+    + resumeCountdown(): void
+    + stopCountdown(): void
+  }
+  
+  enum "TimerFormat" as TF {
+    MINUTES_SECONDS
+    HOURS_MINUTES_SECONDS
+    PROGRESS_BAR
+    COUNTDOWN_CLOCK
+  }
+}
+
+package "Application Layer" {
+  class "ExamAttemptController" as EAC {
+    - examService: ExamService
+    - attemptService: AttemptService
+    - questionService: QuestionService
+    - timerService: TimerService
+    - studentService: StudentService
+    + getAvailableExams(studentId: Long): List<ExamDTO>
+    + getExamDetails(examId: Long): ExamDetailsDTO
+    + checkEligibility(studentId: Long, examId: Long): EligibilityResult
+    + startExamAttempt(examId: Long, studentId: Long): AttemptDTO
+    + saveAnswer(attemptId: Long, questionId: Long, answerId: Long): boolean
+    + saveEssayAnswer(attemptId: Long, questionId: Long, answerText: String): boolean
+    + getNextQuestion(examId: Long, currentQuestionId: Long): QuestionDTO
+    + getPreviousQuestion(examId: Long, currentQuestionId: Long): QuestionDTO
+    + submitExam(attemptId: Long): PreliminaryResultDTO
+    + handleTimeExpired(attemptId: Long): PreliminaryResultDTO
+    + calculatePreliminaryScore(attemptId: Long): double
+  }
+  
+  class "TimerService" as TS {
+    - activeTimers: Map<Long, Timer>
+    - attemptService: AttemptService
+    - notificationService: NotificationService
+    + startExamTimer(attemptId: Long, timeLimit: Duration): void
+    + stopExamTimer(attemptId: Long): Duration
+    + getTimeRemaining(attemptId: Long): Duration
+    + pauseTimer(attemptId: Long): void
+    + resumeTimer(attemptId: Long): void
+    + registerTimeExpiredCallback(attemptId: Long, callback: TimeExpiredCallback): void
+    + registerTimeWarningCallback(attemptId: Long, timeThreshold: Duration, callback: TimeWarningCallback): void
+    - notifyTimeExpired(attemptId: Long): void
+  }
+  
+  class "ExamService" as ES {
+    - examRepository: ExamRepository
+    - courseRepository: CourseRepository
+    - studentRepository: StudentRepository
+    + findAvailableForStudent(studentId: Long): List<Exam>
+    + findById(examId: Long): Exam
+    + validateExamAccess(studentId: Long, examId: Long): boolean
+    + getExamConfiguration(examId: Long): ExamConfiguration
+    + mapToDTO(exam: Exam): ExamDTO
+    + mapToDetailsDTO(exam: Exam): ExamDetailsDTO
+  }
+  
+  class "AttemptService" as AS {
+    - attemptRepository: AttemptRepository
+    - submittedAnswerRepository: SubmittedAnswerRepository
+    - questionRepository: QuestionRepository
+    - examRepository: ExamRepository
+    + create(examId: Long, studentId: Long): ExamAttempt
+    + findById(attemptId: Long): ExamAttempt
+    + saveStudentAnswer(attemptId: Long, questionId: Long, answerId: Long): SubmittedAnswer
+    + saveStudentEssayAnswer(attemptId: Long, questionId: Long, answerText: String): SubmittedAnswer
+    + updateStatus(attemptId: Long, status: AttemptStatus): ExamAttempt
+    + calculatePreliminaryScore(attemptId: Long): PreliminaryResult
+    + getSubmissionSummary(attemptId: Long): AttemptSummary
+    + hasAnsweredAllQuestions(attemptId: Long): boolean
+    + getTimeElapsed(attemptId: Long): Duration
+    + mapToDTO(attempt: ExamAttempt): AttemptDTO
+    + mapToSummaryDTO(attempt: ExamAttempt, answers: List<SubmittedAnswer>): AttemptSummaryDTO
+  }
+  
+  class "QuestionService" as QS {
+    - questionRepository: QuestionRepository
+    - answerRepository: AnswerRepository
+    - examRepository: ExamRepository
+    + findById(questionId: Long): Question
+    + findByExamId(examId: Long): List<Question>
+    + getNextQuestion(examId: Long, currentQuestionId: Long): Question
+    + getPreviousQuestion(examId: Long, currentQuestionId: Long): Question
+    + getQuestionPosition(examId: Long, questionId: Long): int
+    + getTotalQuestionCount(examId: Long): int
+    + mapToDTO(question: Question, includingCorrectAnswers: boolean): QuestionDTO
+  }
+  
+  interface "TimeExpiredCallback" as TEC {
+    + onTimeExpired(attemptId: Long): void
+  }
+  
+  interface "TimeWarningCallback" as TWC {
+    + onTimeWarning(attemptId: Long, remainingTime: Duration): void
+  }
+  
+  class "EligibilityResult" as ELR {
+    - eligible: boolean
+    - message: String
+    - requiredPrerequisites: List<String>
+    - attemptLimitReached: boolean
+    + isEligible(): boolean
+    + getMessage(): String
+    + hasPrerequisiteIssues(): boolean
+    + getRequiredPrerequisites(): List<String>
+    + isAttemptLimitReached(): boolean
+  }
+  
+  class "PreliminaryResult" as PR {
+    - score: double
+    - maxScore: double
+    - percentageScore: double
+    - passStatus: boolean
+    - correctAnswers: int
+    - totalQuestions: int
+    - unansweredQuestions: int
+    - timeTaken: Duration
+    + isPassed(): boolean
+    + getScoreFormatted(): String
+    + getCompletionRate(): double
+  }
+}
+
+package "Domain Layer" {
+  interface "ExamRepository" as ER {
+    + findById(examId: Long): Optional<Exam>
+    + findByPublishedStatus(published: boolean): List<Exam>
+    + findAvailableForStudent(studentId: Long): List<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + countAttemptsByExamAndStudent(examId: Long, studentId: Long): int
+  }
+  
+  interface "QuestionRepository" as QR {
+    + findById(questionId: Long): Optional<Question>
+    + findByExamId(examId: Long): List<Question>
+    + findNextQuestion(examId: Long, currentOrder: int): Optional<Question>
+    + findPreviousQuestion(examId: Long, currentOrder: int): Optional<Question>
+    + countByExamId(examId: Long): int
+  }
+  
+  interface "AnswerRepository" as AR {
+    + findById(answerId: Long): Optional<Answer>
+    + findByQuestionId(questionId: Long): List<Answer>
+    + findCorrectAnswersByQuestionId(questionId: Long): List<Answer>
+  }
+  
+  interface "AttemptRepository" as ATR {
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findByExamId(examId: Long): List<ExamAttempt>
+    + findByStudentId(studentId: Long): List<ExamAttempt>
+    + findByExamAndStudent(examId: Long, studentId: Long): List<ExamAttempt>
+    + save(attempt: ExamAttempt): ExamAttempt
+    + update(attemptId: Long, data: Map<String, Object>): ExamAttempt
+    + updateStatus(attemptId: Long, status: AttemptStatus): ExamAttempt
+  }
+  
+  interface "SubmittedAnswerRepository" as SAR {
+    + findByAttemptId(attemptId: Long): List<SubmittedAnswer>
+    + findByAttemptAndQuestion(attemptId: Long, questionId: Long): Optional<SubmittedAnswer>
+    + save(submittedAnswer: SubmittedAnswer): SubmittedAnswer
+    + countByAttemptId(attemptId: Long): int
+    + deleteByAttemptAndQuestion(attemptId: Long, questionId: Long): void
+  }
+  
+  class "Exam" as E {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseId: Long
+    - createdBy: Long
+    - timeLimit: Integer
+    - isPublished: boolean
+    - passingScore: double
+    - randomizeQuestions: boolean
+    - accessCode: String
+    - maxAttempts: Integer
+    - showAnswersAfterSubmission: boolean
+    - startDate: LocalDateTime
+    - endDate: LocalDateTime
+    - questions: List<Question>
+    + isAvailable(currentTime: LocalDateTime): boolean
+    + validateAccessCode(code: String): boolean
+    + isAccessCodeRequired(): boolean
+    + hasTimeLimitPerQuestion(): boolean
+    + getAllowedAttempts(): Integer
+    + hasUnlimitedAttempts(): boolean
+    + isRandomized(): boolean
+    + getTimeLimit(): Duration
+    + getStartDate(): LocalDateTime
+    + getEndDate(): LocalDateTime
+  }
+  
+  class "Question" as Q {
+    - questionId: Long
+    - examId: Long
+    - text: String
+    - type: QuestionType
+    - points: double
+    - orderIndex: int
+    - timeLimit: Integer
+    - answers: List<Answer>
+    - hasPartialCredit: boolean
+    - shuffleAnswers: boolean
+    + hasTimeLimit(): boolean
+    + getTimeLimit(): Duration
+    + requiresManualGrading(): boolean
+    + hasMultipleCorrectAnswers(): boolean
+    + getCorrectAnswersCount(): int
+    + getFormattedText(): String
+    + shouldShuffleAnswers(): boolean
+  }
+  
+  class "Answer" as A {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+    - orderIndex: int
+    - partialCreditValue: Double
+    + getFormattedText(): String
+    + getTextWithoutHtml(): String
+    + getPartialCreditPercentage(): double
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Long
+    - examId: Long
+    - studentId: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - status: AttemptStatus
+    - currentQuestionId: Long
+    - ipAddress: String
+    - deviceInfo: String
+    - submittedAnswers: List<SubmittedAnswer>
+    + isInProgress(): boolean
+    + isCompleted(): boolean
+    + hasTimeExpired(currentTime: LocalDateTime): boolean
+    + getRemainingTime(currentTime: LocalDateTime): Duration
+    + getElapsedTime(): Duration
+    + setCurrentQuestion(questionId: Long): void
+    + getQuestionsAnswered(): int
+    + recordEndTime(): void
+    + wasSubmittedBeforeDeadline(): boolean
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Long
+    - attemptId: Long
+    - questionId: Long
+    - answerId: Long
+    - textAnswer: String
+    - submittedAt: LocalDateTime
+    - timeTaken: Long
+    - isCorrect: boolean
+    + isEssayAnswer(): boolean
+    + hasMultipleAnswerIds(): boolean
+    + getAnswerIds(): List<Long>
+    + getTimeTaken(): Duration
+    + isPartiallyCorrect(): boolean
+    + getPoints(): double
+    + getMaxPoints(): double
+  }
+  
+  enum "QuestionType" as QT {
+    MULTIPLE_CHOICE
+    SINGLE_CHOICE
+    TRUE_FALSE
+    FILL_BLANK
+    ESSAY
+    MATCHING
+    ORDERING
+  }
+  
+  enum "AttemptStatus" as AST {
+    NOT_STARTED
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    EXPIRED
+    ABANDONED
+  }
+  
+  class "ExamConfiguration" as EC {
+    - examId: Long
+    - randomizeQuestions: boolean
+    - allowNavigation: boolean
+    - showProgressBar: boolean
+    - showTimeRemaining: boolean
+    - preventCopyPaste: boolean
+    - requireLockdownBrowser: boolean
+    - allowCalculator: boolean
+    - monitorWebcam: boolean
+    + getSecurityLevel(): String
+    + getNavigationMode(): String
+    + getExamSettings(): Map<String, Boolean>
+  }
+  
+  class "AttemptSummary" as ASM {
+    - attemptId: Long
+    - examId: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - totalQuestions: int
+    - answeredQuestions: int
+    - preliminaryScore: double
+    - maxScore: double
+    - timeSpent: Duration
+    - questionStatistics: Map<QuestionType, QuestionTypeStats>
+    + getCompletionRate(): double
+    + getPercentageScore(): double
+    + getTimePerQuestion(): Duration
+    + getUnansweredCount(): int
+    + getQuestionTypeDistribution(): Map<String, Integer>
+  }
+}
+
+package "Infrastructure Layer" {
+  class "ExamRepositoryImpl" as ERI {
+    - dataSource: DataSource
+    + findById(examId: Long): Optional<Exam>
+    + findByPublishedStatus(published: boolean): List<Exam>
+    + findAvailableForStudent(studentId: Long): List<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + countAttemptsByExamAndStudent(examId: Long, studentId: Long): int
+    - mapResultSetToExam(rs: ResultSet): Exam
+  }
+  
+  class "AttemptRepositoryImpl" as ATRI {
+    - dataSource: DataSource
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findByExamId(examId: Long): List<ExamAttempt>
+    + findByStudentId(studentId: Long): List<ExamAttempt>
+    + findByExamAndStudent(examId: Long, studentId: Long): List<ExamAttempt>
+    + save(attempt: ExamAttempt): ExamAttempt
+    + update(attemptId: Long, data: Map<String, Object>): ExamAttempt
+    + updateStatus(attemptId: Long, status: AttemptStatus): ExamAttempt
+    - mapResultSetToAttempt(rs: ResultSet): ExamAttempt
+  }
+  
+  class "TimerManager" as TM {
+    - scheduledExecutor: ScheduledExecutorService
+    - timerTasks: Map<Long, ScheduledFuture<?>>
+    - callbackRegistry: Map<Long, Map<TimerEvent, Callback>>
+    + scheduleTimer(attemptId: Long, duration: Duration, callback: Runnable): void
+    + cancelTimer(attemptId: Long): void
+    + pauseTimer(attemptId: Long): void
+    + resumeTimer(attemptId: Long): void
+    + getRemainingTime(attemptId: Long): Duration
+    + registerCallback(attemptId: Long, event: TimerEvent, callback: Callback): void
+    - executeCallbacks(attemptId: Long, event: TimerEvent): void
+  }
+  
+  enum "TimerEvent" as TE {
+    TIMER_STARTED
+    TIMER_HALF_FINISHED
+    TIMER_ALMOST_FINISHED
+    TIMER_EXPIRED
+    TIMER_PAUSED
+    TIMER_RESUMED
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "ExamDTO" as EDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - timeLimit: String
+    - questionCount: Integer
+    - availableUntil: String
+    - attemptsMade: Integer
+    - maxAttempts: Integer
+    - passingScore: Double
+  }
+  
+  class "ExamDetailsDTO" as EDDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - timeLimit: String
+    - questionCount: Integer
+    - totalPoints: Double
+    - instructions: String
+    - requiresAccessCode: boolean
+    - hasTimeLimitPerQuestion: boolean
+  }
+  
+  class "QuestionDTO" as QDTO {
+    - questionId: Long
+    - examId: Long
+    - text: String
+    - type: String
+    - points: Double
+    - answers: List<AnswerDTO>
+    - orderIndex: Integer
+    - timeLimit: String
+    - hasTimeLimit: boolean
+    - position: Integer
+    - totalQuestions: Integer
+  }
+  
+  class "AnswerDTO" as ADTO {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - orderIndex: Integer
+  }
+  
+  class "AttemptDTO" as ATDTO {
+    - attemptId: Long
+    - examId: Long
+    - examTitle: String
+    - status: String
+    - currentQuestionId: Long
+    - startTime: String
+    - timeRemaining: String
+  }
+  
+  class "AttemptSummaryDTO" as ASMDTO {
+    - attemptId: Long
+    - examId: Long
+    - examTitle: String
+    - startTime: String
+    - endTime: String
+    - totalQuestions: Integer
+    - answeredQuestions: Integer
+    - timeSpent: String
+    - questionTypeDistribution: Map<String, Integer>
+  }
+  
+  class "PreliminaryResultDTO" as PRDTO {
+    - score: Double
+    - maxScore: Double
+    - percentageScore: Double
+    - passed: boolean
+    - correctAnswers: Integer
+    - totalQuestions: Integer
+    - unansweredQuestions: Integer
+    - timeTaken: String
+    - completionRate: Double
+  }
+}
+
+' Relationships
+EAV ..> EAC : uses
+EAV o-- TD : contains
+EAC --> ES : uses
+EAC --> AS : uses
+EAC --> QS : uses
+EAC --> TS : uses
+TS ..> TEC : notifies
+TS ..> TWC : notifies
+ES --> ER : uses
+AS --> ATR : uses
+AS --> SAR : uses
+QS --> QR : uses
+QS --> AR : uses
+ERI ..|> ER : implements
+ATRI ..|> ATR : implements
+E "1" -- "0..*" Q : contains
+Q "1" -- "0..*" A : has
+EA "1" -- "0..*" SA : contains
+E "1" -- "1" EC : has
+E "1" -- "0..*" EA : has attempts
+Q "1" -- "0..*" SA : answered by
+EA "1" -- "1" ASM : summarizes
+EA "1" -- "1" AST : has status
+Q "1" -- "1" QT : has type
+TS --> TM : uses
+ES ..> EDTO : produces
+ES ..> EDDTO : produces
+QS ..> QDTO : produces
+AS ..> ATDTO : produces
+AS ..> ASMDTO : produces
+EAC ..> ELR : returns
+EAC ..> PR : uses
+
+@enduml 

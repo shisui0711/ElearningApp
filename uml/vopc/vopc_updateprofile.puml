@@ -1,0 +1,149 @@
+@startuml
+title Update Profile - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor PeachPuff
+  ArrowColor Chocolate
+  BorderColor SaddleBrown
+}
+
+skinparam package {
+  BackgroundColor Bisque
+  BorderColor Peru
+}
+
+package "Boundary" {
+  class "ProfileInterface" as PI {
+    + displayProfileForm()
+    + showUserDetails()
+    + displayPasswordChangeForm()
+    + showProfilePictureUploader()
+    + displayNotificationSettings()
+    + showPreferencesForm()
+    + displaySuccessMessage(message: String)
+    + showErrorMessage(message: String)
+    + previewProfileChanges()
+  }
+}
+
+package "Controller" {
+  class "ProfileController" as PC {
+    + getUserProfile(userId: Integer): UserProfile
+    + updateUserDetails(userId: Integer, profileData: ProfileData): Boolean
+    + changePassword(userId: Integer, oldPassword: String, newPassword: String): Boolean
+    + uploadProfilePicture(userId: Integer, imageFile: File): Boolean
+    + updateNotificationSettings(userId: Integer, settings: NotificationSettings): Boolean
+    + updatePreferences(userId: Integer, preferences: UserPreferences): Boolean
+    + validatePassword(password: String): ValidationResult
+    + logProfileActivity(userId: Integer, action: String): ProfileActivity
+  }
+}
+
+package "Entity" {
+  class "User" as U {
+    - userId: Integer
+    - username: String
+    - email: String
+    - passwordHash: String
+    - role: Role
+    - isActive: Boolean
+    + getUserProfile(): UserProfile
+    + getNotificationSettings(): NotificationSettings
+    + getPreferences(): UserPreferences
+    + updatePassword(passwordHash: String): Boolean
+    + validateCredentials(password: String): Boolean
+  }
+  
+  class "UserProfile" as UP {
+    - profileId: Integer
+    - userId: Integer
+    - firstName: String
+    - lastName: String
+    - displayName: String
+    - bio: String
+    - phone: String
+    - address: String
+    - profilePictureUrl: String
+    - websiteUrl: String
+    - socialLinks: Map<String, String>
+    - lastUpdated: DateTime
+    + getFullName(): String
+    + getProfilePicture(): String
+    + getUpdatableFields(): List<String>
+  }
+  
+  class "NotificationSettings" as NS {
+    - settingsId: Integer
+    - userId: Integer
+    - emailNotifications: Boolean
+    - pushNotifications: Boolean
+    - courseUpdates: Boolean
+    - forumActivity: Boolean
+    - examReminders: Boolean
+    - marketingEmails: Boolean
+    - notificationFrequency: NotificationFrequency
+    + toPreferenceString(): String
+    + getChannels(): List<String>
+  }
+  
+  class "UserPreferences" as UPr {
+    - preferencesId: Integer
+    - userId: Integer
+    - language: String
+    - timeZone: String
+    - dateFormat: String
+    - themePreference: String
+    - accessibility: Map<String, Boolean>
+    - dashboardLayout: String
+    - contentDisplay: Map<String, String>
+    + getDisplayPreferences(): Map<String, String>
+    + getAccessibilitySettings(): Map<String, Boolean>
+  }
+  
+  class "ProfileActivity" as PA {
+    - activityId: Integer
+    - userId: Integer
+    - action: String
+    - timestamp: DateTime
+    - ipAddress: String
+    - deviceInfo: String
+    + isRecentActivity(): Boolean
+  }
+  
+  class "ValidationResult" as VR {
+    - isValid: Boolean
+    - errors: List<String>
+    - suggestions: List<String>
+    + hasErrors(): Boolean
+    + getErrorMessages(): String
+  }
+  
+  enum "Role" as R {
+    ADMIN
+    TEACHER
+    STUDENT
+  }
+  
+  enum "NotificationFrequency" as NF {
+    IMMEDIATE
+    DAILY_DIGEST
+    WEEKLY_DIGEST
+    DISABLED
+  }
+}
+
+' Relationships
+PI ..> PC : requests action
+PC --> U : manages
+PC --> UP : updates
+PC --> NS : modifies
+PC --> UPr : changes
+PC --> PA : logs
+PC --> VR : produces
+U "1" -- "1" UP : has
+U "1" -- "1" NS : has
+U "1" -- "1" UPr : has
+U "1" -- "0..*" PA : generates
+U "1" -- "1" R : has
+
+@enduml 

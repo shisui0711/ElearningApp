@@ -1,0 +1,76 @@
+@startuml
+' Enroll in Course Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+
+' Define use cases
+usecase "Enroll in Course" as enrollcourse
+usecase "View Course Content" as viewcontent
+usecase "Browse Courses" as browsecourses
+
+' Relationships
+student --> enrollcourse
+student --> browsecourses
+enrollcourse ..> viewcontent : <<include>> #purple
+enrollcourse ..> browsecourses : <<include>> #purple
+
+' Use case specification documentation
+note right of enrollcourse
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Enroll in Course
+  
+  <b>Actors:</b> Student (Primary)
+  
+  <b>Description:</b> This use case allows a student to enroll in a specific course.
+  
+  <b>Preconditions:</b>
+  1. Student is logged into the system
+  2. The course is available for enrollment
+  3. Student has browsed and selected a course
+  
+  <b>Postconditions:</b>
+  1. Student is successfully enrolled in the course
+  2. Student can access course content
+  3. Student's enrollment is recorded in the system
+  
+  <b>Main Flow:</b>
+  1. Student browses available courses
+  2. Student selects a specific course
+  3. Student clicks on "Enroll" button
+  4. System verifies student eligibility for the course
+  5. System registers student for the course
+  6. System displays confirmation message
+  7. System provides access to course content
+  
+  <b>Alternative Flows:</b>
+  A1. Course requires payment
+    1. System redirects to payment page
+    2. Student completes payment
+    3. Enrollment is completed after successful payment
+  
+  A2. Course has prerequisites
+    1. System checks if prerequisites are met
+    2. If met, enrollment proceeds
+    3. If not met, system suggests prerequisite courses
+  
+  <b>Exception Flows:</b>
+  E1. Course is full
+    1. System notifies student that course is at capacity
+    2. Student is added to waitlist or suggested alternatives
+  
+  E2. Technical failure during enrollment
+    1. System displays error message
+    2. Student is prompted to try again later
+    3. System logs the error for administrative review
+end note
+@enduml 

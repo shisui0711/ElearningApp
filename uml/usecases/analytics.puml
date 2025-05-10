@@ -1,0 +1,112 @@
+@startuml
+' Analytics Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define main use case
+usecase "View Analytics" as viewanalytics
+
+' Define sub use cases
+usecase "View User Growth" as viewusergrowth
+usecase "View Enrollment Statistics" as viewenrollmentstats
+usecase "View Course Completion Statistics" as viewcompletionstats 
+usecase "View Exam Performance" as viewexamstats
+usecase "View Department Statistics" as viewdeptstats
+usecase "View Overview Dashboard" as viewoverview
+usecase "Export Reports" as exportreports
+
+' Relationships
+admin --> viewanalytics
+viewanalytics ..> viewoverview : <<include>> #purple
+viewanalytics ..> viewusergrowth : <<include>> #purple
+viewanalytics ..> viewenrollmentstats : <<include>> #purple
+viewanalytics ..> viewcompletionstats : <<include>> #purple
+viewanalytics ..> viewexamstats : <<include>> #purple
+viewanalytics ..> viewdeptstats : <<include>> #purple
+viewanalytics ..> exportreports : <<extend>> #purple
+
+' Use case specification documentation
+note right of viewanalytics
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> View Analytics
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to view analytics and statistics about system usage, course performance, user engagement, and departmental metrics.
+  
+  <b>Preconditions:</b>
+  1. User is logged into the system with Admin role
+  2. User has appropriate permissions to access analytics
+  3. System has collected relevant data
+  
+  <b>Postconditions:</b>
+  1. Admin can view analytics dashboards and reports
+  2. Admin can make data-driven decisions
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the analytics section at /admin/analytics
+  2. System displays analytics dashboard with overview metrics:
+     - Total students
+     - Active courses
+     - Average completion rate
+     - Average exam score
+  3. Admin can select specific analytics tabs:
+     - Overview: Summary of key performance indicators
+     - Enrollments: Course enrollment statistics
+     - Completion Rate: Course completion statistics
+     - Exam Performance: Detailed exam metrics
+     - Departments: Department-level analytics
+  4. System displays detailed analytics for the selected category
+  5. Admin can filter and customize the view
+  6. Admin interprets analytics to inform decisions
+  
+  <b>Alternative Flows:</b>
+  A1. View User Growth
+    1. Admin views user growth trends over time
+    2. System shows student and teacher growth charts
+  
+  A2. View Enrollment Statistics
+    1. Admin views course enrollment statistics
+    2. System displays enrollment trends and patterns
+  
+  A3. View Course Completion Statistics
+    1. Admin views completion rates across courses
+    2. System shows completion statistics and trends
+  
+  A4. View Exam Performance
+    1. Admin views exam performance metrics
+    2. System displays exam scores, passing rates, and difficulty metrics
+    3. Admin can identify challenging questions and topics
+  
+  A5. View Department Statistics
+    1. Admin views department-level statistics
+    2. System shows student distribution, course distribution
+    3. Admin can compare performance across departments
+    
+  A6. Export Reports
+    1. Admin selects export option
+    2. Admin configures export parameters
+    3. System generates exportable report
+    4. Admin downloads or shares the report
+  
+  <b>Exception Flows:</b>
+  E1. Insufficient Data
+    1. Admin requests analytics for period with limited data
+    2. System displays notification about data limitations
+    3. System shows fallback data when API requests fail
+  
+  E2. Access Limitations
+    1. Non-admin user attempts to access analytics
+    2. System restricts access to authorized users only
+end note
+@enduml 

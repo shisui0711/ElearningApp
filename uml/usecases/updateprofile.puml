@@ -1,0 +1,88 @@
+@startuml
+' Update Profile Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+actor "Teacher" as teacher #lightsalmon
+
+' Define use cases
+usecase "Update Profile" as updateprofile
+usecase "Change Settings" as changesettings
+usecase "View Profile" as viewprofile
+usecase "Upload Profile Picture" as uploadpicture
+
+' Relationships
+student --> updateprofile
+teacher --> updateprofile
+updateprofile ..> viewprofile : <<include>> #purple
+updateprofile ..> uploadpicture : <<extend>> #purple
+updateprofile ..> changesettings : <<extend>> #purple
+
+' Use case specification documentation
+note right of updateprofile
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Update Profile
+  
+  <b>Actors:</b> Student (Primary), Teacher (Primary)
+  
+  <b>Description:</b> This use case allows users to view and update their profile information in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. User is logged into the system
+  2. User has a valid account
+  
+  <b>Postconditions:</b>
+  1. User profile information is updated in the system
+  2. Updated information is visible to authorized users
+  
+  <b>Main Flow:</b>
+  1. User navigates to profile section
+  2. System displays current profile information
+  3. User selects "Edit Profile" option
+  4. System presents editable profile form with current information
+  5. User modifies information (personal details, contact information, bio, etc.)
+  6. User uploads or changes profile picture (optional)
+  7. User submits changes
+  8. System validates submitted information
+  9. System saves updated profile
+  10. System confirms successful update
+  
+  <b>Alternative Flows:</b>
+  A1. Change account settings
+    1. User selects "Account Settings" from profile
+    2. System displays account settings options
+    3. User modifies settings (notifications, privacy, etc.)
+    4. User saves changes
+  
+  A2. View public profile
+    1. User selects "View Public Profile" option
+    2. System displays profile as seen by other users
+    3. User can return to edit mode
+  
+  A3. Change password
+    1. User selects "Change Password" option
+    2. System requests current and new password
+    3. User provides required information
+    4. System updates password
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. User submits invalid information
+    2. System highlights problematic fields
+    3. User must correct issues before proceeding
+  
+  E2. Profile picture restrictions
+    1. User uploads picture exceeding size/format restrictions
+    2. System displays error message
+    3. User must select a different picture
+end note
+@enduml 

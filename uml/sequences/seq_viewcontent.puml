@@ -1,0 +1,138 @@
+@startuml
+title View Content - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor DarkGoldenRod
+  ActorBorderColor DarkGoldenRod
+  LifeLineBorderColor Peru
+  LifeLineBackgroundColor PaleGoldenRod
+  
+  ParticipantBorderColor DarkGoldenRod
+  ParticipantBackgroundColor DarkGoldenRod
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor PaleGoldenRod
+  
+  ActorBackgroundColor Khaki
+  ActorFontColor DarkGoldenRod
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Student" as student
+participant "Content\nInterface" as ui
+participant "Content\nController" as controller
+participant "Course\nRepository" as courseRepo
+participant "Lesson\nRepository" as lessonRepo
+participant "Document\nRepository" as docRepo
+participant "Completion\nRepository" as compRepo
+participant "Progress\nTracker" as progress
+participant "Activity\nLogger" as logger
+
+autonumber
+
+== Browse Enrolled Courses ==
+
+student -> ui: Navigate to my courses
+ui -> controller: getUserCourses(userId)
+controller -> courseRepo: findEnrolledCourses(userId)
+courseRepo --> controller: Return enrolled courses
+controller -> progress: getCourseProgress(userId, courseIds)
+progress --> controller: Return progress for each course
+controller --> ui: Return courses with progress data
+ui --> student: Display course list with progress
+
+== View Course Content ==
+
+student -> ui: Select course
+ui -> controller: getCourseContent(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller -> lessonRepo: findByCourseId(courseId)
+lessonRepo --> controller: Return lessons
+controller -> docRepo: findByCourseId(courseId)
+docRepo --> controller: Return course documents
+controller -> progress: getLessonCompletionStatus(userId, lessonIds)
+progress --> controller: Return completion status for lessons
+controller --> ui: Return course content structure
+ui --> student: Display course content with progress
+
+== View Lesson Content ==
+
+student -> ui: Select lesson
+ui -> controller: getLessonContent(lessonId)
+controller -> lessonRepo: findById(lessonId)
+lessonRepo --> controller: Return lesson data
+controller -> controller: checkAccessPermission(userId, lessonId)
+controller -> docRepo: findByLessonId(lessonId)
+docRepo --> controller: Return lesson attachments
+controller -> controller: formatContent(lessonContent, userPreferences)
+controller -> logger: logContentView(userId, lessonId)
+logger --> controller: Activity logged
+controller --> ui: Return formatted lesson content
+ui --> student: Display lesson content and attachments
+
+== Mark Lesson as Completed ==
+
+student -> ui: Complete lesson and click "Mark as Completed"
+ui -> controller: markLessonAsCompleted(userId, lessonId)
+controller -> compRepo: findByUserAndLesson(userId, lessonId)
+compRepo --> controller: Return existing completion record
+
+alt No Existing Completion
+    controller -> compRepo: create(userId, lessonId)
+    compRepo --> controller: Return new completion record
+else Update Existing
+    controller -> compRepo: update(completionId, completionData)
+    compRepo --> controller: Return updated completion
+end
+
+controller -> progress: updateCourseProgress(userId, courseId)
+progress --> controller: Return updated progress
+controller --> ui: Return updated completion status
+ui --> student: Update progress indicators
+
+== Download Document ==
+
+student -> ui: Click document download button
+ui -> controller: downloadContent(documentId)
+controller -> docRepo: findById(documentId)
+docRepo --> controller: Return document data
+controller -> controller: checkDownloadPermission(userId, documentId)
+controller -> logger: logDocumentDownload(userId, documentId)
+logger --> controller: Activity logged
+controller --> ui: Return document file
+ui --> student: Start document download
+
+== Search Content ==
+
+student -> ui: Enter search query
+ui -> controller: searchContent(userId, searchQuery)
+controller -> courseRepo: findEnrolledCourses(userId)
+courseRepo --> controller: Return enrolled courses
+controller -> controller: searchInCourses(courses, searchQuery)
+controller -> lessonRepo: search(courseIds, searchQuery)
+lessonRepo --> controller: Return matching lessons
+controller -> docRepo: search(courseIds, searchQuery)
+docRepo --> controller: Return matching documents
+controller -> controller: rankAndOrganizeResults(results)
+controller --> ui: Return search results
+ui --> student: Display search results
+
+== Navigate Between Lessons ==
+
+student -> ui: Click "Next Lesson" button
+ui -> controller: getNextLesson(courseId, currentLessonId)
+controller -> lessonRepo: findNextLesson(courseId, currentLessonId)
+lessonRepo --> controller: Return next lesson
+controller -> controller: checkAccessPermission(userId, nextLessonId)
+
+alt Next Lesson Accessible
+    controller --> ui: Return next lesson data
+    ui --> student: Load next lesson content
+else Prerequisite Required
+    controller --> ui: Return prerequisite information
+    ui --> student: Display prerequisite requirements
+end
+
+@enduml 

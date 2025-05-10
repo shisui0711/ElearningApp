@@ -1,0 +1,90 @@
+@startuml
+' Admin Teacher Management Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Admin" as admin #lightpink
+
+' Define use cases
+usecase "Manage Teachers" as manageteachers
+usecase "Create Teacher Account" as createTeacher
+usecase "Edit Teacher Details" as editTeacher
+usecase "Deactivate Teacher Account" as deactivateTeacher
+usecase "Assign Department" as assignDepartment
+usecase "View Teacher List" as viewTeachers
+
+' Relationships
+admin --> manageteachers
+manageteachers ..> createTeacher : <<include>> #purple
+manageteachers ..> editTeacher : <<include>> #purple
+manageteachers ..> deactivateTeacher : <<include>> #purple
+manageteachers ..> assignDepartment : <<include>> #purple
+manageteachers ..> viewTeachers : <<include>> #purple
+
+' Use case specification documentation
+note right of manageteachers
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Manage Teachers
+  
+  <b>Actors:</b> Admin (Primary)
+  
+  <b>Description:</b> This use case allows administrators to manage teacher accounts in the e-learning system.
+  
+  <b>Preconditions:</b>
+  1. Admin is logged into the system with Admin role
+  2. Admin has appropriate privileges
+  
+  <b>Postconditions:</b>
+  1. Teacher accounts are created, updated, or managed as needed
+  
+  <b>Main Flow:</b>
+  1. Admin navigates to the admin dashboard
+  2. Admin selects the teacher management section
+  3. System displays existing teacher records with management options
+  4. Admin can:
+     - Create new teacher accounts
+     - Edit existing teacher details
+     - Deactivate teacher accounts
+     - Assign teachers to departments
+     - View teacher list with filters
+  
+  <b>Alternative Flows:</b>
+  A1. Create Teacher Account
+    1. Admin selects "Create New Teacher"
+    2. Admin enters teacher details (name, email, credentials, etc.)
+    3. System validates input
+    4. System creates the teacher account
+    5. System sends credentials to the teacher's email
+  
+  A2. Edit Teacher Details
+    1. Admin selects a teacher from the list
+    2. Admin modifies teacher information
+    3. System validates changes
+    4. System updates teacher record
+  
+  A3. Deactivate Teacher Account
+    1. Admin selects a teacher account
+    2. Admin chooses to deactivate the account
+    3. System prompts for confirmation
+    4. System deactivates the account but preserves data
+  
+  A4. Assign Department
+    1. Admin selects a teacher
+    2. Admin assigns or changes department
+    3. System updates department assignment
+  
+  <b>Exception Flows:</b>
+  E1. Validation errors
+    1. Admin enters invalid data for creation/editing
+    2. System highlights problematic fields
+    3. Admin must correct issues before proceeding
+end note
+@enduml 

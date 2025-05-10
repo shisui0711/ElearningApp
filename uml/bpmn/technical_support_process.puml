@@ -1,0 +1,82 @@
+@startuml
+' BPMN diagram for Technical Support Request Process
+' Using similar styling to the use case diagram
+
+' Styling configuration
+skinparam ActivityBackgroundColor #f0f8ff
+skinparam ActivityBorderColor #2f4f4f
+skinparam ArrowColor #2f4f4f
+skinparam ParticipantBackgroundColor #f0f8ff
+skinparam ParticipantBorderColor #2f4f4f
+skinparam PoolBackgroundColor #f0f8ff
+skinparam PoolBorderColor #2f4f4f
+skinparam LaneBackgroundColor #f8f8ff
+skinparam LaneBorderColor #2f4f4f
+skinparam NoteBackgroundColor #fffacd
+skinparam NoteBorderColor #2f4f4f
+
+' Use BPMN style
+skinparam activityShape roundBox
+skinparam activityDiamondBackgroundColor #f0f8ff
+skinparam activityDiamondBorderColor #2f4f4f
+
+' Define the pools and lanes
+|#lightblue|Customer|
+|#lightsalmon|Support Staff|
+|#lightpink|Technical Team|
+
+' Start the process
+start
+
+' Customer actions
+|Customer|
+:Customer encounters technical issue;
+:Submit support request;
+note right: Via email or hotline
+
+' Support staff actions
+|Support Staff|
+:Receive support request;
+:Verify customer information;
+:Log request in system;
+if (Is request urgent?) then (Yes)
+  :Mark as high priority;
+else (No)
+  :Mark as normal priority;
+endif
+
+repeat
+  :Analyze request type;
+  if (Can be resolved by support staff?) then (Yes)
+    :Provide immediate solution;
+    :Document solution;
+  else (No)
+    :Escalate to technical team;
+
+    ' Technical team actions
+    |Technical Team|
+    :Review escalated request;
+    :Investigate technical issue;
+    :Develop solution;
+    :Implement solution;
+    :Document resolution;
+    :Return to support staff;
+
+    |Support Staff|
+  endif
+
+  :Contact customer with solution;
+  :Verify customer satisfaction;
+
+  backward: Reopen request;
+repeat while (Is customer satisfied?) is (No)
+-> Yes;
+
+:Close support request;
+
+' End the process
+|Customer|
+:Receive solution;
+stop
+
+@enduml

@@ -1,0 +1,198 @@
+@startuml
+' Định nghĩa giao diện và cấu hình
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+' Định nghĩa actors và vị trí
+actor "Guest" as guest #palegreen
+actor "Student" as student #lightblue
+actor "Teacher" as teacher #lightsalmon
+actor "Admin" as admin #lightpink
+
+' Sử dụng layout để đặt actors theo hàng dọc bên trái
+guest -[hidden]down-> student
+student -[hidden]down-> teacher
+teacher -[hidden]down-> admin
+
+' Định nghĩa các packages và vị trí
+' Xếp các gói thành 2 cột
+
+' Cột bên trái
+package "Authentication" as auth {
+  usecase "Sign In" as signin
+  usecase "Sign Up" as signup
+  usecase "Reset Password" as resetpw
+  
+  signin -[hidden]down-> signup
+  signup -[hidden]down-> resetpw
+}
+
+package "User Management" as user {
+  usecase "Update Profile" as updateprofile
+  usecase "Change Settings" as changesettings
+  usecase "View Profile" as viewprofile
+  
+  updateprofile -[hidden]down-> changesettings
+  changesettings -[hidden]down-> viewprofile
+}
+
+package "Course Management" as course {
+  usecase "Browse Courses" as browsecourses
+  usecase "Create Course" as createcourse
+  usecase "Edit Course" as editcourse
+  usecase "Delete Course" as deletecourse
+  usecase "Upload Course Materials" as uploadmaterials
+  usecase "Add Lessons" as addlessons
+  usecase "Manage Course Documents" as managedocs
+  
+  browsecourses -[hidden]down-> createcourse
+  createcourse -[hidden]down-> editcourse
+  editcourse -[hidden]down-> deletecourse
+  deletecourse -[hidden]down-> uploadmaterials
+  uploadmaterials -[hidden]down-> addlessons
+  addlessons -[hidden]down-> managedocs
+}
+
+' Đặt các gói bên trái theo hàng dọc
+auth -[hidden]down-> user
+user -[hidden]down-> course
+
+' Cột bên phải
+package "Learning Activities" as learning {
+  usecase "Enroll in Course" as enrollcourse
+  usecase "View Course Content" as viewcontent
+  usecase "Complete Lessons" as completelessons
+  usecase "Watch Video Lectures" as watchvideos
+  usecase "Download Documents" as downloaddocs
+  usecase "Leave Comments" as leavecomments
+  
+  enrollcourse -[hidden]down-> viewcontent
+  viewcontent -[hidden]down-> completelessons
+  completelessons -[hidden]down-> watchvideos
+  watchvideos -[hidden]down-> downloaddocs
+  downloaddocs -[hidden]down-> leavecomments
+}
+
+package "Assignments" as assignments {
+  usecase "Create Exams" as createexams
+  usecase "Attempt Exams" as attemptexams
+  usecase "Grade Exams" as gradeexams
+  usecase "View Exam Results" as viewresults
+  usecase "Create Assignments" as createassignments
+  usecase "Submit Assignments" as submitassignments
+  usecase "Grade Assignments" as gradeassignments
+  
+  createexams -[hidden]down-> attemptexams
+  attemptexams -[hidden]down-> gradeexams
+  gradeexams -[hidden]down-> viewresults
+  viewresults -[hidden]down-> createassignments
+  createassignments -[hidden]down-> submitassignments
+  submitassignments -[hidden]down-> gradeassignments
+}
+
+package "Forum" as forum {
+  usecase "Browse Forum Topics" as browsetopics
+  usecase "Create Topic" as createtopic
+  usecase "Reply to Topic" as replytopic
+  usecase "Like Posts" as likeposts
+  
+  browsetopics -[hidden]down-> createtopic
+  createtopic -[hidden]down-> replytopic
+  replytopic -[hidden]down-> likeposts
+}
+
+package "Administration" as admin_pkg {
+  usecase "Manage Users" as manageusers
+  usecase "Manage Departments" as managedepartments
+  usecase "Manage Classes" as manageclasses
+  usecase "Manage Subjects" as managesubjects
+  usecase "View Analytics" as viewanalytics
+  
+  manageusers -[hidden]down-> managedepartments
+  managedepartments -[hidden]down-> manageclasses
+  manageclasses -[hidden]down-> managesubjects
+  managesubjects -[hidden]down-> viewanalytics
+}
+
+' Đặt các gói bên phải theo hàng dọc
+learning -[hidden]down-> assignments
+assignments -[hidden]down-> forum
+forum -[hidden]down-> admin_pkg
+
+' Sắp xếp hai cột
+auth -[hidden]right- learning
+course -[hidden]right- assignments
+user -[hidden]right- forum
+
+' Định nghĩa các quan hệ giữa actors và use cases với màu sắc
+' Guest relationships
+guest --> signin #green
+guest --> signup #green
+guest --> resetpw #green
+guest --> browsecourses #green
+
+' Student relationships
+student --> updateprofile #blue
+student --> changesettings #blue
+student --> viewprofile #blue
+student --> browsecourses #blue
+student --> enrollcourse #blue
+student --> viewcontent #blue
+student --> completelessons #blue
+student --> watchvideos #blue
+student --> downloaddocs #blue
+student --> leavecomments #blue
+student --> attemptexams #blue
+student --> viewresults #blue
+student --> submitassignments #blue
+student --> browsetopics #blue
+student --> createtopic #blue
+student --> replytopic #blue
+student --> likeposts #blue
+
+' Teacher relationships
+teacher --> updateprofile #orange
+teacher --> changesettings #orange
+teacher --> viewprofile #orange
+teacher --> browsecourses #orange
+teacher --> createcourse #orange
+teacher --> editcourse #orange
+teacher --> deletecourse #orange
+teacher --> uploadmaterials #orange
+teacher --> addlessons #orange
+teacher --> managedocs #orange
+teacher --> createexams #orange
+teacher --> gradeexams #orange
+teacher --> createassignments #orange
+teacher --> gradeassignments #orange
+teacher --> browsetopics #orange
+teacher --> createtopic #orange
+teacher --> replytopic #orange
+teacher --> likeposts #orange
+
+' Admin relationships
+admin --> manageusers #red
+admin --> managedepartments #red
+admin --> manageclasses #red
+admin --> managesubjects #red
+admin --> viewanalytics #red
+admin --|> teacher #red
+
+' Inheritance - sử dụng màu sắc để phân biệt
+student --|> guest #blue
+teacher --|> guest #orange
+
+' Include relationships - làm nổi bật với kiểu đường chấm
+createcourse ..> uploadmaterials : <<include>> #purple
+createcourse ..> addlessons : <<include>> #purple
+enrollcourse ..> viewcontent : <<include>> #purple
+createexams ..> createassignments : <<extend>> #purple
+leavecomments ..> viewcontent : <<include>> #purple
+@enduml

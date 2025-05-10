@@ -1,0 +1,174 @@
+@startuml
+title Admin Exam Management - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor Wheat
+  ArrowColor SaddleBrown
+  BorderColor Sienna
+}
+
+skinparam package {
+  BackgroundColor Cornsilk
+  BorderColor Peru
+}
+
+package "Boundary" {
+  class "AdminExamInterface" as AEI {
+    + displayExamList()
+    + showExamForm()
+    + displayExamDetails(examId: Integer)
+    + showExamStatistics(examId: Integer)
+    + displayConfirmationDialog(message: String)
+    + showSearchFilters()
+    + displayDepartmentFilter()
+  }
+}
+
+package "Controller" {
+  class "AdminExamController" as AEC {
+    + getAllExams(): List<Exam>
+    + getExamsByDepartment(departmentId: Integer): List<Exam>
+    + getExamsByTeacher(teacherId: Integer): List<Exam>
+    + createExam(examData: ExamData): Exam
+    + updateExam(examId: Integer, examData: ExamData): Boolean
+    + deleteExam(examId: Integer): Boolean
+    + approveExam(examId: Integer): Boolean
+    + getExamStatistics(examId: Integer): ExamStatistics
+    + assignExamToClasses(examId: Integer, classIds: List<Integer>): Boolean
+    + duplicateExam(examId: Integer): Exam
+  }
+}
+
+package "Entity" {
+  class "Admin" as A {
+    - adminId: Integer
+    - userId: Integer
+    - permissions: AdminPermissions
+    + hasExamPermission(): Boolean
+    + canApproveExams(): Boolean
+    + getLog(): List<AdminActivity>
+  }
+  
+  class "Exam" as E {
+    - examId: Integer
+    - title: String
+    - description: String
+    - courseId: Integer
+    - createdBy: Integer
+    - timeLimit: Integer
+    - isPublished: Boolean
+    - isApproved: Boolean
+    - approvedBy: Integer
+    - passingScore: Double
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    + getQuestions(): List<Question>
+    + getTeacher(): Teacher
+    + getAttempts(): List<ExamAttempt>
+    + getAssignedClasses(): List<Class>
+    + getAverageScore(): Double
+    + getPassRate(): Double
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Integer
+    - userId: Integer
+    - departmentId: Integer
+    + getCreatedExams(): List<Exam>
+    + getDepartment(): Department
+    + getName(): String
+  }
+  
+  class "Department" as D {
+    - departmentId: Integer
+    - name: String
+    - code: String
+    + getExams(): List<Exam>
+    + getTeachers(): List<Teacher>
+    + getSubjects(): List<Subject>
+  }
+  
+  class "Class" as C {
+    - classId: Integer
+    - name: String
+    - academicYear: String
+    - departmentId: Integer
+    + getAssignedExams(): List<Exam>
+    + getStudents(): List<Student>
+  }
+  
+  class "ExamStatistics" as ES {
+    - examId: Integer
+    - totalAttempts: Integer
+    - averageScore: Double
+    - highestScore: Double
+    - lowestScore: Double
+    - passRate: Double
+    - averageTimeSpent: Integer
+    - mostMissedQuestions: List<Question>
+    + getScoreDistribution(): Map<String, Integer>
+    + getPerformanceByClass(): Map<String, Double>
+    + getCompletionRateByClass(): Map<String, Double>
+  }
+  
+  class "Question" as Q {
+    - questionId: Integer
+    - examId: Integer
+    - text: String
+    - type: QuestionType
+    - points: Double
+    + getCorrectAnswerRate(): Double
+    + getDifficulty(): QuestionDifficulty
+  }
+  
+  class "AdminActivity" as AA {
+    - activityId: Integer
+    - adminId: Integer
+    - examId: Integer
+    - action: String
+    - performedAt: DateTime
+    - details: String
+    + getAdmin(): Admin
+    + getExam(): Exam
+  }
+  
+  enum "AdminPermissions" as AP {
+    EXAM_VIEW
+    EXAM_CREATE
+    EXAM_EDIT
+    EXAM_DELETE
+    EXAM_APPROVE
+    FULL_ACCESS
+  }
+  
+  enum "QuestionDifficulty" as QD {
+    EASY
+    MEDIUM
+    HARD
+    VERY_HARD
+  }
+  
+  enum "QuestionType" as QT {
+    MULTIPLE_CHOICE
+    SINGLE_CHOICE
+    TRUE_FALSE
+    FILL_BLANK
+    ESSAY
+  }
+}
+
+' Relationships
+AEI ..> AEC : requests action
+AEC --> A : verifies permissions
+AEC --> E : manages
+AEC --> ES : generates
+AEC --> AA : logs actions
+A "0..*" -- "0..*" E : approves
+E "0..*" -- "1" T : created by
+T "0..*" -- "1" D : belongs to
+E "0..*" -- "0..*" C : assigned to
+E "1" -- "1" ES : has
+E "1" -- "0..*" Q : contains
+A "1" -- "0..*" AA : generates
+
+@enduml 

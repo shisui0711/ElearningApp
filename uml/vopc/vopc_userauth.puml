@@ -1,0 +1,76 @@
+@startuml
+title User Authentication - VOPC (Analysis Level)
+
+skinparam class {
+  BackgroundColor LightBlue
+  ArrowColor DeepSkyBlue
+  BorderColor Navy
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor CornflowerBlue
+}
+
+package "Boundary" {
+  class "LoginInterface" as LI {
+    + displayForm()
+    + showError(message: String)
+    + navigateToDashboard()
+  }
+}
+
+package "Controller" {
+  class "AuthenticationController" as AC {
+    + validateCredentials(username: String, password: String): Boolean
+    + createUserSession(userId: Integer): Session
+    + determineUserRole(userId: Integer): Role
+  }
+}
+
+package "Entity" {
+  class "User" as U {
+    - userId: Integer
+    - username: String
+    - email: String
+    - passwordHash: String
+    - role: Role
+    - isActive: Boolean
+    + verifyPassword(password: String): Boolean
+    + getUserRole(): Role
+  }
+  
+  class "Session" as S {
+    - sessionId: Integer
+    - userId: Integer
+    - token: String
+    - createdAt: DateTime
+    - expiresAt: DateTime
+    - isValid: Boolean
+    + validateSession(): Boolean
+  }
+  
+  enum "Role" as R {
+    ADMIN
+    TEACHER
+    STUDENT
+  }
+  
+  class "Dashboard" as D {
+    - dashboardId: Integer
+    - userId: Integer
+    - role: Role
+    + getContent(): Content
+  }
+}
+
+' Relationships
+LI ..> AC : sends credentials to
+AC --> U : authenticates
+AC --> S : creates
+AC --> D : redirects to
+U "1" -- "0..*" S : has
+U "1" -- "1" R : has
+U "1" -- "1" D : views
+
+@enduml 

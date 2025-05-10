@@ -1,0 +1,116 @@
+@startuml
+title Teacher Exam Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor DarkOrange
+  ActorBorderColor DarkOrange
+  LifeLineBorderColor Maroon
+  LifeLineBackgroundColor LightYellow
+  
+  ParticipantBorderColor DarkOrange
+  ParticipantBackgroundColor DarkOrange
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor LightYellow
+  
+  ActorBackgroundColor Gold
+  ActorFontColor DarkOrange
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor Teacher as teacher
+participant "Exam Management\nInterface" as ui
+participant "Exam\nController" as controller
+participant "Exam\nRepository" as examRepo
+participant "Question\nRepository" as questionRepo
+participant "Course\nRepository" as courseRepo
+participant "ExamAttempt\nRepository" as attemptRepo
+
+autonumber
+
+== Create Exam ==
+
+teacher -> ui: Navigate to exam management
+ui -> controller: getTeacherCourses(teacherId)
+controller -> courseRepo: findByTeacher(teacherId)
+courseRepo --> controller: Return teacher's courses
+controller --> ui: Return course list
+ui --> teacher: Display courses and exam management options
+
+teacher -> ui: Select course for new exam
+ui -> controller: getCourseDetails(courseId)
+controller -> courseRepo: findById(courseId)
+courseRepo --> controller: Return course data
+controller --> ui: Return course details
+ui --> teacher: Display exam creation form
+
+teacher -> ui: Fill exam details and submit
+ui -> controller: createExam(examData)
+controller -> examRepo: save(newExam)
+examRepo --> controller: Return saved exam
+controller --> ui: Return success
+ui --> teacher: Display success message and new exam details
+
+== Add Questions to Exam ==
+
+teacher -> ui: Select exam to edit
+ui -> controller: getExamDetails(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller --> ui: Return exam details
+ui --> teacher: Display exam content and question options
+
+teacher -> ui: Select "Add Question"
+ui --> teacher: Display question creation form
+
+teacher -> ui: Fill question details and submit
+ui -> controller: addQuestion(examId, questionData)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+
+loop for each answer option
+    controller -> controller: validateAnswerData(answerData)
+end
+
+controller -> questionRepo: save(newQuestion)
+questionRepo --> controller: Return saved question
+controller --> ui: Return success
+ui --> teacher: Display success message and updated exam content
+
+== Publish Exam ==
+
+teacher -> ui: Select "Publish Exam" option
+ui -> controller: publishExam(examId)
+controller -> examRepo: findById(examId)
+examRepo --> controller: Return exam data
+controller -> controller: validateExamQuestions(exam)
+controller -> examRepo: updateStatus(examId, published=true)
+examRepo --> controller: Return updated exam
+controller --> ui: Return success
+ui --> teacher: Display publication confirmation
+
+== Grade Exam Attempts ==
+
+teacher -> ui: Navigate to exam results
+ui -> controller: getExamAttempts(examId)
+controller -> attemptRepo: findByExamId(examId)
+attemptRepo --> controller: Return attempt list
+controller --> ui: Return attempt data
+ui --> teacher: Display list of exam attempts
+
+teacher -> ui: Select attempt to grade
+ui -> controller: getAttemptDetails(attemptId)
+controller -> attemptRepo: findById(attemptId)
+attemptRepo --> controller: Return attempt details
+controller --> ui: Return detailed attempt data
+ui --> teacher: Display student answers and grading form
+
+teacher -> ui: Grade essay questions and provide feedback
+ui -> controller: gradeExamAttempt(attemptId, gradingData)
+controller -> attemptRepo: update(attemptId, gradingData)
+attemptRepo --> controller: Return updated attempt
+controller --> ui: Return success
+ui --> teacher: Display grading confirmation
+
+@enduml 

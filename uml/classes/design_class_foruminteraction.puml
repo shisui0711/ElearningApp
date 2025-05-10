@@ -1,0 +1,548 @@
+@startuml
+title Forum Interaction - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightSkyBlue
+  ArrowColor RoyalBlue
+  BorderColor MidnightBlue
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Presentation Layer" {
+  class "ForumView" as FV {
+    - categoryListPanel: Panel
+    - topicListPanel: Panel
+    - topicDetailPanel: Panel
+    - postListPanel: Panel
+    - postFormPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayCategories(categories: List<CategoryDTO>): void
+    + displayTopics(topics: List<TopicDTO>): void
+    + displayTopicDetail(topic: TopicDetailDTO): void
+    + displayPosts(posts: List<PostDTO>): void
+    + displayTopicCreationForm(categories: List<CategoryDTO>): void
+    + displayPostCreationForm(topicId: Long): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewCategoryHandler(handler: EventHandler): void
+    + setViewTopicHandler(handler: EventHandler): void
+    + setCreateTopicHandler(handler: EventHandler): void
+    + setCreatePostHandler(handler: EventHandler): void
+    + setToggleLikeHandler(handler: EventHandler): void
+    + setMarkAsAnswerHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "ForumController" as FC {
+    - categoryService: CategoryService
+    - topicService: TopicService
+    - postService: PostService
+    - likeService: LikeService
+    - subscriptionService: SubscriptionService
+    - notificationService: NotificationService
+    - userService: UserService
+    + getForumCategories(): List<CategoryDTO>
+    + getTopics(categoryId: Long): List<TopicDTO>
+    + getPosts(topicId: Long): List<PostDTO>
+    + createTopic(userId: Long, categoryId: Long, topicData: TopicCreateRequest): TopicDTO
+    + createPost(userId: Long, topicId: Long, postData: PostCreateRequest): PostDTO
+    + toggleLike(userId: Long, postId: Long): boolean
+    + markAsAnswer(postId: Long, topicId: Long): boolean
+    + incrementViewCount(topicId: Long): void
+  }
+  
+  class "CategoryService" as CAS {
+    - categoryRepository: CategoryRepository
+    + findAll(): List<Category>
+    + findById(categoryId: Long): Category
+    + save(category: Category): Category
+    + update(categoryId: Long, categoryData: CategoryUpdateRequest): Category
+    + delete(categoryId: Long): void
+    + getCategoryStats(categoryId: Long): CategoryStats
+    + mapToDTO(category: Category): CategoryDTO
+  }
+  
+  class "TopicService" as TS {
+    - topicRepository: TopicRepository
+    - categoryRepository: CategoryRepository
+    - userRepository: UserRepository
+    + findById(topicId: Long): Topic
+    + findByCategory(categoryId: Long): List<Topic>
+    + findByUser(userId: Long): List<Topic>
+    + findRecent(limit: int): List<Topic>
+    + save(topic: Topic): Topic
+    + update(topicId: Long, topicData: TopicUpdateRequest): Topic
+    + updateLastActivity(topicId: Long): void
+    + updateAnsweredStatus(topicId: Long, answered: boolean): void
+    + incrementViewCount(topicId: Long): void
+    + markAsSolved(topicId: Long): void
+    + mapToDTO(topic: Topic): TopicDTO
+    + mapToDetailDTO(topic: Topic, posts: List<Post>): TopicDetailDTO
+    + mapFromCreateRequest(request: TopicCreateRequest, userId: Long): Topic
+  }
+  
+  class "PostService" as PS {
+    - postRepository: PostRepository
+    - topicRepository: TopicRepository
+    - userRepository: UserRepository
+    + findById(postId: Long): Post
+    + findByTopic(topicId: Long): List<Post>
+    + findByUser(userId: Long): List<Post>
+    + save(post: Post): Post
+    + update(postId: Long, postData: PostUpdateRequest): Post
+    + updateAsAnswer(postId: Long, isAnswer: boolean): void
+    + delete(postId: Long): void
+    + mapToDTO(post: Post): PostDTO
+    + mapFromCreateRequest(request: PostCreateRequest, userId: Long): Post
+  }
+  
+  class "LikeService" as LS {
+    - likeRepository: LikeRepository
+    - postRepository: PostRepository
+    - userRepository: UserRepository
+    + findByUserAndPost(userId: Long, postId: Long): Optional<Like>
+    + toggleLike(userId: Long, postId: Long): boolean
+    + getLikesForPost(postId: Long): List<Like>
+    + getUsersWhoLiked(postId: Long): List<User>
+    + hasUserLiked(userId: Long, postId: Long): boolean
+    + getLikeCount(postId: Long): int
+  }
+  
+  class "SubscriptionService" as SS {
+    - subscriptionRepository: SubscriptionRepository
+    - topicRepository: TopicRepository
+    - userRepository: UserRepository
+    + findByUserAndTopic(userId: Long, topicId: Long): Optional<Subscription>
+    + getTopicSubscribers(topicId: Long): List<User>
+    + subscribeUserToTopic(userId: Long, topicId: Long): Subscription
+    + unsubscribeFromTopic(userId: Long, topicId: Long): void
+    + getUserSubscriptions(userId: Long): List<Subscription>
+    + isUserSubscribed(userId: Long, topicId: Long): boolean
+  }
+  
+  class "NotificationService" as NS {
+    - notificationRepository: NotificationRepository
+    - userRepository: UserRepository
+    - emailService: EmailService
+    + notifySubscribers(subscribers: List<User>, topicId: Long, postId: Long): void
+    + notifyPostAuthor(postId: Long, message: String): void
+    + getUserNotifications(userId: Long): List<Notification>
+    + markAsRead(notificationId: Long): void
+    + markAllAsRead(userId: Long): void
+    + getUnreadCount(userId: Long): int
+  }
+}
+
+package "Domain Layer" {
+  interface "CategoryRepository" as CAR {
+    + findAll(): List<Category>
+    + findById(categoryId: Long): Optional<Category>
+    + save(category: Category): Category
+    + update(categoryId: Long, categoryData: Map<String, Object>): Category
+    + delete(categoryId: Long): void
+    + getTopicCount(categoryId: Long): long
+    + getPostCount(categoryId: Long): long
+  }
+  
+  interface "TopicRepository" as TR {
+    + findById(topicId: Long): Optional<Topic>
+    + findByCategory(categoryId: Long): List<Topic>
+    + findByUser(userId: Long): List<Topic>
+    + findRecent(limit: int): List<Topic>
+    + save(topic: Topic): Topic
+    + update(topicId: Long, topicData: Map<String, Object>): Topic
+    + incrementViewCount(topicId: Long): void
+    + updateLastActivity(topicId: Long, lastActivityAt: LocalDateTime): void
+    + updateAnsweredStatus(topicId: Long, answered: boolean): void
+    + delete(topicId: Long): void
+  }
+  
+  interface "PostRepository" as PR {
+    + findById(postId: Long): Optional<Post>
+    + findByTopic(topicId: Long): List<Post>
+    + findByUser(userId: Long): List<Post>
+    + findAnswersByTopic(topicId: Long): List<Post>
+    + save(post: Post): Post
+    + update(postId: Long, postData: Map<String, Object>): Post
+    + updateLikeCount(postId: Long): void
+    + updateAsAnswer(postId: Long, isAnswer: boolean): void
+    + delete(postId: Long): void
+  }
+  
+  interface "LikeRepository" as LR {
+    + findById(likeId: Long): Optional<Like>
+    + findByUserAndPost(userId: Long, postId: Long): Optional<Like>
+    + findByPost(postId: Long): List<Like>
+    + save(like: Like): Like
+    + delete(likeId: Long): void
+    + deleteByUserAndPost(userId: Long, postId: Long): void
+    + countByPost(postId: Long): int
+  }
+  
+  interface "SubscriptionRepository" as SR {
+    + findById(subscriptionId: Long): Optional<Subscription>
+    + findByUserAndTopic(userId: Long, topicId: Long): Optional<Subscription>
+    + findByTopic(topicId: Long): List<Subscription>
+    + findByUser(userId: Long): List<Subscription>
+    + save(subscription: Subscription): Subscription
+    + delete(subscriptionId: Long): void
+    + deleteByUserAndTopic(userId: Long, topicId: Long): void
+  }
+  
+  interface "NotificationRepository" as NR {
+    + findById(notificationId: Long): Optional<Notification>
+    + findByUser(userId: Long): List<Notification>
+    + findUnreadByUser(userId: Long): List<Notification>
+    + save(notification: Notification): Notification
+    + markAsRead(notificationId: Long): void
+    + markAllAsRead(userId: Long): void
+    + countUnreadByUser(userId: Long): int
+    + delete(notificationId: Long): void
+  }
+  
+  class "Category" as CA {
+    - categoryId: Long
+    - name: String
+    - description: String
+    - displayOrder: int
+    - isActive: boolean
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - parentCategoryId: Long
+    - topics: List<Topic>
+    + getTopicCount(): int
+    + getPostCount(): int
+    + hasTopics(): boolean
+    + isSubcategory(): boolean
+    + getParentCategory(): Category
+    + getSubcategories(): List<Category>
+  }
+  
+  class "Topic" as T {
+    - topicId: Long
+    - title: String
+    - content: String
+    - categoryId: Long
+    - createdBy: Long
+    - isSticky: boolean
+    - isClosed: boolean
+    - isAnswered: boolean
+    - viewCount: int
+    - createdAt: LocalDateTime
+    - lastActivityAt: LocalDateTime
+    - posts: List<Post>
+    - tags: List<Tag>
+    + incrementViewCount(): void
+    + getPostCount(): int
+    + getAnswerCount(): int
+    + isResolved(): boolean
+    + updateLastActivity(): void
+    + markAsAnswered(): void
+    + close(): void
+    + reopen(): void
+    + pin(): void
+    + unpin(): void
+  }
+  
+  class "Post" as P {
+    - postId: Long
+    - topicId: Long
+    - content: String
+    - createdBy: Long
+    - isAnswer: boolean
+    - likeCount: int
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - parentPostId: Long
+    - likes: List<Like>
+    + incrementLikeCount(): void
+    + decrementLikeCount(): void
+    + markAsAnswer(): void
+    + unmarkAsAnswer(): void
+    + isReply(): boolean
+    + getReplies(): List<Post>
+    + getParentPost(): Post
+    + update(content: String): void
+  }
+  
+  class "Like" as L {
+    - likeId: Long
+    - postId: Long
+    - userId: Long
+    - createdAt: LocalDateTime
+    + getUser(): User
+    + getPost(): Post
+  }
+  
+  class "Subscription" as SU {
+    - subscriptionId: Long
+    - userId: Long
+    - topicId: Long
+    - createdAt: LocalDateTime
+    - notificationType: NotificationType
+    - isActive: boolean
+    + activate(): void
+    + deactivate(): void
+    + updateNotificationType(type: NotificationType): void
+    + isEmailNotification(): boolean
+    + isInAppNotification(): boolean
+  }
+  
+  class "Notification" as N {
+    - notificationId: Long
+    - userId: Long
+    - title: String
+    - message: String
+    - type: NotificationType
+    - relatedEntityId: Long
+    - relatedEntityType: EntityType
+    - isRead: boolean
+    - createdAt: LocalDateTime
+    - readAt: LocalDateTime
+    + markAsRead(): void
+    + isForEntity(entityType: EntityType, entityId: Long): boolean
+    + getRelatedEntity(): String
+    + formatMessage(): String
+  }
+  
+  class "User" as U {
+    - userId: Long
+    - username: String
+    - email: String
+    - role: UserRole
+    - avatarUrl: String
+    - reputation: int
+    - isActive: boolean
+    - createdAt: LocalDateTime
+    - lastLoginAt: LocalDateTime
+    + canCreateTopic(): boolean
+    + canReplyToTopic(topic: Topic): boolean
+    + canMarkAsAnswer(topic: Topic): boolean
+    + incrementReputation(points: int): void
+    + hasPermission(permission: ForumPermission): boolean
+    + getPostCount(): int
+    + getTopicCount(): int
+  }
+  
+  enum "NotificationType" as NTY {
+    NEW_POST
+    ANSWER_MARKED
+    LIKED_POST
+    MENTIONED
+    REPLY_TO_POST
+  }
+  
+  enum "EntityType" as ET {
+    TOPIC
+    POST
+    USER
+    CATEGORY
+  }
+  
+  enum "ForumPermission" as FP {
+    CREATE_TOPIC
+    REPLY_TO_TOPIC
+    MARK_ANSWER
+    MODERATE_POSTS
+    MANAGE_CATEGORIES
+  }
+  
+  class "Tag" as TG {
+    - tagId: Long
+    - name: String
+    - description: String
+    - isActive: boolean
+    - createdAt: LocalDateTime
+    - topics: List<Topic>
+    + getTopicCount(): int
+    + getUsageCount(): int
+  }
+  
+  class "CategoryStats" as CS {
+    - categoryId: Long
+    - topicCount: int
+    - postCount: int
+    - lastTopicTitle: String
+    - lastTopicAuthor: String
+    - lastActivityDate: LocalDateTime
+    - activeUserCount: int
+    + hasActivity(): boolean
+    + getDaysOfInactivity(): int
+    + getMostActiveUsers(): List<User>
+  }
+}
+
+package "Infrastructure Layer" {
+  class "CategoryRepositoryImpl" as CARI {
+    - dataSource: DataSource
+    + findAll(): List<Category>
+    + findById(categoryId: Long): Optional<Category>
+    + save(category: Category): Category
+    + update(categoryId: Long, categoryData: Map<String, Object>): Category
+    + delete(categoryId: Long): void
+    + getTopicCount(categoryId: Long): long
+    + getPostCount(categoryId: Long): long
+    - mapResultSetToCategory(rs: ResultSet): Category
+  }
+  
+  class "TopicRepositoryImpl" as TRI {
+    - dataSource: DataSource
+    + findById(topicId: Long): Optional<Topic>
+    + findByCategory(categoryId: Long): List<Topic>
+    + findByUser(userId: Long): List<Topic>
+    + findRecent(limit: int): List<Topic>
+    + save(topic: Topic): Topic
+    + update(topicId: Long, topicData: Map<String, Object>): Topic
+    + incrementViewCount(topicId: Long): void
+    + updateLastActivity(topicId: Long, lastActivityAt: LocalDateTime): void
+    + updateAnsweredStatus(topicId: Long, answered: boolean): void
+    + delete(topicId: Long): void
+    - mapResultSetToTopic(rs: ResultSet): Topic
+  }
+  
+  class "PostRepositoryImpl" as PRI {
+    - dataSource: DataSource
+    + findById(postId: Long): Optional<Post>
+    + findByTopic(topicId: Long): List<Post>
+    + findByUser(userId: Long): List<Post>
+    + findAnswersByTopic(topicId: Long): List<Post>
+    + save(post: Post): Post
+    + update(postId: Long, postData: Map<String, Object>): Post
+    + updateLikeCount(postId: Long): void
+    + updateAsAnswer(postId: Long, isAnswer: boolean): void
+    + delete(postId: Long): void
+    - mapResultSetToPost(rs: ResultSet): Post
+  }
+  
+  class "EmailServiceImpl" as ESI {
+    - emailConfig: EmailConfiguration
+    - templateEngine: TemplateEngine
+    + sendEmail(recipient: String, subject: String, body: String): void
+    + sendForumNotification(user: User, notification: Notification): void
+    + generateForumEmailContent(templateName: String, variables: Map<String, Object>): String
+    + processTemplate(templateName: String, variables: Map<String, Object>): String
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "CategoryDTO" as CADTO {
+    - categoryId: Long
+    - name: String
+    - description: String
+    - topicCount: int
+    - postCount: int
+    - lastActivity: String
+    - isParent: boolean
+    - subcategories: List<CategoryDTO>
+  }
+  
+  class "TopicDTO" as TDTO {
+    - topicId: Long
+    - title: String
+    - categoryName: String
+    - authorName: String
+    - createdAt: String
+    - lastActivityAt: String
+    - viewCount: int
+    - replyCount: int
+    - isSticky: boolean
+    - isClosed: boolean
+    - isAnswered: boolean
+    - tags: List<String>
+  }
+  
+  class "TopicDetailDTO" as TDDTO {
+    - topicId: Long
+    - title: String
+    - content: String
+    - categoryName: String
+    - authorName: String
+    - authorAvatar: String
+    - createdAt: String
+    - lastActivityAt: String
+    - viewCount: int
+    - replyCount: int
+    - isSticky: boolean
+    - isClosed: boolean
+    - isAnswered: boolean
+    - tags: List<String>
+    - posts: List<PostDTO>
+  }
+  
+  class "PostDTO" as PDTO {
+    - postId: Long
+    - content: String
+    - authorName: String
+    - authorAvatar: String
+    - authorReputation: int
+    - createdAt: String
+    - updatedAt: String
+    - likeCount: int
+    - isLikedByCurrentUser: boolean
+    - isAnswer: boolean
+    - isAuthorPost: boolean
+    - parentPostId: Long
+  }
+  
+  class "TopicCreateRequest" as TCR {
+    - title: String
+    - content: String
+    - categoryId: Long
+    - tags: List<String>
+  }
+  
+  class "PostCreateRequest" as PCR {
+    - content: String
+    - topicId: Long
+    - parentPostId: Long
+  }
+}
+
+' Relationships
+FV ..> FC : uses
+FC --> CAS : uses
+FC --> TS : uses
+FC --> PS : uses
+FC --> LS : uses
+FC --> SS : uses
+FC --> NS : uses
+CAS --> CAR : uses
+TS --> TR : uses
+PS --> PR : uses
+LS --> LR : uses
+SS --> SR : uses
+NS --> NR : uses
+NS --> ESI : uses
+CARI ..|> CAR : implements
+TRI ..|> TR : implements
+PRI ..|> PR : implements
+CA "1" -- "0..*" T : contains
+T "1" -- "0..*" P : contains
+T "0..*" -- "0..*" TG : tagged with
+P "1" -- "0..*" L : receives
+P "0..*" -- "1" U : created by
+T "0..*" -- "1" U : created by
+L "0..*" -- "1" U : given by
+SU "0..*" -- "1" U : created by
+SU "0..*" -- "1" T : subscribes to
+N "0..*" -- "1" U : received by
+FC ..> CADTO : returns
+FC ..> TDTO : returns
+FC ..> TDDTO : returns
+FC ..> PDTO : returns
+FC ..> TCR : consumes
+FC ..> PCR : consumes
+
+@enduml 

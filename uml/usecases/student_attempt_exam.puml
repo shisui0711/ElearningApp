@@ -1,0 +1,91 @@
+@startuml
+' Student Exam Taking - Attempt Exam Use Case Diagram
+skinparam usecase {
+  BackgroundColor #f0f8ff
+  BorderColor #2f4f4f
+  ArrowColor #2f4f4f
+}
+
+skinparam actorStyle awesome
+skinparam linetype ortho
+
+' Define actors
+actor "Student" as student #lightblue
+actor "System" as system
+
+' Define use cases
+usecase "Attempt Exam" as attemptexam
+usecase "Answer Questions" as answerquestions
+usecase "Submit Exam" as submitexam
+usecase "Save Progress" as saveprogress
+
+' Relationships
+student --> attemptexam
+system --> submitexam
+attemptexam ..> answerquestions : <<include>> #purple
+attemptexam ..> submitexam : <<include>> #purple
+attemptexam ..> saveprogress : <<extend>> #purple
+
+' Use case specification documentation
+note right of attemptexam
+  <b>Use Case Specification:</b>
+  
+  <b>Use Case Name:</b> Attempt Exam
+  
+  <b>Actors:</b> Student (Primary), System (Secondary)
+  
+  <b>Description:</b> This use case allows students to attempt and submit exams assigned in their courses.
+  
+  <b>Preconditions:</b>
+  1. Student is logged into the system with Student role
+  2. Student is enrolled in the course containing the exam
+  3. Exam is available for attempts
+  4. Student has not exceeded maximum allowed attempts
+  
+  <b>Postconditions:</b>
+  1. Student's exam attempt is recorded in the system
+  2. Answers are submitted for grading
+  3. Results are available according to exam settings
+  
+  <b>Main Flow:</b>
+  1. Student navigates to the course containing the exam
+  2. Student selects the available exam
+  3. System displays exam instructions and rules
+  4. Student begins the exam
+  5. System presents questions one by one or as configured
+  6. Student answers questions and navigates through exam
+  7. Student reviews answers before submission
+  8. Student submits completed exam
+  9. System records answers in ExamAttempt and StudentAnswer tables
+  10. System processes auto-graded questions
+  11. System notifies student of successful submission
+  12. Student can view results if immediately available
+  
+  <b>Alternative Flows:</b>
+  A1. Save progress
+    1. Student chooses to save progress during exam
+    2. System stores current answers
+    3. Student can resume exam later if allowed
+  
+  A2. Timed exam
+    1. System displays timer during exam
+    2. System warns student of remaining time
+    3. System auto-submits when time expires
+  
+  A3. Multiple attempts
+    1. Student completes an exam
+    2. If additional attempts are allowed, student can start a new attempt
+    3. System tracks all attempts separately
+  
+  <b>Exception Flows:</b>
+  E1. Connection issues
+    1. Student loses connection during exam
+    2. System preserves progress where possible
+    3. Student can resume when reconnected if allowed
+  
+  E2. Academic integrity violation
+    1. System detects suspicious behavior (tab switching, etc.)
+    2. System logs violation and may warn student
+    3. System may automatically end exam attempt depending on settings
+end note
+@enduml 

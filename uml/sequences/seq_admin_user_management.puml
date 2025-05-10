@@ -1,0 +1,154 @@
+@startuml
+title Admin User Management - Sequence Diagram
+
+skinparam sequence {
+  ArrowColor Indigo
+  ActorBorderColor Indigo
+  LifeLineBorderColor DarkSlateBlue
+  LifeLineBackgroundColor Lavender
+  
+  ParticipantBorderColor Indigo
+  ParticipantBackgroundColor Indigo
+  ParticipantFontName Impact
+  ParticipantFontSize 17
+  ParticipantFontColor Lavender
+  
+  ActorBackgroundColor Plum
+  ActorFontColor Indigo
+  ActorFontSize 17
+  ActorFontName Aapex
+}
+
+actor "Admin" as admin
+participant "User Management\nInterface" as ui
+participant "User Management\nController" as controller
+participant "User\nRepository" as userRepo
+participant "Role\nRepository" as roleRepo
+participant "Department\nRepository" as deptRepo
+participant "Class\nRepository" as classRepo
+participant "Activity\nLogger" as logger
+participant "Email\nService" as email
+
+autonumber
+
+== View User List ==
+
+admin -> ui: Navigate to user management
+ui -> controller: getAllUsers()
+controller -> userRepo: findAll()
+userRepo --> controller: Return user list
+controller --> ui: Return users data
+ui --> admin: Display user list
+
+== Filter Users ==
+
+admin -> ui: Apply filter (role, department, etc.)
+ui -> controller: getUsersByFilter(filterParams)
+controller -> userRepo: findByFilters(filterParams)
+userRepo --> controller: Return filtered users
+controller --> ui: Return filtered data
+ui --> admin: Display filtered user list
+
+== Create New User ==
+
+admin -> ui: Click "Create User"
+ui -> controller: getRoles()
+controller -> roleRepo: findAll()
+roleRepo --> controller: Return available roles
+controller -> deptRepo: findAll()
+deptRepo --> controller: Return departments
+controller -> classRepo: findAll()
+classRepo --> controller: Return classes
+controller --> ui: Return form data
+ui --> admin: Display user creation form
+
+admin -> ui: Fill user details and submit
+ui -> controller: createUser(userData)
+controller -> controller: validateUserData(userData)
+controller -> userRepo: findByEmail(email)
+userRepo --> controller: Check if email exists
+
+alt Email Already Exists
+    controller --> ui: Email already in use
+    ui --> admin: Display error message
+else Email Available
+    controller -> userRepo: save(newUser)
+    userRepo --> controller: Return created user
+    
+    alt User is Student
+        controller -> classRepo: findById(classId)
+        classRepo --> controller: Return class
+        controller -> userRepo: assignToClass(userId, classId)
+        userRepo --> controller: Return updated user
+    end
+    
+    alt User is Teacher
+        controller -> deptRepo: findById(departmentId)
+        deptRepo --> controller: Return department
+        controller -> userRepo: assignToDepartment(userId, departmentId)
+        userRepo --> controller: Return updated user
+    end
+    
+    controller -> email: sendWelcomeEmail(userData)
+    email --> controller: Email sent confirmation
+    controller -> logger: logActivity(adminId, "Created user", userId)
+    logger --> controller: Activity logged
+    controller --> ui: Return success
+    ui --> admin: Display success message
+end
+
+== Edit User ==
+
+admin -> ui: Select user and click "Edit"
+ui -> controller: getUserDetails(userId)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user details
+controller -> roleRepo: findAll()
+roleRepo --> controller: Return available roles
+controller -> deptRepo: findAll()
+deptRepo --> controller: Return departments
+controller -> classRepo: findAll()
+classRepo --> controller: Return classes
+controller --> ui: Return user and form data
+ui --> admin: Display user edit form
+
+admin -> ui: Modify user details and submit
+ui -> controller: updateUser(userId, userData)
+controller -> controller: validateUserData(userData)
+controller -> userRepo: update(userId, userData)
+userRepo --> controller: Return updated user
+controller -> logger: logActivity(adminId, "Updated user", userId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display success message
+
+== Reset User Password ==
+
+admin -> ui: Select "Reset Password" for user
+ui -> controller: resetUserPassword(userId)
+controller -> controller: generateSecurePassword()
+controller -> userRepo: updatePassword(userId, newPasswordHash)
+userRepo --> controller: Return success
+controller -> email: sendPasswordResetEmail(userId, tempPassword)
+email --> controller: Email sent confirmation
+controller -> logger: logActivity(adminId, "Reset password", userId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display confirmation message
+
+== Delete User ==
+
+admin -> ui: Select user and click "Delete"
+ui --> admin: Display confirmation dialog
+admin -> ui: Confirm deletion
+ui -> controller: deleteUser(userId)
+controller -> userRepo: findById(userId)
+userRepo --> controller: Return user data
+controller -> userRepo: softDelete(userId)
+userRepo --> controller: Return success
+controller -> logger: logActivity(adminId, "Deleted user", userId)
+logger --> controller: Activity logged
+controller --> ui: Return success
+ui --> admin: Display deletion confirmation
+
+@enduml 

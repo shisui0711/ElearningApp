@@ -1,0 +1,495 @@
+@startuml
+title Class Management - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor PowderBlue
+  ArrowColor RoyalBlue
+  BorderColor NavyBlue
+}
+
+skinparam package {
+  BackgroundColor AliceBlue
+  BorderColor SteelBlue
+}
+
+package "Presentation Layer" {
+  class "ClassManagementView" as CMV {
+    - classListPanel: Panel
+    - classDetailsPanel: Panel
+    - studentListPanel: Panel
+    - schedulePanel: Panel
+    - notificationArea: NotificationComponent
+    + displayClasses(classes: List<ClassDTO>): void
+    + displayClassDetails(classDetails: ClassDetailsDTO): void
+    + displayStudentList(students: List<StudentDTO>): void
+    + displaySchedule(schedule: ScheduleDTO): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setViewClassDetailsHandler(handler: EventHandler): void
+    + setCreateClassHandler(handler: EventHandler): void
+    + setUpdateClassHandler(handler: EventHandler): void
+    + setAddStudentHandler(handler: EventHandler): void
+    + setRemoveStudentHandler(handler: EventHandler): void
+    + setAssignTeacherHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "ClassController" as CC {
+    - classService: ClassService
+    - departmentService: DepartmentService
+    - studentService: StudentService
+    - teacherService: TeacherService
+    - scheduleService: ScheduleService
+    - notificationService: NotificationService
+    + getAllClasses(): List<ClassDTO>
+    + getClassById(classId: Long): ClassDetailsDTO
+    + getStudentsByClass(classId: Long): List<StudentDTO>
+    + getClassSchedule(classId: Long): ScheduleDTO
+    + createClass(classData: ClassCreateRequest): ClassDTO
+    + updateClass(classId: Long, classData: ClassUpdateRequest): ClassDTO
+    + assignStudentToClass(classId: Long, studentId: Long): boolean
+    + removeStudentFromClass(classId: Long, studentId: Long): boolean
+    + assignTeacherToClass(classId: Long, teacherId: Long): boolean
+    + generateClassReport(classId: Long): ClassReportDTO
+  }
+  
+  class "ClassService" as CS {
+    - classRepository: ClassRepository
+    - departmentRepository: DepartmentRepository
+    - studentRepository: StudentRepository
+    - teacherRepository: TeacherRepository
+    + findAll(): List<Class>
+    + findById(classId: Long): Class
+    + findByDepartment(departmentId: Long): List<Class>
+    + findByTeacher(teacherId: Long): List<Class>
+    + findStudentsByClass(classId: Long): List<Student>
+    + save(classObj: Class): Class
+    + update(classId: Long, classData: Map<String, Object>): Class
+    + addStudent(classId: Long, studentId: Long): boolean
+    + removeStudent(classId: Long, studentId: Long): boolean
+    + assignTeacher(classId: Long, teacherId: Long): boolean
+    + getClassCapacity(classId: Long): ClassCapacity
+    + mapToDTO(classObj: Class): ClassDTO
+    + mapToDetailsDTO(classObj: Class, students: List<Student>): ClassDetailsDTO
+  }
+  
+  class "ScheduleService" as SS {
+    - scheduleRepository: ScheduleRepository
+    - classRepository: ClassRepository
+    - sessionRepository: SessionRepository
+    + getClassSchedule(classId: Long): Schedule
+    + updateSchedule(scheduleId: Long, scheduleData: ScheduleUpdateRequest): Schedule
+    + addSession(scheduleId: Long, sessionData: SessionCreateRequest): Session
+    + updateSession(sessionId: Long, sessionData: SessionUpdateRequest): Session
+    + removeSession(sessionId: Long): boolean
+    + checkScheduleConflicts(teacherId: Long, sessionData: SessionCreateRequest): List<ScheduleConflict>
+    + generateWeeklySchedule(classId: Long): WeeklySchedule
+    + mapToDTO(schedule: Schedule): ScheduleDTO
+  }
+  
+  class "NotificationService" as NS {
+    - notificationRepository: NotificationRepository
+    - emailService: EmailService
+    - userRepository: UserRepository
+    + sendClassAssignmentNotification(studentId: Long, classId: Long): void
+    + sendClassUpdateNotification(classId: Long, message: String): void
+    + sendScheduleChangeNotification(classId: Long, sessionId: Long): void
+    + sendTeacherAssignmentNotification(teacherId: Long, classId: Long): void
+    + notifyStudentRemoval(studentId: Long, classId: Long): void
+    + markNotificationAsRead(notificationId: Long): void
+  }
+  
+  class "ClassCapacity" as CCP {
+    - totalSeats: int
+    - occupiedSeats: int
+    - availableSeats: int
+    - waitlistCount: int
+    + isAvailable(): boolean
+    + isFull(): boolean
+    + getAvailabilityPercentage(): double
+    + isNearlyFull(): boolean
+  }
+  
+  class "ScheduleConflict" as SCF {
+    - conflictingSession: Session
+    - conflictReason: String
+    - conflictSeverity: ConflictSeverity
+    + getDescription(): String
+    + isCritical(): boolean
+    + getConflictingTimeSlot(): String
+  }
+  
+  enum "ConflictSeverity" as CS1 {
+    CRITICAL
+    MAJOR
+    MINOR
+    WARNING
+  }
+}
+
+package "Domain Layer" {
+  interface "ClassRepository" as CR {
+    + findById(classId: Long): Optional<Class>
+    + findAll(): List<Class>
+    + findByDepartment(departmentId: Long): List<Class>
+    + findByTeacher(teacherId: Long): List<Class>
+    + save(classObj: Class): Class
+    + update(classId: Long, classData: Map<String, Object>): Class
+    + delete(classId: Long): void
+    + getStudentsByClass(classId: Long): List<Student>
+    + getStudentCount(classId: Long): int
+  }
+  
+  interface "ScheduleRepository" as SR {
+    + findById(scheduleId: Long): Optional<Schedule>
+    + findByClass(classId: Long): Optional<Schedule>
+    + save(schedule: Schedule): Schedule
+    + update(scheduleId: Long, scheduleData: Map<String, Object>): Schedule
+    + delete(scheduleId: Long): void
+  }
+  
+  interface "SessionRepository" as SSR {
+    + findById(sessionId: Long): Optional<Session>
+    + findBySchedule(scheduleId: Long): List<Session>
+    + findByTeacherAndTimeRange(teacherId: Long, startTime: LocalDateTime, endTime: LocalDateTime): List<Session>
+    + save(session: Session): Session
+    + update(sessionId: Long, sessionData: Map<String, Object>): Session
+    + delete(sessionId: Long): void
+  }
+  
+  class "Class" as CL {
+    - classId: Long
+    - name: String
+    - academicYear: String
+    - semester: String
+    - startDate: LocalDate
+    - endDate: LocalDate
+    - departmentId: Long
+    - primaryTeacherId: Long
+    - assistantTeacherIds: List<Long>
+    - capacity: Integer
+    - status: ClassStatus
+    - room: String
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - students: List<Student>
+    - schedule: Schedule
+    + getStudentCount(): int
+    + hasVacancy(): boolean
+    + isActive(): boolean
+    + isUpcoming(): boolean
+    + isCompleted(): boolean
+    + getDuration(): Duration
+    + addStudent(student: Student): boolean
+    + removeStudent(student: Student): boolean
+    + assignTeacher(teacher: Teacher): boolean
+  }
+  
+  class "Student" as S {
+    - studentId: Long
+    - userId: Long
+    - classId: Long
+    - enrollmentDate: LocalDateTime
+    - status: StudentStatus
+    - completedCourses: List<CompletedCourse>
+    - enrollments: List<Enrollment>
+    + isActive(): boolean
+    + isAssignedToClass(classId: Long): boolean
+    + canEnrollInClass(classId: Long): boolean
+    + getCurrentClasses(): List<Class>
+    + getAttendanceRate(): double
+    + markAsInactive(): void
+    + updateClassAssignment(classId: Long): void
+  }
+  
+  class "Teacher" as T {
+    - teacherId: Long
+    - userId: Long
+    - departmentId: Long
+    - specialization: String
+    - hireDate: LocalDate
+    - status: TeacherStatus
+    - assignedClasses: List<Class>
+    - expertise: List<Subject>
+    + getClassLoad(): int
+    + isAssignedToClass(classId: Long): boolean
+    + canTeachClass(classId: Long): boolean
+    + getAvailableTimeSlots(week: LocalDate): List<TimeSlot>
+    + getWorkingHours(): int
+    + assignToClass(classId: Long): boolean
+    + unassignFromClass(classId: Long): boolean
+  }
+  
+  class "Schedule" as SCH {
+    - scheduleId: Long
+    - classId: Long
+    - startDate: LocalDate
+    - endDate: LocalDate
+    - sessions: List<Session>
+    - lastUpdated: LocalDateTime
+    + getSessions(): List<Session>
+    + addSession(session: Session): boolean
+    + removeSession(sessionId: Long): boolean
+    + getSessionByDay(day: DayOfWeek): List<Session>
+    + getUpcomingSessions(currentDate: LocalDate): List<Session>
+    + getWeeklyPattern(): WeeklyPattern
+    + isConflictingWith(otherSchedule: Schedule): boolean
+  }
+  
+  class "Session" as SES {
+    - sessionId: Long
+    - scheduleId: Long
+    - name: String
+    - day: DayOfWeek
+    - startTime: LocalTime
+    - endTime: LocalTime
+    - recurrenceType: RecurrenceType
+    - roomId: String
+    - teacherId: Long
+    - status: SessionStatus
+    - sessionType: SessionType
+    + getDuration(): Duration
+    + isOngoing(currentTime: LocalTime): boolean
+    + isConflictingWith(otherSession: Session): boolean
+    + isRecurring(): boolean
+    + formatTimeRange(): String
+    + reschedule(day: DayOfWeek, startTime: LocalTime, endTime: LocalTime): boolean
+  }
+  
+  enum "ClassStatus" as CS2 {
+    ACTIVE
+    UPCOMING
+    COMPLETED
+    CANCELLED
+    ON_HOLD
+  }
+  
+  enum "StudentStatus" as SS1 {
+    ACTIVE
+    INACTIVE
+    GRADUATED
+    SUSPENDED
+    ON_LEAVE
+  }
+  
+  enum "TeacherStatus" as TS {
+    ACTIVE
+    INACTIVE
+    ON_LEAVE
+    TERMINATED
+  }
+  
+  enum "SessionStatus" as SS2 {
+    SCHEDULED
+    COMPLETED
+    CANCELLED
+    RESCHEDULED
+  }
+  
+  enum "SessionType" as SES1 {
+    LECTURE
+    TUTORIAL
+    LAB
+    EXAM
+    SEMINAR
+  }
+  
+  enum "RecurrenceType" as RT {
+    WEEKLY
+    BIWEEKLY
+    MONTHLY
+    ONCE
+  }
+}
+
+package "Infrastructure Layer" {
+  class "ClassRepositoryImpl" as CRI {
+    - dataSource: DataSource
+    + findById(classId: Long): Optional<Class>
+    + findAll(): List<Class>
+    + findByDepartment(departmentId: Long): List<Class>
+    + findByTeacher(teacherId: Long): List<Class>
+    + save(classObj: Class): Class
+    + update(classId: Long, classData: Map<String, Object>): Class
+    + delete(classId: Long): void
+    + getStudentsByClass(classId: Long): List<Student>
+    + getStudentCount(classId: Long): int
+    - mapResultSetToClass(rs: ResultSet): Class
+  }
+  
+  class "ScheduleRepositoryImpl" as SRI {
+    - dataSource: DataSource
+    + findById(scheduleId: Long): Optional<Schedule>
+    + findByClass(classId: Long): Optional<Schedule>
+    + save(schedule: Schedule): Schedule
+    + update(scheduleId: Long, scheduleData: Map<String, Object>): Schedule
+    + delete(scheduleId: Long): void
+    - mapResultSetToSchedule(rs: ResultSet): Schedule
+  }
+  
+  class "SessionRepositoryImpl" as SSRI {
+    - dataSource: DataSource
+    + findById(sessionId: Long): Optional<Session>
+    + findBySchedule(scheduleId: Long): List<Session>
+    + findByTeacherAndTimeRange(teacherId: Long, startTime: LocalDateTime, endTime: LocalDateTime): List<Session>
+    + save(session: Session): Session
+    + update(sessionId: Long, sessionData: Map<String, Object>): Session
+    + delete(sessionId: Long): void
+    - mapResultSetToSession(rs: ResultSet): Session
+  }
+  
+  class "EmailServiceImpl" as ESI {
+    - emailConfig: EmailConfiguration
+    - templateEngine: TemplateEngine
+    + sendEmail(recipient: String, subject: String, body: String): void
+    + sendBulkEmail(recipients: List<String>, subject: String, body: String): void
+    + sendClassNotification(classId: Long, subject: String, messageTemplate: String, variables: Map<String, Object>): void
+    + generateMessageFromTemplate(templateName: String, variables: Map<String, Object>): String
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "ClassDTO" as CDTO {
+    - classId: Long
+    - name: String
+    - academicYear: String
+    - semester: String
+    - departmentName: String
+    - teacherName: String
+    - studentCount: int
+    - capacity: int
+    - status: String
+    - startDate: String
+    - endDate: String
+    - room: String
+  }
+  
+  class "ClassDetailsDTO" as CDDTO {
+    - classId: Long
+    - name: String
+    - academicYear: String
+    - semester: String
+    - departmentName: String
+    - primaryTeacher: TeacherDTO
+    - assistantTeachers: List<TeacherDTO>
+    - studentCount: int
+    - capacity: int
+    - status: String
+    - startDate: String
+    - endDate: String
+    - room: String
+    - schedule: ScheduleDTO
+    - students: List<StudentDTO>
+  }
+  
+  class "ScheduleDTO" as SDTO {
+    - scheduleId: Long
+    - classId: Long
+    - className: String
+    - startDate: String
+    - endDate: String
+    - sessions: List<SessionDTO>
+    - lastUpdated: String
+  }
+  
+  class "SessionDTO" as SESDTO {
+    - sessionId: Long
+    - name: String
+    - day: String
+    - startTime: String
+    - endTime: String
+    - duration: String
+    - recurrenceType: String
+    - room: String
+    - teacherName: String
+    - sessionType: String
+    - status: String
+  }
+
+  class "StudentDTO" as STDTO {
+    - studentId: Long
+    - fullName: String
+    - email: String
+    - status: String
+    - enrollmentDate: String
+    - attendanceRate: double
+  }
+  
+  class "ClassReportDTO" as CRDTO {
+    - classId: Long
+    - className: String
+    - academicProgress: double
+    - averageAttendance: double
+    - studentPerformance: Map<String, Double>
+    - courseCompletion: Map<String, Double>
+    - activeStudentCount: int
+    - inactiveStudentCount: int
+    - teacherAssessment: String
+  }
+  
+  class "ClassCreateRequest" as CCR {
+    - name: String
+    - academicYear: String
+    - semester: String
+    - startDate: String
+    - endDate: String
+    - departmentId: Long
+    - primaryTeacherId: Long
+    - assistantTeacherIds: List<Long>
+    - capacity: Integer
+    - room: String
+  }
+  
+  class "ClassUpdateRequest" as CUR {
+    - name: String
+    - startDate: String
+    - endDate: String
+    - primaryTeacherId: Long
+    - assistantTeacherIds: List<Long>
+    - capacity: Integer
+    - status: String
+    - room: String
+  }
+}
+
+' Relationships
+CMV ..> CC : uses
+CC --> CS : uses
+CC --> SS : uses
+CC --> NS : uses
+CS --> CR : uses
+SS --> SR : uses
+SS --> SSR : uses
+NS --> ESI : uses
+CRI ..|> CR : implements
+SRI ..|> SR : implements
+SSRI ..|> SSR : implements
+CC ..> CCP : uses
+CC ..> SCF : uses
+CL "1" -- "0..*" S : contains
+CL "1" -- "1..*" T : taught by
+CL "1" -- "1" SCH : has
+SCH "1" -- "0..*" SES : contains
+CL "1" -- "1" CS2 : has status
+S "1" -- "1" SS1 : has status
+T "1" -- "1" TS : has status
+SES "1" -- "1" SS2 : has status
+SES "1" -- "1" SES1 : has type
+SES "1" -- "1" RT : has recurrence
+CS ..> CDTO : produces
+CS ..> CDDTO : produces
+SS ..> SDTO : produces
+SS ..> SESDTO : produces
+CC ..> CCR : consumes
+CC ..> CUR : consumes
+CC ..> CRDTO : produces
+
+@enduml 

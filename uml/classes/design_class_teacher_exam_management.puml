@@ -1,0 +1,478 @@
+@startuml
+title Teacher Exam Management - VOPC (Design Level)
+
+skinparam class {
+  BackgroundColor LightYellow
+  ArrowColor DarkOrange
+  BorderColor Maroon
+}
+
+skinparam package {
+  BackgroundColor SeaShell
+  BorderColor SandyBrown
+}
+
+package "Presentation Layer" {
+  class "ExamManagementView" as EMV {
+    - examListPanel: Panel
+    - examFormPanel: Panel
+    - questionEditorPanel: Panel
+    - attemptsListPanel: Panel
+    - gradingPanel: Panel
+    - notificationArea: NotificationComponent
+    + displayCourseList(courses: List<CourseDTO>): void
+    + displayExamList(exams: List<ExamDTO>): void
+    + displayExamForm(courseId: Long): void
+    + displayExamDetails(exam: ExamDetailsDTO): void
+    + displayQuestionEditor(examId: Long): void
+    + displayAttemptsList(attempts: List<AttemptDTO>): void
+    + displayAttemptDetails(attempt: AttemptDetailsDTO): void
+    + displayGradingForm(attempt: AttemptDetailsDTO): void
+    + displayNotification(message: String, type: NotificationType): void
+    + setCreateExamHandler(handler: EventHandler): void
+    + setAddQuestionHandler(handler: EventHandler): void
+    + setPublishExamHandler(handler: EventHandler): void
+    + setGradeAttemptHandler(handler: EventHandler): void
+  }
+  
+  enum "NotificationType" as NT {
+    SUCCESS
+    WARNING
+    ERROR
+    INFO
+  }
+}
+
+package "Application Layer" {
+  class "ExamController" as EC {
+    - examService: ExamService
+    - questionService: QuestionService
+    - courseService: CourseService
+    - attemptService: AttemptService
+    + getTeacherCourses(teacherId: Long): List<CourseDTO>
+    + getCourseDetails(courseId: Long): CourseDTO
+    + createExam(examData: ExamCreateRequest): ExamDTO
+    + getExamDetails(examId: Long): ExamDetailsDTO
+    + updateExam(examId: Long, examData: ExamUpdateRequest): ExamDTO
+    + publishExam(examId: Long): ExamDTO
+    + addQuestion(examId: Long, questionData: QuestionCreateRequest): QuestionDTO
+    + validateExamQuestions(exam: Exam): ValidationResult
+    + getExamAttempts(examId: Long): List<AttemptDTO>
+    + getAttemptDetails(attemptId: Long): AttemptDetailsDTO
+    + gradeExamAttempt(attemptId: Long, gradingData: GradingRequest): AttemptDTO
+  }
+  
+  class "ExamService" as ES {
+    - examRepository: ExamRepository
+    - questionRepository: QuestionRepository
+    - courseRepository: CourseRepository
+    + findById(examId: Long): Exam
+    + findByTeacherId(teacherId: Long): List<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: ExamUpdateRequest): Exam
+    + updateStatus(examId: Long, isPublished: boolean): Exam
+    + delete(examId: Long): void
+    + validateExamForPublication(exam: Exam): ValidationResult
+    + mapToDTO(exam: Exam): ExamDTO
+    + mapToDetailsDTO(exam: Exam): ExamDetailsDTO
+    + mapFromCreateRequest(request: ExamCreateRequest): Exam
+  }
+  
+  class "QuestionService" as QS {
+    - questionRepository: QuestionRepository
+    - answerRepository: AnswerRepository
+    - examRepository: ExamRepository
+    + findById(questionId: Long): Question
+    + findByExamId(examId: Long): List<Question>
+    + save(question: Question, answers: List<Answer>): Question
+    + update(questionId: Long, questionData: QuestionUpdateRequest): Question
+    + delete(questionId: Long): void
+    + validateQuestion(question: Question, answers: List<Answer>): ValidationResult
+    + mapToDTO(question: Question): QuestionDTO
+    + mapFromCreateRequest(request: QuestionCreateRequest): Pair<Question, List<Answer>>
+  }
+  
+  class "AttemptService" as AS {
+    - attemptRepository: AttemptRepository
+    - submittedAnswerRepository: SubmittedAnswerRepository
+    - examRepository: ExamRepository
+    - questionRepository: QuestionRepository
+    + findByExamId(examId: Long): List<ExamAttempt>
+    + findById(attemptId: Long): ExamAttempt
+    + findByStudentId(studentId: Long): List<ExamAttempt>
+    + update(attemptId: Long, gradingData: GradingRequest): ExamAttempt
+    + calculateScore(attemptId: Long): double
+    + mapToDTO(attempt: ExamAttempt): AttemptDTO
+    + mapToDetailsDTO(attempt: ExamAttempt): AttemptDetailsDTO
+  }
+}
+
+package "Domain Layer" {
+  interface "ExamRepository" as ER {
+    + findById(examId: Long): Optional<Exam>
+    + findByTeacherId(teacherId: Long): List<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: Map<String, Object>): Exam
+    + updateStatus(examId: Long, status: boolean): Exam
+    + delete(examId: Long): void
+  }
+  
+  interface "QuestionRepository" as QR {
+    + findById(questionId: Long): Optional<Question>
+    + findByExamId(examId: Long): List<Question>
+    + save(question: Question): Question
+    + update(questionId: Long, questionData: Map<String, Object>): Question
+    + delete(questionId: Long): void
+    + countByExamId(examId: Long): int
+  }
+  
+  interface "AnswerRepository" as AR {
+    + findById(answerId: Long): Optional<Answer>
+    + findByQuestionId(questionId: Long): List<Answer>
+    + save(answer: Answer): Answer
+    + saveBatch(answers: List<Answer>): List<Answer>
+    + deleteByQuestionId(questionId: Long): void
+  }
+  
+  interface "AttemptRepository" as ATR {
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findByExamId(examId: Long): List<ExamAttempt>
+    + findByStudentId(studentId: Long): List<ExamAttempt>
+    + save(attempt: ExamAttempt): ExamAttempt
+    + update(attemptId: Long, attemptData: Map<String, Object>): ExamAttempt
+  }
+  
+  interface "SubmittedAnswerRepository" as SAR {
+    + findByAttemptId(attemptId: Long): List<SubmittedAnswer>
+    + findByAttemptAndQuestion(attemptId: Long, questionId: Long): Optional<SubmittedAnswer>
+    + save(submittedAnswer: SubmittedAnswer): SubmittedAnswer
+    + saveAll(submittedAnswers: List<SubmittedAnswer>): List<SubmittedAnswer>
+  }
+  
+  class "Exam" as E {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseId: Long
+    - createdBy: Long
+    - timeLimit: Integer
+    - isPublished: boolean
+    - passingScore: double
+    - randomizeQuestions: boolean
+    - showAnswersAfterSubmission: boolean
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - questions: List<Question>
+    + addQuestion(question: Question): void
+    + removeQuestion(questionId: Long): boolean
+    + updateQuestion(question: Question): boolean
+    + isReadyForPublication(): boolean
+    + publish(): void
+    + unpublish(): void
+    + calculateMaxScore(): double
+    + getQuestionCount(): int
+    + getAttemptCount(): int
+    + calculateAverageScore(): double
+  }
+  
+  class "Question" as Q {
+    - questionId: Long
+    - examId: Long
+    - text: String
+    - type: QuestionType
+    - points: double
+    - orderIndex: int
+    - answers: List<Answer>
+    - requiredForPassing: boolean
+    + addAnswer(answer: Answer): void
+    + removeAnswer(answerId: Long): boolean
+    + updateAnswer(answer: Answer): boolean
+    + hasCorrectAnswer(): boolean
+    + getCorrectAnswersCount(): int
+    + isMultipleCorrectAllowed(): boolean
+    + requiresManualGrading(): boolean
+  }
+  
+  class "Answer" as A {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+    - orderIndex: int
+    + getFormattedText(): String
+    + getTextWithoutHtml(): String
+  }
+  
+  class "ExamAttempt" as EA {
+    - attemptId: Long
+    - examId: Long
+    - studentId: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - status: AttemptStatus
+    - ipAddress: String
+    - browserInfo: String
+    - submittedAnswers: List<SubmittedAnswer>
+    - result: ExamResult
+    + isCompleted(): boolean
+    + getRemainingTime(): Duration
+    + isTimeLimitExceeded(): boolean
+    + calculateAutomaticScore(): double
+    + calculateFinalScore(): double
+    + getTotalTimeSpent(): Duration
+    + getCompletionPercentage(): double
+  }
+  
+  class "SubmittedAnswer" as SA {
+    - submissionId: Long
+    - attemptId: Long
+    - questionId: Long
+    - answerId: Long
+    - textAnswer: String
+    - isCorrect: boolean
+    - manualScore: Double
+    - gradingComment: String
+    + isAutoGraded(): boolean
+    + isManuallyGraded(): boolean
+    + getPoints(): double
+    + getMaxPoints(): double
+    + getScorePercentage(): double
+  }
+  
+  class "ExamResult" as ER2 {
+    - resultId: Long
+    - attemptId: Long
+    - score: double
+    - maxScore: double
+    - percentageScore: double
+    - feedbackText: String
+    - passStatus: boolean
+    - gradedBy: Long
+    - gradedAt: LocalDateTime
+    + isPassed(): boolean
+    + getLetterGrade(): String
+    + getScoreFormatted(): String
+    + getTimeToComplete(): Duration
+  }
+  
+  enum "QuestionType" as QT {
+    MULTIPLE_CHOICE
+    SINGLE_CHOICE
+    TRUE_FALSE
+    FILL_BLANK
+    ESSAY
+    MATCHING
+    ORDERING
+  }
+  
+  enum "AttemptStatus" as AS2 {
+    IN_PROGRESS
+    SUBMITTED
+    GRADED
+    EXPIRED
+    ABANDONED
+  }
+  
+  class "ValidationResult" as VR {
+    - valid: boolean
+    - messages: List<String>
+    + isValid(): boolean
+    + getMessages(): List<String>
+    + addMessage(message: String): void
+  }
+}
+
+package "Infrastructure Layer" {
+  class "ExamRepositoryImpl" as ERI {
+    - dataSource: DataSource
+    + findById(examId: Long): Optional<Exam>
+    + findByTeacherId(teacherId: Long): List<Exam>
+    + findByCourseId(courseId: Long): List<Exam>
+    + save(exam: Exam): Exam
+    + update(examId: Long, examData: Map<String, Object>): Exam
+    + updateStatus(examId: Long, status: boolean): Exam
+    + delete(examId: Long): void
+    - mapResultSetToExam(rs: ResultSet): Exam
+  }
+  
+  class "QuestionRepositoryImpl" as QRI {
+    - dataSource: DataSource
+    + findById(questionId: Long): Optional<Question>
+    + findByExamId(examId: Long): List<Question>
+    + save(question: Question): Question
+    + update(questionId: Long, questionData: Map<String, Object>): Question
+    + delete(questionId: Long): void
+    + countByExamId(examId: Long): int
+    - mapResultSetToQuestion(rs: ResultSet): Question
+  }
+  
+  class "AttemptRepositoryImpl" as ATRI {
+    - dataSource: DataSource
+    + findById(attemptId: Long): Optional<ExamAttempt>
+    + findByExamId(examId: Long): List<ExamAttempt>
+    + findByStudentId(studentId: Long): List<ExamAttempt>
+    + save(attempt: ExamAttempt): ExamAttempt
+    + update(attemptId: Long, attemptData: Map<String, Object>): ExamAttempt
+    - mapResultSetToAttempt(rs: ResultSet): ExamAttempt
+  }
+}
+
+' DTOs
+package "DTOs" {
+  class "ExamDTO" as EDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - timeLimit: Integer
+    - isPublished: boolean
+    - questionCount: Integer
+    - attemptCount: Integer
+    - averageScore: Double
+    - createdAt: String
+  }
+  
+  class "ExamDetailsDTO" as EDDTO {
+    - examId: Long
+    - title: String
+    - description: String
+    - courseName: String
+    - timeLimit: Integer
+    - isPublished: boolean
+    - passingScore: Double
+    - showAnswers: boolean
+    - questions: List<QuestionDTO>
+    - createdAt: String
+    - updatedAt: String
+  }
+  
+  class "QuestionDTO" as QDTO {
+    - questionId: Long
+    - examId: Long
+    - text: String
+    - type: String
+    - points: Double
+    - answers: List<AnswerDTO>
+    - orderIndex: Integer
+  }
+  
+  class "AnswerDTO" as ADTO {
+    - answerId: Long
+    - questionId: Long
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+  }
+  
+  class "AttemptDTO" as ATDTO {
+    - attemptId: Long
+    - examId: Long
+    - studentName: String
+    - startTime: String
+    - endTime: String
+    - status: String
+    - score: Double
+    - completed: boolean
+    - timeSpent: String
+  }
+  
+  class "AttemptDetailsDTO" as ATDDTO {
+    - attemptId: Long
+    - examId: Long
+    - examTitle: String
+    - studentName: String
+    - startTime: String
+    - endTime: String
+    - status: String
+    - score: Double
+    - maxScore: Double
+    - percentageScore: Double
+    - submissions: List<SubmissionDTO>
+    - timeSpent: String
+  }
+  
+  class "SubmissionDTO" as SDTO {
+    - submissionId: Long
+    - questionText: String
+    - questionType: String
+    - answerText: String
+    - isCorrect: boolean
+    - points: Double
+    - maxPoints: Double
+    - requiresGrading: boolean
+    - gradingComment: String
+  }
+  
+  class "ExamCreateRequest" as ECR {
+    - title: String
+    - description: String
+    - courseId: Long
+    - timeLimit: Integer
+    - passingScore: Double
+    - showAnswersAfterSubmission: boolean
+    - randomizeQuestions: boolean
+  }
+  
+  class "QuestionCreateRequest" as QCR {
+    - examId: Long
+    - text: String
+    - type: String
+    - points: Double
+    - answers: List<AnswerCreateRequest>
+    - requiredForPassing: boolean
+  }
+  
+  class "AnswerCreateRequest" as ACR {
+    - text: String
+    - isCorrect: boolean
+    - explanation: String
+  }
+  
+  class "GradingRequest" as GR {
+    - attemptId: Long
+    - submissions: List<GradedSubmission>
+    - feedbackText: String
+  }
+  
+  class "GradedSubmission" as GS {
+    - submissionId: Long
+    - score: Double
+    - comment: String
+  }
+}
+
+' Relationships
+EMV ..> EC : uses
+EC --> ES : uses
+EC --> QS : uses
+EC --> AS : uses
+ES --> ER : uses
+QS --> QR : uses
+QS --> AR : uses
+AS --> ATR : uses
+AS --> SAR : uses
+ERI ..|> ER : implements
+QRI ..|> QR : implements
+ATRI ..|> ATR : implements
+ES ..> EDTO : produces
+ES ..> EDDTO : produces
+QS ..> QDTO : produces
+AS ..> ATDTO : produces
+AS ..> ATDDTO : produces
+ES ..> ECR : consumes
+QS ..> QCR : consumes
+AS ..> GR : consumes
+E "1" -- "0..*" Q : contains
+Q "1" -- "0..*" A : has
+EA "1" -- "0..*" SA : contains
+EA "1" -- "1" ER2 : results in
+E "1" -- "1..*" EA : has attempts
+Q "1" -- "0..*" SA : answered by
+EC ..> VR : uses
+E "1" -- "1" QT : has type
+EA "1" -- "1" AS2 : has status
+
+@enduml 
