@@ -74,8 +74,8 @@ const CourseFilter = () => {
   return (
     <>
       <div className="bg-card border rounded-lg p-4 mb-6 space-y-4">
-        <h3 className="text-lg font-medium">Lọc khóa học</h3>
-        <div className="flex gap-4 items-center">
+        <h3 className="text-lg font-medium text-gradient-1">Lọc khóa học</h3>
+        <div className="flex flex-col md:flex-row  gap-4 items-start">
           <div className="space-y-2">
             <div className="relative">
               <Input
