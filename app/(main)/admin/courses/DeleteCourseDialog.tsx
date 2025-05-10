@@ -77,7 +77,7 @@ export default function DeleteCourseDialog({
             )}
             {course.teacher?.user?.displayName && (
               <li>
-                <span className="font-medium">Giáo viên:</span> {course.teacher.user.displayName}
+                <span className="font-medium">Giảng viên:</span> {course.teacher.user.displayName}
               </li>
             )}
           </ul>

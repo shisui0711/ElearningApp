@@ -106,14 +106,14 @@ export function TeacherCombobox({ onSelect }: TeacherComboboxProps) {
         >
           {value
             ? selectedTeacher?.user.displayName || "Đang tải..."
-            : "Chọn giáo viên..."}
+            : "Chọn giảng viên..."}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandInput 
-            placeholder="Tìm kiếm giáo viên..." 
+            placeholder="Tìm kiếm giảng viên..." 
             value={search}
             onValueChange={setSearch}
           />
@@ -126,7 +126,7 @@ export function TeacherCombobox({ onSelect }: TeacherComboboxProps) {
             ) : isError ? (
               <CommandEmpty>Lỗi khi tải dữ liệu.</CommandEmpty>
             ) : teachers.length === 0 ? (
-              <CommandEmpty>Không tìm thấy giáo viên nào.</CommandEmpty>
+              <CommandEmpty>Không tìm thấy giảng viên nào.</CommandEmpty>
             ) : (
               <CommandGroup>
                 {teachers.map((teacher) => (

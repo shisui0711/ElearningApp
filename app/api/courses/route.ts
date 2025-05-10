@@ -261,7 +261,7 @@ export async function POST(req: Request) {
     });
 
     if (!teacher) {
-      return new NextResponse("Giáo viên không tồn tại", { status: 404 });
+      return new NextResponse("Giảng viên không tồn tại", { status: 404 });
     }
 
     // Verify that the authenticated user is the teacher

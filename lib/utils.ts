@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatRole(role:string){
   if(role === "STUDENT") return "Sinh viên";
-  else if(role === "TEACHER") return "Giáo viên";
+  else if(role === "TEACHER") return "Giảng viên";
   else if(role === "ADMIN") return "Quản trị viên";
   else return "Không xác định";
 }

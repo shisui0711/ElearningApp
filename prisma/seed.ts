@@ -114,7 +114,7 @@ async function main() {
         },
       });
 
-      console.log(`Đã tạo giáo viên: ${user.username}`);
+      console.log(`Đã tạo giảng viên: ${user.username}`);
     }
   }
 

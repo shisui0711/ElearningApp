@@ -62,13 +62,13 @@ const AdminPage = () => {
           <Card className="hover:bg-muted/50 transition cursor-pointer h-32 group border border-border hover:border-primary/20">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium group-hover:text-gradient-1 transition-all">
-                Quản lý giáo viên
+                Quản lý giảng viên
               </CardTitle>
               <GraduationCapIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
             </CardHeader>
             <CardContent>
               <CardDescription className="group-hover:text-foreground/80 transition-all">
-                Quản lý tài khoản giáo viên, bài tập và trách nhiệm của khóa
+                Quản lý tài khoản giảng viên, bài tập và trách nhiệm của khóa
                 học.
               </CardDescription>
             </CardContent>

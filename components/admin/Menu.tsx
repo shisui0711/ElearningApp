@@ -33,7 +33,7 @@ const menuItems = [
       },
       {
         icon: GraduationCap,
-        label: "Giáo viên",
+        label: "Giảng viên",
         href: "/admin/teachers"
       },
       {
