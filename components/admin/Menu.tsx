@@ -15,6 +15,7 @@ import {
   LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const menuItems = [
   {
@@ -101,7 +102,7 @@ const Menu = () => {
           </span>
           {i.items.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const isActive = pathname === item.href;
             return (
                 <Link
                   href={item.href}
@@ -139,6 +140,17 @@ const Menu = () => {
           })}
         </div>
       ))}
+
+      {/* Theme Toggle */}
+      <div className="flex flex-col gap-2 mt-4">
+        <span className="hidden lg:block text-gradient-1 font-medium my-4">
+          Giao diện
+        </span>
+        <div className="flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md">
+          <ThemeToggle />
+          <span className="hidden lg:block text-sm">Chuyển đổi giao diện</span>
+        </div>
+      </div>
     </div>
   );
 };

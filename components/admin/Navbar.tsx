@@ -17,7 +17,6 @@ const Navbar = () => {
 
       {/* ICONS AND USER */}
       <div className='flex items-center gap-6 justify-end'>
-        <ThemeToggle/>
         {/* <div className='bg-muted/50 rounded-full w-8 h-8 flex items-center justify-center cursor-pointer relative hover:bg-muted transition-all'>
           <Bell className="w-4 h-4 text-muted-foreground" />
           <div className='absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center bg-primary text-primary-foreground rounded-full text-[10px]'>1</div>
