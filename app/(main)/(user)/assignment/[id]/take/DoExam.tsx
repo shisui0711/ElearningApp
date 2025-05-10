@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { BookmarkIcon, Clock, Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { BookmarkIcon, Clock, Send, CheckCircle, AlertCircle, HelpCircle } from "lucide-react";
+import { AnimatedButton } from "@/components/ui/animated-button";
+import { AnimatedCard, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/animated-card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useAnimation } from "@/provider/AnimationProvider";
+import { cn } from "@/lib/utils";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 interface Question {
   id: string;
@@ -45,6 +48,9 @@ interface ExamData {
 
 export default function DoExam({ examId }: { examId: string }) {
   const router = useRouter();
+  const { gsap, isReady } = useAnimation();
+  const questionCardRef = useRef<HTMLDivElement>(null);
+
   const [exam, setExam] = useState<ExamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -243,15 +249,27 @@ export default function DoExam({ examId }: { examId: string }) {
   };
 
   const navigateToQuestion = (index: number) => {
+    // Animate question transition if GSAP is ready
+    if (isReady && questionCardRef.current) {
+      gsap.fromTo(
+        questionCardRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
+      );
+    }
+
     setCurrentQuestionIndex(index);
   };
 
   if (loading) {
     return (
-      <div className="container py-10 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p>Đang tải...</p>
+      <div className="relative min-h-screen">
+        <AnimatedBackground variant="gradient2" intensity="light" />
+        <div className="container py-10 flex items-center justify-center min-h-screen">
+          <div className="text-center bg-card/50 backdrop-blur-sm p-8 rounded-xl shadow-lg border">
+            <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-6"></div>
+            <p className="text-lg font-medium text-gradient-2">Đang tải bài kiểm tra...</p>
+          </div>
         </div>
       </div>
     );
@@ -259,23 +277,47 @@ export default function DoExam({ examId }: { examId: string }) {
 
   if (error) {
     return (
-      <div className="container py-10 text-center">
-        <h1 className="text-2xl font-bold mb-4">Có lỗi xảy ra</h1>
-        <p className="mb-6">{error}</p>
-        <Button onClick={() => router.push("/assignment")}>Quay lại</Button>
+      <div className="relative min-h-screen">
+        <AnimatedBackground variant="gradient3" intensity="light" />
+        <div className="container py-10 flex items-center justify-center min-h-screen">
+          <div className="text-center bg-card/50 backdrop-blur-sm p-8 rounded-xl shadow-lg border max-w-md">
+            <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-4 text-gradient-3">Có lỗi xảy ra</h1>
+            <p className="mb-6 text-muted-foreground">{error}</p>
+            <AnimatedButton
+              onClick={() => router.push("/assignment")}
+              animationVariant="hover"
+              className="gap-2"
+            >
+              Quay lại
+            </AnimatedButton>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!exam) {
     return (
-      <div className="container py-10 text-center">
-        <h1 className="text-2xl font-bold mb-4">Không tìm thấy bài kiểm tra</h1>
-        <p className="mb-6">
-          Bài thi bạn đang tìm kiếm không tồn tại hoặc bạn không thể truy cập
-          vào kỳ thi đó.
-        </p>
-        <Button onClick={() => router.push("/assignment")}>Quay lại</Button>
+      <div className="relative min-h-screen">
+        <AnimatedBackground variant="gradient2" intensity="light" />
+        <div className="container py-10 flex items-center justify-center min-h-screen">
+          <div className="text-center bg-card/50 backdrop-blur-sm p-8 rounded-xl shadow-lg border max-w-md">
+            <HelpCircle className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-4 text-gradient-2">Không tìm thấy bài kiểm tra</h1>
+            <p className="mb-6 text-muted-foreground">
+              Bài thi bạn đang tìm kiếm không tồn tại hoặc bạn không thể truy cập
+              vào kỳ thi đó.
+            </p>
+            <AnimatedButton
+              onClick={() => router.push("/assignment")}
+              animationVariant="hover"
+              className="gap-2"
+            >
+              Quay lại
+            </AnimatedButton>
+          </div>
+        </div>
       </div>
     );
   }
@@ -286,177 +328,218 @@ export default function DoExam({ examId }: { examId: string }) {
     (answeredQuestionsCount / exam.questions.length) * 100;
 
   return (
-    <div className="container py-6 mx-auto px-4">
-      <div className="sticky top-0 bg-background pt-2 pb-4 z-10">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">{exam.title}</h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center text-orange-600">
-              <Clock className="mr-1 h-4 w-4" />
-              <span className="font-mono">{formatTime(timeRemaining)}</span>
+    <div className="relative min-h-screen">
+      <AnimatedBackground variant="gradient2" intensity="light" />
+
+      <div className="container py-6 mx-auto px-4 relative z-10 bg-background/80 backdrop-blur-sm min-h-screen rounded-lg">
+        <div className="sticky top-0 bg-background/80 backdrop-blur-md pt-2 pb-4 z-10 rounded-lg shadow-sm px-3">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold text-gradient-2">{exam.title}</h1>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-full">
+                <Clock className="mr-2 h-4 w-4" />
+                <span className="font-mono font-medium">{formatTime(timeRemaining)}</span>
+              </div>
+              <AnimatedButton
+                variant="outline"
+                onClick={() => setConfirmSubmit(true)}
+                animationVariant="hover"
+                className="gap-2"
+              >
+                <Send className="h-4 w-4" />
+                Nộp bài
+              </AnimatedButton>
             </div>
-            <Button variant="outline" onClick={() => setConfirmSubmit(true)}>
-              <Send className="mr-2 h-4 w-4" />
-              Nộp bài
-            </Button>
           </div>
+          <div className="flex items-center gap-3 mb-2">
+            <Progress value={progressPercentage} className="h-2.5 bg-muted/50" />
+            <span className="text-sm whitespace-nowrap font-medium">
+              {answeredQuestionsCount}/{exam.questions.length} câu đã trả lời
+            </span>
+          </div>
+          <Separator />
         </div>
-        <div className="flex items-center gap-2 mb-2">
-          <Progress value={progressPercentage} className="h-2" />
-          <span className="text-sm whitespace-nowrap">
-            {answeredQuestionsCount}/{exam.questions.length} câu đã trả lời
-          </span>
-        </div>
-        <Separator />
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-4">
-        <div className="md:col-span-3">
-          {currentQuestion && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-lg font-medium">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
+          <div className="md:col-span-3">
+            {currentQuestion && (
+              <AnimatedCard
+                ref={questionCardRef}
+                animationVariant="reveal"
+                gradientBorder={true}
+                className="overflow-hidden bg-card shadow-md"
+              >
+                <CardHeader className="bg-gradient-to-r from-blue-100/80 via-cyan-50/50 to-transparent pb-2 dark:from-blue-900/20 dark:via-cyan-900/10">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-1">
+                      <CardTitle className="flex items-center gap-2 text-gradient-2">
                         Câu {currentQuestionIndex + 1}
-                      </h2>
-                      <span className="text-sm text-muted-foreground">
-                        ({currentQuestion.points} điểm)
-                      </span>
+                        <span className="text-sm bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded-full ml-1 dark:bg-green-900/40 dark:text-green-300">
+                          {currentQuestion.points} điểm
+                        </span>
+                      </CardTitle>
+                      <CardDescription className="text-base font-medium text-foreground">
+                        {currentQuestion.content}
+                      </CardDescription>
                     </div>
-                    <p>{currentQuestion.content}</p>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    onClick={() => toggleMarkQuestion(currentQuestion.id)}
-                    className={
-                      markedQuestions.includes(currentQuestion.id)
-                        ? "text-yellow-500"
-                        : ""
-                    }
-                  >
-                    <span>Cần xem xét lại</span>
-                    <BookmarkIcon className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                {currentQuestion.imageUrl && (
-                  <div className="mb-4">
-                    <img
-                      src={currentQuestion.imageUrl}
-                      alt="Question image"
-                      className="max-w-full h-auto rounded-md"
-                    />
-                  </div>
-                )}
-
-                {currentQuestion.videoUrl && (
-                  <div className="mb-4">
-                    <video
-                      src={currentQuestion.videoUrl}
-                      controls
-                      className="max-w-full h-auto rounded-md"
-                    />
-                  </div>
-                )}
-
-                <RadioGroup
-                  value={selectedAnswers[currentQuestion.id] || ""}
-                  onValueChange={(value) =>
-                    handleAnswerSelect(currentQuestion.id, value)
-                  }
-                  className="space-y-3"
-                >
-                  {currentQuestion.answers.map((answer) => (
-                    <div
-                      key={answer.id}
-                      className="flex items-center space-x-2 rounded-md border p-3 hover:bg-muted"
+                    <AnimatedButton
+                      variant="ghost"
+                      onClick={() => toggleMarkQuestion(currentQuestion.id)}
+                      className={cn(
+                        "gap-2",
+                        markedQuestions.includes(currentQuestion.id)
+                          ? "text-yellow-500 bg-yellow-100 dark:bg-yellow-950/30 "
+                          : ""
+                      )}
+                      animationVariant="hover"
                     >
-                      <RadioGroupItem value={answer.id} id={answer.id} />
-                      <Label
-                        htmlFor={answer.id}
-                        className="flex-1 cursor-pointer"
-                      >
-                        {answer.content}
-                      </Label>
+                      <span>Đánh dấu</span>
+                      <BookmarkIcon className="h-4 w-4" />
+                    </AnimatedButton>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-6 pt-4 bg-card">
+                  {currentQuestion.imageUrl && (
+                    <div className="mb-6 mt-2">
+                      <img
+                        src={currentQuestion.imageUrl}
+                        alt="Question image"
+                        className="max-w-full h-auto rounded-md shadow-md"
+                      />
                     </div>
-                  ))}
-                </RadioGroup>
-
-                <div className="flex justify-between mt-6">
-                  <Button
-                    variant="outline"
-                    disabled={currentQuestionIndex === 0}
-                    onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
-                  >
-                    Câu trước
-                  </Button>
-                  {currentQuestionIndex !== exam.questions.length - 1 ? (
-                    <Button
-                    onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
-                  >
-                    Câu sau
-                  </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      onClick={() => setConfirmSubmit(true)}
-                  >
-                    <Send className="mr-2 h-4 w-4" />
-                      Nộp bài
-                    </Button>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
 
-        <div className="md:col-span-1">
-          <div className="sticky top-28">
-            <h3 className="text-lg font-medium mb-3">Bảng câu hỏi</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {exam.questions.map((question, index) => {
-                let bgClass = "bg-gray-100";
+                  {currentQuestion.videoUrl && (
+                    <div className="mb-6 mt-2">
+                      <video
+                        src={currentQuestion.videoUrl}
+                        controls
+                        className="max-w-full h-auto rounded-md shadow-md"
+                      />
+                    </div>
+                  )}
 
-                if (selectedAnswers[question.id]) {
-                  bgClass = "bg-green-100 text-green-800";
-                }
-
-                if (markedQuestions.includes(question.id)) {
-                  bgClass = "bg-yellow-100 text-yellow-800";
-                }
-
-                if (index === currentQuestionIndex) {
-                  bgClass += " ring-2 ring-primary";
-                }
-
-                return (
-                  <Button
-                    key={question.id}
-                    variant="ghost"
-                    className={`h-10 w-10 p-0 font-medium ${bgClass}`}
-                    onClick={() => navigateToQuestion(index)}
+                  <RadioGroup
+                    value={selectedAnswers[currentQuestion.id] || ""}
+                    onValueChange={(value) =>
+                      handleAnswerSelect(currentQuestion.id, value)
+                    }
+                    className="space-y-3"
                   >
-                    {index + 1}
-                  </Button>
-                );
-              })}
-            </div>
+                    {currentQuestion.answers.map((answer) => (
+                      <div
+                        key={answer.id}
+                        className={cn(
+                          "flex items-center space-x-3 rounded-md border p-4 transition-all",
+                          selectedAnswers[currentQuestion.id] === answer.id
+                            ? "bg-green-100 border-green-300 shadow-sm dark:bg-green-950/40 dark:border-green-700/50 text-green-800 dark:text-green-400"
+                            : "hover:bg-muted/50"
+                        )}
+                      >
+                        <RadioGroupItem
+                          value={answer.id}
+                          id={answer.id}
+                          className={selectedAnswers[currentQuestion.id] === answer.id ? "text-green-600 border-green-400 dark:text-green-400 dark:border-green-500" : ""}
+                        />
+                        <Label
+                          htmlFor={answer.id}
+                          className={cn(
+                            "flex-1 cursor-pointer",
+                            selectedAnswers[currentQuestion.id] === answer.id
+                              ? "font-medium text-green-800 dark:text-green-400"
+                              : "text-foreground/90"
+                          )}
+                        >
+                          {answer.content}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
 
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 rounded"></div>
-                <span className="text-sm">Đã trả lời</span>
+                  <div className="flex justify-between mt-8">
+                    <AnimatedButton
+                      variant="outline"
+                      disabled={currentQuestionIndex === 0}
+                      onClick={() => navigateToQuestion(currentQuestionIndex - 1)}
+                      animationVariant="hover"
+                      className="gap-2"
+                    >
+                      Câu trước
+                    </AnimatedButton>
+                    {currentQuestionIndex !== exam.questions.length - 1 ? (
+                      <AnimatedButton
+                        onClick={() => navigateToQuestion(currentQuestionIndex + 1)}
+                        animationVariant="hover"
+                        gradientVariant="gradient2"
+                        className="gap-2"
+                      >
+                        Câu sau
+                      </AnimatedButton>
+                    ) : (
+                      <AnimatedButton
+                        variant="default"
+                        onClick={() => setConfirmSubmit(true)}
+                        animationVariant="pulse"
+                        gradientVariant="gradient2"
+                        className="gap-2"
+                      >
+                        <Send className="h-4 w-4" />
+                        Nộp bài
+                      </AnimatedButton>
+                    )}
+                  </div>
+                </CardContent>
+              </AnimatedCard>
+            )}
+          </div>
+
+          <div className="md:col-span-1">
+            <div className="sticky top-28">
+              <h3 className="text-lg font-medium mb-3 text-gradient-2">Bảng câu hỏi</h3>
+              <div className="bg-card p-4 rounded-lg shadow-sm border mb-4">
+                <div className="grid grid-cols-5 gap-2">
+                {exam.questions.map((question, index) => {
+                  const isAnswered = !!selectedAnswers[question.id];
+                  const isMarked = markedQuestions.includes(question.id);
+                  const isActive = index === currentQuestionIndex;
+
+                  return (
+                    <AnimatedButton
+                      key={question.id}
+                      variant="ghost"
+                      className={cn(
+                        "h-10 w-10 p-0 font-medium relative",
+                        isAnswered && !isMarked && "bg-green-100 dark:bg-green-950/40 text-green-800 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-950/60 font-medium",
+                        isMarked && "bg-yellow-100 dark:bg-yellow-950/40 text-yellow-800 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-950/60 font-medium",
+                        !isAnswered && !isMarked && "bg-gray-100 dark:bg-gray-800/40 hover:bg-gray-200 dark:hover:bg-gray-800/60",
+                        isActive && "ring-2 ring-blue-500 shadow-md bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300"
+                      )}
+                      onClick={() => navigateToQuestion(index)}
+                      animationVariant="hover"
+                    >
+                      {index + 1}
+                      {isMarked && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"></span>
+                      )}
+                    </AnimatedButton>
+                  );
+                })}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-yellow-100 rounded"></div>
-                <span className="text-sm">Cần xem lại</span>
+
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-100 rounded"></div>
-                <span className="text-sm">Chưa trả lời</span>
+              <div className="mt-4 space-y-3 bg-card p-3 rounded-lg border shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">Đã trả lời</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <BookmarkIcon className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm">Cần xem lại</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm">Chưa trả lời</span>
+                </div>
               </div>
             </div>
           </div>
@@ -464,28 +547,64 @@ export default function DoExam({ examId }: { examId: string }) {
       </div>
 
       <Dialog open={confirmSubmit} onOpenChange={setConfirmSubmit}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Nộp bài</DialogTitle>
-            <DialogDescription>
-              Bạn có chắc chắn muốn nộp bài thi của mình không? Bạn đã trả lời{" "}
-              {answeredQuestionsCount} trong số {exam.questions.length} câu hỏi.
+            <DialogTitle className="text-gradient-2 text-xl">Nộp bài kiểm tra</DialogTitle>
+            <DialogDescription className="pt-2">
+              Bạn có chắc chắn muốn nộp bài thi của mình không?
+
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg border flex items-center justify-between">
+                <span>Số câu đã trả lời:</span>
+                <span className="font-medium">{answeredQuestionsCount}/{exam.questions.length}</span>
+              </div>
+
               {answeredQuestionsCount < exam.questions.length && (
-                <p className="text-red-500 mt-2">
-                  Cảnh báo: Bạn có{" "}
-                  {exam.questions.length - answeredQuestionsCount} câu hỏi chưa
-                  trả lời.
-                </p>
+                <div className="mt-3 p-3 bg-destructive/10 text-destructive rounded-lg border border-destructive/20 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <p>
+                    Bạn còn {exam.questions.length - answeredQuestionsCount} câu hỏi chưa
+                    trả lời.
+                  </p>
+                </div>
+              )}
+
+              {answeredQuestionsCount === exam.questions.length && (
+                <div className="mt-3 p-3 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-400 rounded-lg border border-green-200 dark:border-green-900/30 flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 flex-shrink-0" />
+                  <p>
+                    Bạn đã trả lời tất cả các câu hỏi.
+                  </p>
+                </div>
               )}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmSubmit(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? "Đang nộp..." : "Nộp bài"}
-            </Button>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <AnimatedButton
+              variant="outline"
+              onClick={() => setConfirmSubmit(false)}
+              animationVariant="hover"
+            >
+              Quay lại làm bài
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={handleSubmit}
+              disabled={submitting}
+              animationVariant={submitting ? "none" : "pulse"}
+              gradientVariant={submitting ? "none" : "gradient2"}
+              className="gap-2"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full mr-1"></div>
+                  Đang nộp...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Nộp bài
+                </>
+              )}
+            </AnimatedButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

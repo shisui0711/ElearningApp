@@ -33,12 +33,12 @@ interface CommentFormProps {
   placeholder?: string;
 }
 
-const CommentForm = ({ 
-  courseId, 
-  onSuccess, 
-  parentId = null, 
-  onCancel, 
-  placeholder = "Thêm bình luận..." 
+const CommentForm = ({
+  courseId,
+  onSuccess,
+  parentId = null,
+  onCancel,
+  placeholder = "Thêm bình luận...",
 }: CommentFormProps) => {
   const [content, setContent] = useState("");
   const { user } = useSession();
@@ -67,7 +67,7 @@ const CommentForm = ({
 
       // Reset form
       setContent("");
-      
+
       // Call success callback if provided
       if (onSuccess) {
         onSuccess();
@@ -97,19 +97,16 @@ const CommentForm = ({
         />
         <div className="flex justify-end space-x-2">
           {onCancel && (
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onCancel}
               disabled={isPending}
             >
               Hủy
             </Button>
           )}
-          <Button 
-            type="submit" 
-            disabled={!content.trim() || isPending}
-          >
+          <Button type="submit" disabled={!content.trim() || isPending}>
             Gửi
           </Button>
         </div>
@@ -125,11 +122,16 @@ interface CommentItemProps {
   canModerate: boolean;
 }
 
-const CommentItem = ({ comment, courseId, level = 0, canModerate }: CommentItemProps) => {
+const CommentItem = ({
+  comment,
+  courseId,
+  level = 0,
+  canModerate,
+}: CommentItemProps) => {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useSession();
-  
+
   const { mutate: deleteComment } = useMutation({
     mutationFn: async (commentId: string) => {
       await axios.delete(`/api/courses/comments?id=${commentId}`);
@@ -143,25 +145,29 @@ const CommentItem = ({ comment, courseId, level = 0, canModerate }: CommentItemP
   const canDelete = canModerate || isOwnComment;
 
   return (
-    <div className={`flex space-x-3 ${level > 0 ? 'ml-8' : ''}`}>
+    <div className={`flex space-x-3 ${level > 0 ? "ml-8" : ""}`}>
       <UserAvatar avatarUrl={comment.user.avatarUrl} />
       <div className="flex-1">
         <div className="bg-card p-3 rounded-lg">
           <div className="flex justify-between">
             <div className="font-medium">
               {comment.user.displayName}
-              {comment.user.role === 'TEACHER' && (
-                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Giảng viên</span>
+              {comment.user.role === "TEACHER" && (
+                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                  Giảng viên
+                </span>
               )}
-              {comment.user.role === 'ADMIN' && (
-                <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Admin</span>
+              {comment.user.role === "ADMIN" && (
+                <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                  Admin
+                </span>
               )}
             </div>
             {canDelete && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-6 w-6" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
                 onClick={() => deleteComment(comment.id)}
               >
                 <Trash className="h-4 w-4" />
@@ -172,21 +178,21 @@ const CommentItem = ({ comment, courseId, level = 0, canModerate }: CommentItemP
         </div>
         <div className="mt-1 flex items-center text-xs text-gray-500 space-x-4">
           <span>{new Date(comment.createdAt).toLocaleString()}</span>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs h-6 px-2" 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs h-6 px-2"
             onClick={() => setShowReplyForm(!showReplyForm)}
           >
             <Reply className="h-3 w-3 mr-1" />
             Phản hồi
           </Button>
         </div>
-        
+
         {showReplyForm && (
           <div className="mt-2">
-            <CommentForm 
-              courseId={courseId} 
+            <CommentForm
+              courseId={courseId}
               parentId={comment.id}
               onSuccess={() => setShowReplyForm(false)}
               onCancel={() => setShowReplyForm(false)}
@@ -194,14 +200,14 @@ const CommentItem = ({ comment, courseId, level = 0, canModerate }: CommentItemP
             />
           </div>
         )}
-        
+
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-4 space-y-4">
             {comment.replies.map((reply) => (
-              <CommentItem 
-                key={reply.id} 
-                comment={reply} 
-                courseId={courseId} 
+              <CommentItem
+                key={reply.id}
+                comment={reply}
+                courseId={courseId}
                 level={level + 1}
                 canModerate={canModerate}
               />
@@ -220,7 +226,12 @@ interface CourseCommentListProps {
   isAdmin: boolean;
 }
 
-const CourseCommentList = ({ courseId, isEnrolled, isTeacher, isAdmin }: CourseCommentListProps) => {
+const CourseCommentList = ({
+  courseId,
+  isEnrolled,
+  isTeacher,
+  isAdmin,
+}: CourseCommentListProps) => {
   const { user } = useSession();
   const commentListRef = useRef<HTMLDivElement>(null);
   const socket = useSocket();
@@ -264,13 +275,16 @@ const CourseCommentList = ({ courseId, isEnrolled, isTeacher, isAdmin }: CourseC
   }, [socket, courseId, user, queryClient]);
 
   return (
-    <div className="mt-8 border rounded-lg shadow-sm">
-      <div className="p-4 border-b bg-gray-50">
-        <h2 className="text-xl font-semibold">Thảo luận</h2>
+    <div className="mt-8 border rounded-lg shadow-sm bg-card">
+      <div className="p-4 border-b bg-gray-50 rounded-t-lg">
+        <h2 className="text-xl font-semibold text-gradient-1">Thảo luận</h2>
       </div>
 
       {/* Comments list */}
-      <div ref={commentListRef} className="p-4 max-h-[600px] overflow-y-auto space-y-6">
+      <div
+        ref={commentListRef}
+        className="p-4 max-h-[600px] overflow-y-auto space-y-6"
+      >
         {isLoading ? (
           <div className="flex justify-center">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
@@ -279,9 +293,9 @@ const CourseCommentList = ({ courseId, isEnrolled, isTeacher, isAdmin }: CourseC
           <p className="text-center text-gray-500">Chưa có bình luận nào.</p>
         ) : (
           comments.map((comment) => (
-            <CommentItem 
-              key={comment.id} 
-              comment={comment} 
+            <CommentItem
+              key={comment.id}
+              comment={comment}
               courseId={courseId}
               canModerate={canModerate}
             />
@@ -296,11 +310,13 @@ const CourseCommentList = ({ courseId, isEnrolled, isTeacher, isAdmin }: CourseC
         </div>
       ) : (
         <div className="p-4 border-t text-center">
-          <p className="text-gray-500">Bạn cần đăng ký khóa học để có thể tham gia thảo luận.</p>
+          <p className="text-gray-500">
+            Bạn cần đăng ký khóa học để có thể tham gia thảo luận.
+          </p>
         </div>
       )}
     </div>
   );
 };
 
-export default CourseCommentList; 
+export default CourseCommentList;

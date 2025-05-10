@@ -14,7 +14,7 @@ import PaginationControls from "./PaginationControls";
 
 const CourseFilter = () => {
   const [pageNumber, setPageNumber] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
   const [filters, setFilters] = useState<{
     name?: string;
     departmentId?: string;
@@ -30,7 +30,9 @@ const CourseFilter = () => {
       "courses",
       filters.name,
       filters.departmentId,
-      filters.teacherId,
+      filters.teacherId,  
+      pageNumber,
+      pageSize,
     ],
     queryFn: async () => {
       const queryParams = new URLSearchParams();
@@ -69,6 +71,7 @@ const CourseFilter = () => {
       departmentId: "",
       teacherId: "",
     });
+    setPageNumber(1);
   };
 
   return (

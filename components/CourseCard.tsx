@@ -85,6 +85,9 @@ const CourseCard = ({course}:CourseCardProps) => {
              alt={course.name || "Khóa học"}
              fill
              className='object-cover'
+             onError={(e) => {
+              e.currentTarget.src = "/images/course-placeholder.png";
+            }}
             />
           </div>
           <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300'/>

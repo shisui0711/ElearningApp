@@ -114,7 +114,7 @@ const Header = () => {
                 className="flex space-x-2 items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-300 md:border md:border-border md:rounded-md md:px-4 md:py-2 hover:bg-accent/50 hover:scale-105"
               >
                 <NotebookPen className="size-4" />
-                <span className="hidden md:block">Làm bài kiểm tra</span>
+                <span className="hidden md:block text-gradient-1">Làm bài kiểm tra</span>
               </Link>
             )}
             {user.student && (
@@ -124,7 +124,7 @@ const Header = () => {
                   className="flex space-x-2 items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-300 md:border md:border-border md:rounded-md md:px-4 md:py-2 hover:bg-accent/50 hover:scale-105"
                 >
                   <BookmarkIcon className="size-4" />
-                  <span className="hidden md:block">Khóa học của tôi</span>
+                  <span className="hidden md:block text-gradient-1">Khóa học của tôi</span>
                 </Link>
               )}
             <ThemeToggle />

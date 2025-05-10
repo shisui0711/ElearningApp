@@ -40,6 +40,14 @@ const UserButton = ({ className }: { className?:string }) => {
             Quản lý môn học
           </Link>
         </DropdownMenuItem>}
+        {user.role === "ADMIN" && <DropdownMenuItem>
+          <Link href={`/admin`} className='flex gap-2'
+            onClick={()=>setOpen(false)}
+          >
+            <Settings className='size-4'/>
+            Quản lý hệ thống
+          </Link>
+        </DropdownMenuItem>}
         <DropdownMenuItem>
           <Link href={`/settings/information`} className='flex gap-2'
             onClick={()=>setOpen(false)}
