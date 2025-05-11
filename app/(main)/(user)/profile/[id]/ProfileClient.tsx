@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { CalendarDays, Mail, MapPin, Pencil, User, BookOpen, GraduationCap, UserCog, School } from 'lucide-react';
+import { CalendarDays, Mail, MapPin, Pencil, User, BookOpen, GraduationCap, School, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import UserAvatar from '@/components/UserAvatar';
@@ -81,19 +81,13 @@ export default function ProfileClient({
     };
   }, [isReady, gsap]);
 
-  // Custom CSS for better gradient text readability
-  const gradientTextStyle = {
-    textShadow: '0 1px 1px rgba(0, 0, 0, 0.1)',
-    fontWeight: 'bold'
-  };
-
   return (
     <div ref={pageRef} className="min-h-screen">
       {/* Background with gradient */}
-      <div className="absolute top-0 left-0 w-full h-80 bg-gradient-to-b from-primary/15 to-transparent -z-10" />
+      <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/10 to-transparent -z-10" />
 
-      <div className="container py-16 max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+      <div className="container py-12 max-w-6xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Sidebar with user info */}
           <div ref={sidebarRef} className="md:col-span-1 space-y-6">
             <div ref={profileHeaderRef} className="flex flex-col items-center md:items-start gap-5">
@@ -103,8 +97,8 @@ export default function ProfileClient({
               </div>
 
               <div>
-                <h1 className="text-3xl font-bold text-gradient-1 tracking-tight" style={gradientTextStyle}>{user.displayName}</h1>
-                <p className="text-base text-foreground/80 mt-1">{user.username}</p>
+                <h1 className="text-2xl font-bold text-gradient-1">{user.displayName}</h1>
+                <p className="text-muted-foreground">{user.username}</p>
               </div>
 
               {isOwnProfile && (
@@ -128,30 +122,30 @@ export default function ProfileClient({
               animationVariant="hover"
               glassMorphism
             >
-              <CardContent className="p-5 space-y-4">
+              <CardContent className="p-4 space-y-3">
                 {user.email && (
                   <div className="flex items-center gap-3">
-                    <div className="flex-center size-9 rounded-full bg-primary/10">
+                    <div className="flex-center size-8 rounded-full bg-primary/10">
                       <Mail size={16} className="text-primary" />
                     </div>
-                    <span className="text-base font-medium">{user.email}</span>
+                    <span>{user.email}</span>
                   </div>
                 )}
 
                 {user.location && (
                   <div className="flex items-center gap-3">
-                    <div className="flex-center size-9 rounded-full bg-primary/10">
+                    <div className="flex-center size-8 rounded-full bg-primary/10">
                       <MapPin size={16} className="text-primary" />
                     </div>
-                    <span className="text-base font-medium">{user.location}</span>
+                    <span>{user.location}</span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-3">
-                  <div className="flex-center size-9 rounded-full bg-primary/10">
+                  <div className="flex-center size-8 rounded-full bg-primary/10">
                     <CalendarDays size={16} className="text-primary" />
                   </div>
-                  <span className="text-base">Tham gia từ <span className="font-medium">{new Date(user.createdAt).toLocaleDateString('vi-VN')}</span></span>
+                  <span>Tham gia từ {new Date(user.createdAt).toLocaleDateString('vi-VN')}</span>
                 </div>
               </CardContent>
             </AnimatedCard>
@@ -159,85 +153,88 @@ export default function ProfileClient({
             <AnimatedCard
               className="overflow-hidden"
               animationVariant="hover"
-              gradientBorder
+              gradientBorder={false}
             >
-              <CardHeader className='bg-card'>
-                <CardTitle className="text-xl flex items-center gap-3 font-bold">
-                  <div className="flex-center size-10 rounded-full bg-primary/10">
-                    <User size={20} className="text-primary" />
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="flex-center size-8 rounded-full bg-primary/10">
+                    <User size={18} className="text-primary" />
                   </div>
-                  <span className="text-gradient-1 tracking-tight" style={gradientTextStyle}>Vai trò</span>
+                  <span className="text-foreground">Vai trò</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-5 bg-card">
-                <div className="flex flex-col gap-4">
+              <CardContent className="p-5">
+                <div className="flex flex-col gap-3">
                   <div className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-300",
+                    "flex items-center p-3 rounded-lg border transition-all duration-300",
                     user.role === 'STUDENT'
-                      ? "bg-gradient-to-r from-[hsl(var(--gradient-1-start))/0.15] to-[hsl(var(--gradient-1-end))/0.05] border-l-4 border-[hsl(var(--gradient-1-start))]"
-                      : "hover:bg-accent"
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border"
                   )}>
-                    <div className={cn(
-                      "flex-center size-10 rounded-full",
-                      user.role === 'STUDENT' ? "bg-gradient-1" : "bg-muted"
-                    )}>
-                      <GraduationCap size={20} className={user.role === 'STUDENT' ? "text-white" : "text-muted-foreground"} />
+                    <div className="flex-center size-9 rounded-full bg-primary/10 mr-3">
+                      <GraduationCap size={18} className={cn(
+                        user.role === 'STUDENT' ? "text-primary" : "text-muted-foreground"
+                      )} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className={cn(
-                        "font-semibold text-base",
-                        user.role === 'STUDENT' && "text-gradient-1"
+                        "font-medium",
+                        user.role === 'STUDENT' ? "text-primary" : "text-foreground"
                       )}>Học viên</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {user.role === 'STUDENT' ? 'Vai trò hiện tại' : 'Không có quyền'}
-                      </p>
                     </div>
+                    {user.role === 'STUDENT' && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        Hiện tại
+                      </Badge>
+                    )}
                   </div>
 
                   <div className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-300",
+                    "flex items-center p-3 rounded-lg border transition-all duration-300",
                     user.role === 'TEACHER'
-                      ? "bg-gradient-to-r from-[hsl(var(--gradient-2-start))/0.15] to-[hsl(var(--gradient-2-end))/0.05] border-l-4 border-[hsl(var(--gradient-2-start))]"
-                      : "hover:bg-accent"
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border"
                   )}>
-                    <div className={cn(
-                      "flex-center size-10 rounded-full",
-                      user.role === 'TEACHER' ? "bg-gradient-2" : "bg-muted"
-                    )}>
-                      <School size={20} className={user.role === 'TEACHER' ? "text-white" : "text-muted-foreground"} />
+                    <div className="flex-center size-9 rounded-full bg-primary/10 mr-3">
+                      <School size={18} className={cn(
+                        user.role === 'TEACHER' ? "text-primary" : "text-muted-foreground"
+                      )} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className={cn(
-                        "font-semibold text-base",
-                        user.role === 'TEACHER' && "text-gradient-2"
+                        "font-medium",
+                        user.role === 'TEACHER' ? "text-primary" : "text-foreground"
                       )}>Giảng viên</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {user.role === 'TEACHER' ? 'Vai trò hiện tại' : 'Không có quyền'}
-                      </p>
                     </div>
+                    {user.role === 'TEACHER' && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        Hiện tại
+                      </Badge>
+                    )}
                   </div>
 
                   <div className={cn(
-                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-300",
+                    "flex items-center p-3 rounded-lg border transition-all duration-300",
                     user.role === 'ADMIN'
-                      ? "bg-gradient-to-r from-[hsl(var(--gradient-3-start))/0.15] to-[hsl(var(--gradient-3-end))/0.05] border-l-4 border-[hsl(var(--gradient-3-start))]"
-                      : "hover:bg-accent"
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border"
                   )}>
-                    <div className={cn(
-                      "flex-center size-10 rounded-full",
-                      user.role === 'ADMIN' ? "bg-gradient-3" : "bg-muted"
-                    )}>
-                      <UserCog size={20} className={user.role === 'ADMIN' ? "text-white" : "text-muted-foreground"} />
+                    <div className="flex-center size-9 rounded-full bg-primary/10 mr-3">
+                      <UserCog size={18} className={cn(
+                        user.role === 'ADMIN' ? "text-primary" : "text-muted-foreground"
+                      )} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <h3 className={cn(
-                        "font-semibold text-base",
-                        user.role === 'ADMIN' && "text-gradient-3"
+                        "font-medium",
+                        user.role === 'ADMIN' ? "text-primary" : "text-foreground"
                       )}>Quản trị viên</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {user.role === 'ADMIN' ? 'Vai trò hiện tại' : 'Không có quyền'}
-                      </p>
                     </div>
+                    {user.role === 'ADMIN' && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        Hiện tại
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -251,18 +248,18 @@ export default function ProfileClient({
               ref={bioCardRef}
               className="overflow-hidden"
               animationVariant="hover"
-              gradientBorder
+              gradientBorder={false}
             >
-              <CardHeader className='bg-card'>
-                <CardTitle className="text-2xl flex items-center gap-3 font-bold">
-                  <div className="flex-center size-10 rounded-full bg-primary/10">
-                    <User size={20} className="text-primary" />
+              <CardHeader>
+                <CardTitle className="text-xl flex items-center gap-2">
+                  <div className="flex-center size-8 rounded-full bg-primary/10">
+                    <User size={18} className="text-primary" />
                   </div>
-                  <span className="text-gradient-1 tracking-tight" style={gradientTextStyle}>Giới thiệu</span>
+                  <span className="text-foreground">Giới thiệu</span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-5 bg-card">
-                <p className="text-base text-foreground/80 leading-relaxed">
+              <CardContent>
+                <p className="text-muted-foreground">
                   {user.bio || 'Người dùng này chưa cập nhật thông tin giới thiệu.'}
                 </p>
               </CardContent>
@@ -274,22 +271,22 @@ export default function ProfileClient({
                 <AnimatedCard
                   className="overflow-hidden"
                   animationVariant="hover"
-                  gradientBorder
+                  gradientBorder={false}
                 >
-                  <CardHeader className='bg-card'>
-                    <CardTitle className="text-2xl flex items-center gap-3 font-bold">
-                      <div className="flex-center size-10 rounded-full bg-primary/10">
-                        <BookOpen size={20} className="text-primary" />
+                  <CardHeader>
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <div className="flex-center size-8 rounded-full bg-primary/10">
+                        <BookOpen size={18} className="text-primary" />
                       </div>
-                      <span className="text-gradient-1 tracking-tight" style={gradientTextStyle}>Khóa học đang dạy</span>
+                      <span className="text-foreground">Khóa học đang dạy</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-5 bg-card">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {user.teacher.courses.map((course: any) => (
                         <Link key={course.id} href={`/course/${course.id}`} className="group">
                           <div className="relative h-24 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-all duration-300 group-hover:shadow-md">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-accent/50 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                             <div className="relative h-full w-full p-4 flex items-center">
                               <div className="relative size-12 mr-3 rounded-md overflow-hidden flex-shrink-0 border border-border">
                                 <Image
@@ -299,7 +296,7 @@ export default function ProfileClient({
                                   className="object-cover"
                                 />
                               </div>
-                              <h3 className="text-base font-semibold group-hover:text-primary transition-colors duration-300 line-clamp-2">{course.name}</h3>
+                              <h3 className="font-medium group-hover:text-primary transition-colors duration-300">{course.name}</h3>
                             </div>
                           </div>
                         </Link>
@@ -312,7 +309,7 @@ export default function ProfileClient({
                         asChild
                         animationVariant="hover"
                       >
-                        <Link href={`/teacher/${user.teacher.id}/courses`} className="text-gradient-1 text-base font-medium" style={gradientTextStyle}>
+                        <Link href={`/teacher/${user.teacher.id}/courses`} className="text-primary">
                           Xem tất cả khóa học
                         </Link>
                       </AnimatedButton>
@@ -326,22 +323,22 @@ export default function ProfileClient({
                 <AnimatedCard
                   className="overflow-hidden mt-6"
                   animationVariant="hover"
-                  gradientBorder
+                  gradientBorder={false}
                 >
                   <CardHeader>
-                    <CardTitle className="text-2xl flex items-center gap-3 font-bold">
-                      <div className="flex-center size-10 rounded-full bg-primary/10">
-                        <BookOpen size={20} className="text-primary" />
+                    <CardTitle className="text-xl flex items-center gap-2">
+                      <div className="flex-center size-8 rounded-full bg-primary/10">
+                        <BookOpen size={18} className="text-primary" />
                       </div>
-                      <span className="text-gradient-1 tracking-tight" style={gradientTextStyle}>Khóa học đang học</span>
+                      <span className="text-foreground">Khóa học đang học</span>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {enrolledCourses.map(({ course }) => (
                         <Link key={course.id} href={`/course/${course.id}`} className="group">
                           <div className="relative h-24 rounded-lg overflow-hidden border border-border group-hover:border-primary/50 transition-all duration-300 group-hover:shadow-md">
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-accent/50 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                             <div className="relative h-full w-full p-4 flex items-center">
                               <div className="relative size-12 mr-3 rounded-md overflow-hidden flex-shrink-0 border border-border">
                                 <Image
@@ -351,7 +348,7 @@ export default function ProfileClient({
                                   className="object-cover"
                                 />
                               </div>
-                              <h3 className="text-base font-semibold group-hover:text-primary transition-colors duration-300 line-clamp-2">{course.name}</h3>
+                              <h3 className="font-medium group-hover:text-primary transition-colors duration-300">{course.name}</h3>
                             </div>
                           </div>
                         </Link>
@@ -364,7 +361,7 @@ export default function ProfileClient({
                         asChild
                         animationVariant="hover"
                       >
-                        <Link href={`/my-courses`} className="text-gradient-1 text-base font-medium" style={gradientTextStyle}>
+                        <Link href={`/my-courses`} className="text-primary">
                           Xem tất cả khóa học
                         </Link>
                       </AnimatedButton>
