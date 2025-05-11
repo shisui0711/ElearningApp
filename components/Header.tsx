@@ -9,6 +9,8 @@ import UserButton from "./UserButton";
 import { useSession } from "@/provider/SessionProvider";
 import { useAnimation } from "@/provider/AnimationProvider";
 import { cn } from "@/lib/utils";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Image from "next/image";
 
 const Header = () => {
   const { user } = useSession();
@@ -57,29 +59,38 @@ const Header = () => {
       );
     }
 
-    // Add scroll animation
-    gsap.to(headerRef.current, {
-      scrollTrigger: {
-        trigger: "body",
-        start: "top top",
-        end: "+=100",
-        scrub: true
-      },
-      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.1)",
-      backdropFilter: "blur(12px)",
-      background: "rgba(var(--background), 0.85)"
+    // Add scroll animation - using markers for debugging
+    const scrollTrigger = ScrollTrigger.create({
+      trigger: "body",
+      start: "top top",
+      end: "+=100",
+      scrub: true,
+      // markers: true, // Uncomment for debugging
+      onUpdate: (self) => {
+        // Apply styles directly to ensure sticky behavior isn't affected
+        if (headerRef.current) {
+          const progress = self.progress;
+          const shadowIntensity = Math.min(0.1 + (progress * 0.2), 0.3);
+          const blurIntensity = Math.min(8 + (progress * 12), 20);
+
+          headerRef.current.style.boxShadow = `0 10px 30px rgba(0, 0, 0, ${shadowIntensity})`;
+          headerRef.current.style.backdropFilter = `blur(${blurIntensity}px)`;
+          headerRef.current.style.background = `rgba(var(--background), ${0.8 + (progress * 0.15)})`;
+        }
+      }
     });
 
     return () => {
       // Clean up animations
       if (tl) tl.kill();
+      if (scrollTrigger) scrollTrigger.kill();
     };
   }, [isReady, gsap]);
 
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border transition-all duration-300"
+      className="fixed top-0 left-0 right-0 w-full z-[100] bg-background/80 backdrop-blur-sm border-b border-border transition-all duration-300 will-change-transform"
     >
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
@@ -90,7 +101,7 @@ const Header = () => {
               href="/"
               className="flex items-center space-x-2 hover:opacity-90 transition-all duration-300 hover:scale-105"
             >
-              <BookOpen className="size-6 text-gradient-1" />
+              <Image src="/images/logo.png" alt="logo" width={32} height={32} />
               <span className="text-xl font-bold text-gradient-1">
                 Easy Learn
               </span>
