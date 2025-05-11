@@ -4,6 +4,7 @@ import { createContext } from "react";
 import * as React from "react";
 import { DefaultEventsMap } from "socket.io";
 import io, { Socket } from "socket.io-client";
+import { useSession } from "./SessionProvider";
 
 interface SocketContextType {
   socket: Socket<DefaultEventsMap, DefaultEventsMap> | null;
@@ -15,38 +16,43 @@ const SocketContext = createContext<SocketContextType>({
 
 // Use environment variables or default to port 3000
 const PORT = process.env.NEXT_PUBLIC_SOCKET_PORT || 3000;
-const socket = io(`:${PORT}`, { path: "/api/socket", addTrailingSlash: false });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const [socket, setSocket] = React.useState<Socket | null>(null);
   const [isConnected, setIsConnected] = React.useState(false);
+  const { user } = useSession();
 
   React.useEffect(() => {
+    if (!user?.id) return;
+    
+    const socketInstance = io(`:${PORT}`, { path: "/api/socket", addTrailingSlash: false });
+    setSocket(socketInstance);
+
     const onConnect = () => {
       setIsConnected(true);
-      console.log("Socket connected:", socket.id);
+      socketInstance.emit("join_user_room", { userId: user.id });
+      console.log("Socket connected:", socketInstance.id);
     };
 
     const onDisconnect = () => {
       setIsConnected(false);
       console.log("Socket disconnected");
     };
+  
+    socketInstance.on("connect", onConnect);
+    socketInstance.on("disconnect", onDisconnect);
 
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-
-    socket.on("notification_received", (data: any) => {
-      console.log("Notification received:", data);
-      // TODO: Add notification to the user's notifications
-    });
+    // We're not handling notifications directly here anymore
+    // This is moved to the NotificationProvider
 
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.disconnect();
+      socketInstance.off("connect", onConnect);
+      socketInstance.off("disconnect", onDisconnect);
+      socketInstance.disconnect();
     };
-  }, []);
+  }, [user?.id]);
 
   return (
     <SocketContext.Provider value={{ socket }}>

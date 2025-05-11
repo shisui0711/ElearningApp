@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateRequest } from "@/auth";
+import { NotificationType } from "@prisma/client";
 
 // Toggle like on a post
 export async function POST(
@@ -51,23 +52,62 @@ export async function POST(
 
     if (existingLike) {
       // Unlike
-      await prisma.forumLike.delete({
-        where: {
-          id: existingLike.id,
-        },
+      await prisma.$transaction(async (tx) => {
+        // Delete the like
+        await tx.forumLike.delete({
+          where: {
+            id: existingLike.id,
+          },
+        });
+
+        // Delete any related notifications
+        await tx.notification.deleteMany({
+          where: {
+            entityId: postId,
+            entityType: "forum_post",
+            type: NotificationType.FORUM,
+            userId: post.userId,
+          },
+        });
       });
 
-      return NextResponse.json({ liked: false });
+      return NextResponse.json({ liked: false, topicId: post.topicId });
     } else {
       // Like
-      await prisma.forumLike.create({
-        data: {
-          userId: user.id,
-          postId,
-        },
+      // Get post author to send notification
+      const postAuthor = await prisma.forumPost.findUnique({
+        where: { id: postId },
+        select: { userId: true }
       });
 
-      return NextResponse.json({ liked: true });
+      // Create like and notification in a transaction
+      await prisma.$transaction(async (tx) => {
+        // Create the like
+        await tx.forumLike.create({
+          data: {
+            userId: user.id,
+            postId,
+          },
+        });
+
+        // Create notification for post author if it's not the same user
+        if (postAuthor && postAuthor.userId !== user.id) {
+          await tx.notification.create({
+            data: {
+              userId: postAuthor.userId,
+              type: NotificationType.FORUM,
+              content: "Bạn đã nhận được một lượt thích mới cho bài viết của mình",
+              title: "Lượt thích mới",
+              entityId: post.topicId,
+              entityType: "forum_post",
+              read: false,
+            },
+          });
+        }
+      });
+
+      // Don't create the like again since we did it in the transaction
+      return NextResponse.json({ liked: true, topicId: post.topicId });
     }
   } catch (error) {
     console.error("[POST_LIKE]", error);

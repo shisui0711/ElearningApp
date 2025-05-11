@@ -11,6 +11,7 @@ import { useAnimation } from "@/provider/AnimationProvider";
 import { cn } from "@/lib/utils";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 const Header = () => {
   const { user } = useSession();
@@ -149,7 +150,12 @@ const Header = () => {
                 </Link>
               )}
             <ThemeToggle />
-            {user && <UserButton />}
+            {user && (
+              <>
+                <NotificationDropdown />
+                <UserButton />
+              </>
+            )}
           </div>
         </div>
       </div>

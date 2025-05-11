@@ -3,6 +3,7 @@ import React from "react";
 import SessionProvider from "@/provider/SessionProvider";
 import { validateRequest } from "@/auth";
 import { SocketProvider } from "@/provider/SocketProvider";
+import { NotificationProvider } from "@/provider/NotificationProvider";
 
 export default async function MainLayout({
   children,
@@ -14,7 +15,11 @@ export default async function MainLayout({
 
   return (
     <SessionProvider value={session}>
-      <SocketProvider>{children}</SocketProvider>
+      <SocketProvider>
+        <NotificationProvider>
+          {children}
+        </NotificationProvider>
+        </SocketProvider>
     </SessionProvider>
   );
 }

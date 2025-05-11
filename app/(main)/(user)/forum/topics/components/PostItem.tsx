@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { vi } from 'date-fns/locale/vi';
+import { useSocket } from "@/provider/SocketProvider";
 
 interface UserInfo {
   id: string;
@@ -67,6 +68,7 @@ export const PostItem = ({
   userLikedPosts = [],
 }: PostItemProps) => {
   const router = useRouter();
+  const socket = useSocket();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(postData.content);
   const [isEditLoading, setIsEditLoading] = useState(false);
@@ -139,11 +141,25 @@ export const PostItem = ({
     try {
       setIsLikeLoading(true);
 
-      await axios.post(`/api/forum/posts/${postData.id}/like`);
-
+      const response = await axios.post(`/api/forum/posts/${postData.id}/like`);
+      const { liked, topicId } = response.data;
+      
       if (isLiked) {
         setLikeCount((prev) => prev - 1);
       } else {
+        if(socket && postData.user.id !== currentUser.id) {
+          socket.emit("send_notification", {
+            userId: postData.user.id,
+            type: "FORUM",
+            content: `${currentUser.displayName} đã thích bài viết của bạn`,
+            title: "Lượt thích mới",
+            link: `/forum/topics/${topicId}`,
+            read: false,
+            createdAt: new Date(),
+            entityId: postData.id,
+            entityType: "forum_post"
+          });
+        }
         setLikeCount((prev) => prev + 1);
       }
 
