@@ -1,14 +1,16 @@
 "use client";
 
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Star } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import UserAvatar from './UserAvatar';
 import { CourseWithDetails } from '@/types';
 import { AnimatedCard, CardContent } from './ui/animated-card';
 import { useAnimation } from '@/provider/AnimationProvider';
-import { cn } from '@/lib/utils';
+import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
+import CourseRatingDisplay from './CourseRatingDisplay';
 
 interface CourseCardProps {
   course: CourseWithDetails
@@ -18,6 +20,25 @@ const CourseCard = ({course}:CourseCardProps) => {
   const { gsap, isReady } = useAnimation();
   const cardRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
+
+  // Fetch course ratings
+  const { data: ratingData } = useQuery({
+    queryKey: ['courseRatings', course.id],
+    queryFn: async () => {
+      try {
+        const response = await axios.get(`/api/course-ratings?courseId=${course.id}`);
+        return response.data;
+      } catch (error) {
+        // Return default values if API fails
+        return { stats: { averageRating: 0, totalRatings: 0 } };
+      }
+    },
+    // Don't refetch on window focus for better performance
+    refetchOnWindowFocus: false,
+  });
+
+  const averageRating = ratingData?.stats?.averageRating || 0;
+  const totalRatings = ratingData?.stats?.totalRatings || 0;
 
   useEffect(() => {
     if (!isReady || !cardRef.current) return;
@@ -99,6 +120,18 @@ const CourseCard = ({course}:CourseCardProps) => {
         </div>
         <CardContent className='p-6 flex flex-col flex-1'>
           <h3 className='text-xl font-bold mb-2 group-hover:text-primary transition-colors duration-300'>{course.name}</h3>
+          
+          {/* Rating display */}
+          {totalRatings > 0 && (
+            <div className="mb-3">
+              <CourseRatingDisplay 
+                rating={averageRating} 
+                totalRatings={totalRatings} 
+                size="sm"
+              />
+            </div>
+          )}
+          
           <div className='space-y-4 mt-auto'>
             {/* Author */}
             <div className='flex items-center justify-between'>

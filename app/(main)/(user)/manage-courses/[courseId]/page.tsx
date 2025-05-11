@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Layers, Library, PenLine, FileText, Plus, Filter } from "lucide-react";
+import { Layers, Library, PenLine, FileText, Plus, Filter, Hash } from "lucide-react";
 import Link from "next/link";
 import UserAvatar from "@/components/UserAvatar";
 import { CreateDocumentDialog } from "./CreateDocumentDialog";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import AssignExamButton from "./AssignExamButton";
 import CreateFileAssignmentDialog from "./CreateFileAssignmentDialog";
 import { ClassFilterSelect } from "./ClassFilterSelect";
+import { PrerequisiteDialog } from "./PrerequisiteDialog";
 
 interface PageProps {
   params: Promise<{
@@ -95,10 +96,16 @@ async function getCourseDetails(courseId: string, userId: string) {
             },
           },
         },
+        prerequisites: {
+          include: {
+            subject: true,
+          },
+        },
         _count: {
           select: {
             lessons: true,
             assignments: true,
+            prerequisites: true,
           },
         },
       },
@@ -365,10 +372,11 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
 
       {/* Course content management */}
       <Tabs defaultValue="lessons" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8">
+        <TabsList className="grid w-full grid-cols-4 mb-8">
           <TabsTrigger value="lessons">Quản lý bài học</TabsTrigger>
           <TabsTrigger value="documents">Quản lý tài liệu</TabsTrigger>
           <TabsTrigger value="assignments">Quản lý bài tập</TabsTrigger>
+          <TabsTrigger value="prerequisites">Điều kiện tiên quyết</TabsTrigger>
         </TabsList>
 
         <TabsContent value="lessons" className="border rounded-lg p-6">
@@ -773,6 +781,44 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
               )}
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="prerequisites" className="border rounded-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold">Điều kiện tiên quyết</h2>
+            <PrerequisiteDialog 
+              courseId={course.id} 
+              initialPrerequisites={course.prerequisites}
+            />
+          </div>
+
+          {course.prerequisites.length > 0 ? (
+            <div className="space-y-4">
+              {course.prerequisites.map((prerequisite) => (
+                <div
+                  key={prerequisite.id}
+                  className="border rounded-md p-4 flex justify-between items-center group hover:border-primary transition-colors"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Hash className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="font-medium text-lg">{prerequisite.subject.name}</h3>
+                    </div>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      {prerequisite.description || "Không có mô tả"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <h3 className="text-xl font-medium mb-2">Chưa có điều kiện tiên quyết nào</h3>
+              <p className="text-muted-foreground mb-6">
+                Thêm các môn học tiên quyết mà sinh viên cần hoàn thành trước khi tham gia khóa học này
+              </p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

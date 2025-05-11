@@ -73,7 +73,7 @@ const Sidebar = ({ course, completedLessons }: SidebarProps) => {
             <CourseProgress progress={progress} variant="success" label="Tiến độ" />
           </div>
         </div>
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 pb-16">
           <div className="p-2 lg:p-4">
             <Accordion
               type="multiple"

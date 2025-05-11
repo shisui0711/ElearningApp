@@ -1,6 +1,7 @@
 import { validateRequest } from "@/auth";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { PrerequisiteService } from "@/app/services/prerequisiteService";
 
 export async function GET(request: Request) {
   try {
@@ -108,6 +109,37 @@ export async function POST(req: Request) {
       });
       if (!student) {
         return new NextResponse("Student not found", { status: 404 });
+      }
+
+      // Check if already enrolled
+      const existingEnrollment = await prisma.enrollment.findFirst({
+        where: {
+          courseId,
+          studentId,
+        },
+      });
+
+      if (existingEnrollment) {
+        return NextResponse.json(
+          { error: "Already enrolled in this course" },
+          { status: 400 }
+        );
+      }
+
+      // Check prerequisites
+      const prerequisiteCheck = await PrerequisiteService.validatePrerequisites(
+        studentId,
+        courseId
+      );
+
+      if (!prerequisiteCheck.canEnroll) {
+        return NextResponse.json(
+          { 
+            error: "Prerequisites not met",
+            missingPrerequisites: prerequisiteCheck.missingPrerequisites
+          },
+          { status: 403 }
+        );
       }
 
       const enrollment = await prisma.enrollment.create({

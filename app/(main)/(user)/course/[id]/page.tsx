@@ -35,6 +35,8 @@ import { vi } from "date-fns/locale";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import DoExamButton from "@/components/DoExamButton";
+import PrerequisitesList from "@/components/courses/PrerequisitesList";
+import CourseRatingWrapper from "@/components/CourseRatingWrapper";
 
 interface CoursePageProps {
   params: Promise<{ id: string }>;
@@ -181,8 +183,18 @@ const CoursePage = async ({ params }: CoursePageProps) => {
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2">
+            {/* Prerequisites Check */}
+            {user.student && <div className="mb-8">
+              <PrerequisitesList courseId={course.id} />
+            </div>}
+            
+            {/* Course Rating Section */}
+            {isEnrolled && user.student && (
+              <CourseRatingWrapper courseId={course.id} />
+            )}
+            
             {/* Hiển thị danh sách bài tập */}
-            {user.student && <Card className="mb-8">
+            {user.student && (<Card className="mb-8">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Bài tập</CardTitle>
@@ -440,7 +452,8 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                   </div>
                 )}
               </CardContent>
-            </Card>}
+              </Card>
+              )}
 
             {/* Nội dung khóa học */}
             <div className="bg-card rounded-lg p-6 mb-8 border border-border">

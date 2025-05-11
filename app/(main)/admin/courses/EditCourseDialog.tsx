@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { updateCourseSchema } from "@/lib/validation";
+import { Department, Teacher } from "@prisma/client";
+import { PaginationResponse } from "@/types";
 
 interface EditCourseDialogProps {
   open: boolean;
@@ -46,18 +48,15 @@ export default function EditCourseDialog({
   const router = useRouter();
 
   // Get department and teacher data for dropdowns
-  const { data: departments } = useQuery({
+  const { data: departments } = useQuery<PaginationResponse<Department>>({
     queryKey: ["departments"],
     queryFn: async () => {
-      const response = await axios.get("/api/departments");
-      return response.data;
-    },
-  });
-
-  const { data: teachers } = useQuery({
-    queryKey: ["teachers"],
-    queryFn: async () => {
-      const response = await axios.get("/api/teachers");
+      const response = await axios.get("/api/departments", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
       return response.data;
     },
   });
@@ -172,7 +171,7 @@ export default function EditCourseDialog({
                       {...field}
                     >
                       <option value="">Chọn khoa</option>
-                      {departments?.map((dept: any) => (
+                      {departments?.data && departments.data?.map((dept: any) => (
                         <option key={dept.id} value={dept.id}>
                           {dept.name}
                         </option>

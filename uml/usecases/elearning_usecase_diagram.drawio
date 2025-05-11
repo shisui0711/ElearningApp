@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2023-09-01T00:00:00.000Z" agent="5.0 (Windows)" etag="1234" version="21.5.0" type="device">
+  <diagram id="elearning-usecase-diagram" name="E-Learning Use Case Diagram">
+    <mxGraphModel dx="1422" dy="798" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Styles -->
+        <object label="Title" id="styles">
+          <mxCell style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;" parent="1" vertex="1" connectable="0" collapsed="1">
+            <mxGeometry x="40" y="40" width="160" height="26" as="geometry" />
+          </mxCell>
+        </object>
+        
+        <!-- Actors -->
+        <mxCell id="actor-guest" value="Guest" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#d5e8d4;strokeColor=#82b366;" parent="1" vertex="1">
+          <mxGeometry x="80" y="120" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-student" value="Student" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="1" vertex="1">
+          <mxGeometry x="80" y="240" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-teacher" value="Teacher" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="80" y="360" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="actor-admin" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#f8cecc;strokeColor=#b85450;" parent="1" vertex="1">
+          <mxGeometry x="80" y="480" width="30" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Inheritance between actors -->
+        <mxCell id="inherit-student-guest" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;strokeColor=#6c8ebf;" parent="1" source="actor-student" target="actor-guest" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="inherit-teacher-guest" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;strokeColor=#d79b00;" parent="1" source="actor-teacher" target="actor-guest" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="inherit-admin-teacher" value="" style="endArrow=block;endSize=16;endFill=0;html=1;rounded=0;strokeColor=#b85450;" parent="1" source="actor-admin" target="actor-teacher" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Authentication Package -->
+        <mxCell id="package-auth" value="Authentication" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="220" y="80" width="180" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-signin" value="Sign In" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="110" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-signup" value="Sign Up" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="160" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-resetpw" value="Reset Password" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="210" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- User Management Package -->
+        <mxCell id="package-user" value="User Management" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="220" y="260" width="180" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-updateprofile" value="Update Profile" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="290" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-changesettings" value="Change Settings" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="340" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-viewprofile" value="View Profile" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="390" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Course Management Package -->
+        <mxCell id="package-course" value="Course Management" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="220" y="440" width="180" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-browsecourses" value="Browse Courses" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="470" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-createcourse" value="Create Course" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="520" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-editcourse" value="Edit Course" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="570" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-deletecourse" value="Delete Course" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="620" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-uploadmaterials" value="Upload Course Materials" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="250" y="670" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Learning Activities Package -->
+        <mxCell id="package-learning" value="Learning Activities" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="450" y="80" width="180" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-enrollcourse" value="Enroll in Course" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="110" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-viewcontent" value="View Course Content" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="160" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-completelessons" value="Complete Lessons" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="210" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-watchvideos" value="Watch Video Lectures" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="260" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-downloaddocs" value="Download Documents" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="310" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Assignments Package -->
+        <mxCell id="package-assignments" value="Assignments" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="450" y="380" width="180" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-createexams" value="Create Exams" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="410" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-attemptexams" value="Attempt Exams" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="460" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-gradeexams" value="Grade Exams" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="510" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-viewresults" value="View Exam Results" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="560" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-createassignments" value="Create Assignments" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="480" y="610" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Forum Package -->
+        <mxCell id="package-forum" value="Forum" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="680" y="80" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-browsetopics" value="Browse Forum Topics" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="110" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-createtopic" value="Create Topic" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="160" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-replytopic" value="Reply to Topic" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="210" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Administration Package -->
+        <mxCell id="package-admin" value="Administration" style="shape=folder;fontStyle=1;spacingTop=10;tabWidth=40;tabHeight=14;tabPosition=left;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="680" y="300" width="180" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-manageusers" value="Manage Users" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="330" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-managedepartments" value="Manage Departments" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="380" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-manageclasses" value="Manage Classes" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="430" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="usecase-managesubjects" value="Manage Subjects" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f0f8ff;strokeColor=#2f4f4f;" parent="1" vertex="1">
+          <mxGeometry x="710" y="480" width="120" height="40" as="geometry" />
+        </mxCell>
+        
+        <!-- Guest Relationships -->
+        <mxCell id="rel-guest-signin" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" parent="1" source="actor-guest" target="usecase-signin" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="140" as="sourcePoint" />
+            <mxPoint x="210" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-guest-signup" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" parent="1" source="actor-guest" target="usecase-signup" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="140" as="sourcePoint" />
+            <mxPoint x="210" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-guest-resetpw" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" parent="1" source="actor-guest" target="usecase-resetpw" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="140" as="sourcePoint" />
+            <mxPoint x="210" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-guest-browsecourses" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#82b366;" parent="1" source="actor-guest" target="usecase-browsecourses" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="140" as="sourcePoint" />
+            <mxPoint x="210" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Student Relationships - sample of a few key relationships -->
+        <mxCell id="rel-student-updateprofile" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" parent="1" source="actor-student" target="usecase-updateprofile" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="240" as="sourcePoint" />
+            <mxPoint x="210" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-student-enrollcourse" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#6c8ebf;" parent="1" source="actor-student" target="usecase-enrollcourse" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="240" as="sourcePoint" />
+            <mxPoint x="210" y="320" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Teacher Relationships - sample of a few key relationships -->
+        <mxCell id="rel-teacher-createcourse" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;" parent="1" source="actor-teacher" target="usecase-createcourse" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="360" as="sourcePoint" />
+            <mxPoint x="210" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-teacher-createexams" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#d79b00;" parent="1" source="actor-teacher" target="usecase-createexams" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="360" as="sourcePoint" />
+            <mxPoint x="210" y="440" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Admin Relationships - sample of a few key relationships -->
+        <mxCell id="rel-admin-manageusers" value="" style="endArrow=open;endSize=12;dashed=0;html=1;rounded=0;exitX=1;exitY=0.3333333333333333;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#b85450;" parent="1" source="actor-admin" target="usecase-manageusers" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="110" y="480" as="sourcePoint" />
+            <mxPoint x="210" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Include/Extend Relationships -->
+        <mxCell id="rel-createcourse-uploadmaterials" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;" parent="1" source="usecase-createcourse" target="usecase-uploadmaterials" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="300" y="540" as="sourcePoint" />
+            <mxPoint x="300" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="rel-enrollcourse-viewcontent" value="&lt;&lt;include&gt;&gt;" style="endArrow=open;endSize=12;dashed=1;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#9673a6;" parent="1" source="usecase-enrollcourse" target="usecase-viewcontent" edge="1">
+          <mxGeometry width="160" relative="1" as="geometry">
+            <mxPoint x="520" y="130" as="sourcePoint" />
+            <mxPoint x="520" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile> 

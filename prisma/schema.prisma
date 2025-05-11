@@ -83,6 +83,8 @@ model Student {
   enrollments           Enrollment[]
   attempts              ExamAttempt[]
   assignmentSubmissions AssignmentSubmission[]
+  courseRatings         CourseRating[]         // Ratings given by the student
+  courseCompletions     CourseCompletion[]     // Courses completed by the student
 
   @@map("students")
 }
@@ -109,6 +111,9 @@ model Course {
   Subject         Subject?          @relation(fields: [subjectId], references: [id])
   subjectId       String?
   CompletedLesson CompletedLesson[]
+  prerequisites   CoursePrerequisite[] // Subjects required for this course
+  ratings         CourseRating[]    // Course ratings by students
+  completions     CourseCompletion[] // Course completions by students
 
   @@map("courses")
 }
@@ -205,16 +210,17 @@ model Class {
 }
 
 model Subject {
-  id           String     @id @default(cuid())
+  id           String               @id @default(cuid())
   name         String
   description  String?
   courses      Course[]
   departmentId String
-  department   Department @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime?  @updatedAt
+  department   Department           @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime?            @updatedAt
   createdBy    String?
   updatedBy    String?
+  prerequisites CoursePrerequisite[] // Required subjects for other courses
 
   @@map("subjects")
 }
@@ -491,4 +497,46 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@map("notifications")
+}
+
+model CoursePrerequisite {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  description String?  // Description of why this subject is a prerequisite
+
+  @@unique([courseId, subjectId])
+  @@map("course_prerequisites")
+}
+
+model CourseRating {
+  id        String   @id @default(cuid())
+  rating    Int      // Rating from 1-5 stars
+  review    String?  // Optional text review
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, studentId])
+  @@map("course_ratings")
+}
+
+model CourseCompletion {
+  id           String   @id @default(cuid())
+  courseId     String
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentId    String
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  completedAt  DateTime @default(now())
+  isRated      Boolean  @default(false)  // Flag to track if student has rated the course
+  
+  @@unique([courseId, studentId])
+  @@map("course_completions")
 }

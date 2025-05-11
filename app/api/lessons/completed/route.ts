@@ -50,6 +50,17 @@ export async function POST(req: Request) {
       return new NextResponse("Lesson not found", { status: 404 });
     }
 
+    const checkLessonCompleted = await prisma.completedLesson.findFirst({
+      where: {
+        lessonId: lessonId,
+        studentId: studentId,
+      },
+    });
+    
+    if(checkLessonCompleted){
+      return new NextResponse("Lesson already completed", { status: 400 });
+    }
+
     const completedLesson = await prisma.completedLesson.create({
       data: {
         studentId: studentId,
