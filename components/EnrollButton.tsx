@@ -1,6 +1,7 @@
 "use client"
 
 import { useSession } from '@/provider/SessionProvider';
+import { useSocket } from '@/provider/SocketProvider';
 import { CourseWithDetails } from '@/types';
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -17,9 +18,10 @@ const EnrollButton = ({course, isEnrolled}:EnrollButtonProps) => {
   const { user } = useSession();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const socket = useSocket();
 
     const handleEnroll = async (courseId: string) => {
-      if(!user || !user.student) return;
+      if(!user || !user.student || !socket) return;
       const studentId = user.student.id;
       startTransition(async () => {
        const response = await fetch("/api/courses/enroll", {
@@ -27,6 +29,13 @@ const EnrollButton = ({course, isEnrolled}:EnrollButtonProps) => {
           body: JSON.stringify({ courseId, studentId}),
         });
         if(response.ok){
+          console.log("Sending notification to user:", user.id);
+          socket.emit("send_notification", {
+            userId: user.id,
+            type: "enroll",
+            message: "Bạn đã đăng ký khóa học thành công",
+            link: `/dashboard/courses/${courseId}`,
+          });
           if(course.lessons.length > 0){
             router.push(`/dashboard/courses/${courseId}/lessons/${course.lessons[0].id}`)
           }else{

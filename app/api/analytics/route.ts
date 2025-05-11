@@ -65,12 +65,12 @@ export async function GET(req: NextRequest) {
         },
         _count: {
           select: {
-            students: true
+            enrollments: true
           }
         }
       },
       orderBy: {
-        students: {
+        enrollments: {
           _count: "desc"
         }
       },
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
       courseEnrollments: courseEnrollments.map(course => ({
         name: course.name,
         department: course.department.name,
-        enrollments: course._count.students
+        enrollments: course._count.enrollments
       })),
       completionStats: completedLessons,
       examPerformance: examPerformance,

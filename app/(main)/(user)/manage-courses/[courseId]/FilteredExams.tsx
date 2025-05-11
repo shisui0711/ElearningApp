@@ -46,6 +46,7 @@ export function FilteredExams({
           <h3 className="text-lg font-medium">Danh sách bài kiểm tra</h3>
           <ClassFilterSelect
             classes={classes}
+            selectedClassId={selectedClassId}
             onFilterChange={setSelectedClassId}
           />
         </div>

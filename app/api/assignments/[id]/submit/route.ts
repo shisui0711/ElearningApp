@@ -28,9 +28,8 @@ export async function POST(
     // Handle different submission types based on content type
     const contentType = request.headers.get("Content-Type") || "";
 
-    // If the request is a JSON payload (for exam or quiz submissions)
+    // If the request is a JSON payload
     if (contentType.includes("application/json")) {
-      const { examAttemptId, quizAttemptId } = await request.json();
 
       // Check if student has an existing submission
       const existingSubmission = await prisma.assignmentSubmission.findUnique({
@@ -47,8 +46,6 @@ export async function POST(
         const updatedSubmission = await prisma.assignmentSubmission.update({
           where: { id: existingSubmission.id },
           data: {
-            examAttemptId: examAttemptId || existingSubmission.examAttemptId,
-            quizAttemptId: quizAttemptId || existingSubmission.quizAttemptId,
             submittedAt: new Date(),
           },
         });
@@ -59,8 +56,6 @@ export async function POST(
           data: {
             assignmentId,
             studentId: user.student.id,
-            examAttemptId,
-            quizAttemptId,
           },
         });
         return NextResponse.json(submission);

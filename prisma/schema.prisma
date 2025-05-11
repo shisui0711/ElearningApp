@@ -43,6 +43,7 @@ model User {
   forumPosts     ForumPost[]
   forumLikes     ForumLike[]
   courseComments CourseComment[]
+  notifications  Notification[]
 
   @@index([username])
   @@index([email])
@@ -460,4 +461,34 @@ model AssignmentSubmission {
 
   @@unique([assignmentId, studentId])
   @@map("assignment_submissions")
+}
+
+enum NotificationType {
+  COURSE_UPDATE // Cập nhật khóa học
+  NEW_LESSON // Bài học mới
+  ASSIGNMENT // Bài tập mới
+  GRADE // Điểm số
+  EXAM // Bài kiểm tra
+  COMMENT // Bình luận mới
+  FORUM // Hoạt động diễn đàn
+  ENROLLMENT // Đăng ký khóa học
+  SYSTEM // Thông báo hệ thống
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      String
+  content    String
+  type       NotificationType
+  read       Boolean          @default(false)
+  entityId   String? // ID của đối tượng liên quan (khóa học, bài học, bài tập...)
+  entityType String? // Loại đối tượng liên quan (course, lesson, assignment...)
+  createdAt  DateTime         @default(now())
+  actionUrl  String? // URL để điều hướng khi click vào thông báo
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
 }

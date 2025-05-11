@@ -5,15 +5,15 @@ import { redirect, notFound } from "next/navigation";
 import ExamManagement from "./ExamManagement";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     courseId: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     class?: string;
     name?: string;
     student?: string;
     status?: string;
-  };
+  }>;
 }
 
 async function getExamAttempts(courseId: string, classId?: string, examName?: string) {
@@ -97,10 +97,13 @@ export default async function ExamManagementPage({ params, searchParams }: PageP
     redirect("/");
   }
 
+  const { courseId } = await params;
+  const data = await searchParams;
+
   // Verify the course belongs to this teacher
   const course = await prisma.course.findUnique({
     where: {
-      id: params.courseId,
+      id: courseId,
       teacher: {
         userId: user.id,
       },
@@ -117,21 +120,21 @@ export default async function ExamManagementPage({ params, searchParams }: PageP
 
   // Get the exam attempts data
   const { attempts, classes } = await getExamAttempts(
-    params.courseId,
-    searchParams.class,
-    searchParams.name
+    courseId,
+    data.class,
+    data.name
   );
 
   return (
     <ExamManagement
-      courseId={params.courseId}
+      courseId={courseId}
       courseTitle={course.name}
       examAttempts={attempts}
       classes={classes}
-      selectedClassId={searchParams.class}
-      examName={searchParams.name}
-      studentName={searchParams.student}
-      status={searchParams.status}
+      selectedClassId={data.class}
+      examName={data.name}
+      studentName={data.student}
+      status={data.status}
     />
   );
 }

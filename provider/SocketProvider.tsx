@@ -36,6 +36,11 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
 
+    socket.on("notification_received", (data: any) => {
+      console.log("Notification received:", data);
+      // TODO: Add notification to the user's notifications
+    });
+
     return () => {
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);

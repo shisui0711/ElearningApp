@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Teacher } from "@prisma/client";
-import { PlusCircle, Pencil, Trash2, Search, UserCog } from "lucide-react";
+import { PlusCircle, Pencil, Trash2, Search, UserCog, Download, Upload } from "lucide-react";
 
 // Components
 import CreateTeacherDialog from "@/app/(main)/admin/teachers/CreateTeacherDialog";
 import EditTeacherDialog from "@/app/(main)/admin/teachers/EditTeacherDialog";
 import DeleteTeacherDialog from "@/app/(main)/admin/teachers/DeleteTeacherDialog";
+import ImportTeachersDialog from "@/app/(main)/admin/teachers/ImportTeachersDialog";
+import ExportTeachersDialog from "@/app/(main)/admin/teachers/ExportTeachersDialog";
 import { AnimatedButton } from "@/components/ui/animated-button";
 import {
   Table,
@@ -134,6 +136,8 @@ export default function TeachersPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [selectedTeacher, setSelectedTeacher] = useState<
     (Teacher & { user: any }) | null
   >(null);
@@ -146,15 +150,35 @@ export default function TeachersPage() {
           <h1 className="text-3xl font-bold text-gradient-1 mb-1">Quản lý giảng viên</h1>
           <p className="text-muted-foreground">Quản lý danh sách giảng viên trong hệ thống</p>
         </div>
-        <AnimatedButton
-          onClick={() => setIsCreateDialogOpen(true)}
-          animationVariant="hover"
-          gradientVariant="gradient1"
-          className="text-white"
-        >
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Thêm giảng viên mới
-        </AnimatedButton>
+        <div className="flex items-center gap-2">
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setIsImportDialogOpen(true)}
+            className="gap-2 border-primary/20 hover:border-primary/50"
+            animationVariant="hover"
+          >
+            <Download className="h-4 w-4 text-primary" />
+            <span className="hidden lg:block">Import Excel</span>
+          </AnimatedButton>
+          <AnimatedButton
+            variant="outline"
+            onClick={() => setIsExportDialogOpen(true)}
+            className="gap-2 border-primary/20 hover:border-primary/50"
+            animationVariant="hover"
+          >
+            <Upload className="h-4 w-4 text-primary" />
+            <span className="hidden lg:block">Export Excel</span>
+          </AnimatedButton>
+          <AnimatedButton
+            onClick={() => setIsCreateDialogOpen(true)}
+            animationVariant="hover"
+            gradientVariant="gradient1"
+            className="text-white"
+          >
+            <PlusCircle className="h-4 w-4 lg:mr-2" />
+            <span className="hidden lg:block">Thêm giảng viên mới</span>
+          </AnimatedButton>
+        </div>
       </div>
 
       {/* Search and filter section */}
@@ -282,6 +306,24 @@ export default function TeachersPage() {
           open={isDeleteDialogOpen}
           onClose={() => setIsDeleteDialogOpen(false)}
           teacher={selectedTeacher}
+        />
+      )}
+
+      {isImportDialogOpen && (
+        <ImportTeachersDialog
+          open={isImportDialogOpen}
+          onClose={() => setIsImportDialogOpen(false)}
+          onSuccess={() => {
+            router.refresh();
+          }}
+        />
+      )}
+
+      {isExportDialogOpen && (
+        <ExportTeachersDialog
+          open={isExportDialogOpen}
+          onClose={() => setIsExportDialogOpen(false)}
+          teachers={teachers}
         />
       )}
     </div>

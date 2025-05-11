@@ -20,13 +20,13 @@ import CreateFileAssignmentDialog from "./CreateFileAssignmentDialog";
 import { ClassFilterSelect } from "./ClassFilterSelect";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     courseId: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     fileClassFilter?: string;
     examClassFilter?: string;
-  };
+  }>;
 }
 
 async function getCourseDetails(courseId: string, userId: string) {
@@ -122,8 +122,8 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
     redirect("/");
   }
 
-  const { courseId } = params;
-  const { fileClassFilter, examClassFilter } = searchParams;
+  const { courseId } = await params;
+  const data = await searchParams;
 
   const course = await getCourseDetails(courseId, user.id);
 
@@ -246,13 +246,13 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
   );
 
   // Filter assignments by class if a filter is selected
-  const filteredFileAssignments = fileClassFilter 
-    ? course.assignments.filter(a => a.type === "FILE_UPLOAD" && a.classId === fileClassFilter)
+  const filteredFileAssignments = data.fileClassFilter 
+    ? course.assignments.filter(a => a.type === "FILE_UPLOAD" && a.classId === data.fileClassFilter)
     : course.assignments.filter(a => a.type === "FILE_UPLOAD");
 
   // Filter exams by class if a filter is selected
-  const filteredExamsDisplay = examClassFilter
-    ? examsDisplay.filter(exam => exam.class.id === examClassFilter)
+  const filteredExamsDisplay = data.examClassFilter
+    ? examsDisplay.filter(exam => exam.class.id === data.examClassFilter)
     : examsDisplay;
 
   // Process assignment statistics similar to exams
@@ -526,7 +526,7 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
                     <div className="flex items-center gap-3">
                       <ClassFilterSelect 
                         classes={classes} 
-                        selectedClassId={fileClassFilter}
+                        selectedClassId={data.fileClassFilter}
                         paramName="fileClassFilter"
                         courseId={course.id}
                       />
@@ -630,7 +630,7 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
                   ) : (
                     <div className="text-center py-8 bg-muted/30 rounded-lg">
                       <p className="text-muted-foreground">
-                        Không có bài tập nào {fileClassFilter ? "cho lớp đã chọn" : ""}
+                        Không có bài tập nào {data.fileClassFilter ? "cho lớp đã chọn" : ""}
                       </p>
                     </div>
                   )}
@@ -662,7 +662,7 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
                     <div className="flex items-center gap-3">
                       <ClassFilterSelect 
                         classes={classes} 
-                        selectedClassId={examClassFilter}
+                        selectedClassId={data.examClassFilter}
                         paramName="examClassFilter"
                         courseId={course.id}
                       />
@@ -755,7 +755,7 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
                   ) : (
                     <div className="text-center py-8 bg-muted/30 rounded-lg">
                       <p className="text-muted-foreground">
-                        Không có bài kiểm tra nào {examClassFilter ? "cho lớp đã chọn" : ""}
+                        Không có bài kiểm tra nào {data.examClassFilter ? "cho lớp đã chọn" : ""}
                       </p>
                     </div>
                   )}

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import React from "react";
 import SessionProvider from "@/provider/SessionProvider";
 import { validateRequest } from "@/auth";
+import { SocketProvider } from "@/provider/SocketProvider";
 
 export default async function MainLayout({
   children,
@@ -13,7 +14,7 @@ export default async function MainLayout({
 
   return (
     <SessionProvider value={session}>
-      {children}
+      <SocketProvider>{children}</SocketProvider>
     </SessionProvider>
   );
 }

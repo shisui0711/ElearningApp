@@ -293,7 +293,7 @@ export default function CreateAssignmentDialog({
                         <SelectContent>
                           {exams.map((exam) => (
                             <SelectItem key={exam.id} value={exam.id}>
-                              {exam.title} ({exam.duration} phút)
+                              {exam.title}
                             </SelectItem>
                           ))}
                         </SelectContent>

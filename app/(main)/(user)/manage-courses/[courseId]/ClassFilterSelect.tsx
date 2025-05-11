@@ -14,25 +14,40 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 export interface ClassFilterSelectProps {
   classes: { id: string; name: string }[];
   selectedClassId?: string;
-  paramName: string;
-  courseId: string;
+  paramName?: string;
+  courseId?: string;
+  onFilterChange?: (value: string) => void;
 }
 
-export function ClassFilterSelect({ classes, selectedClassId, paramName, courseId }: ClassFilterSelectProps) {
+export function ClassFilterSelect({ 
+  classes, 
+  selectedClassId, 
+  paramName, 
+  courseId,
+  onFilterChange 
+}: ClassFilterSelectProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
   const handleClassChange = (value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (value === "all") {
-      params.delete(paramName);
-    } else {
-      params.set(paramName, value);
+    if (onFilterChange) {
+      onFilterChange(value);
+      return;
     }
     
-    router.push(`${pathname}?${params.toString()}`);
+    // Only use URL navigation if paramName is provided
+    if (paramName) {
+      const params = new URLSearchParams(searchParams.toString());
+      
+      if (value === "all") {
+        params.delete(paramName);
+      } else {
+        params.set(paramName, value);
+      }
+      
+      router.push(`${pathname}?${params.toString()}`);
+    }
   };
 
   return (

@@ -122,8 +122,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
     },
   });
 
-  console.log(examAttempts);
-
   if (!course) {
     return notFound();
   }
@@ -253,12 +251,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                                         )}`}
                                   </span>
                                 </div>
-
-                                {/* {isEnrolled && (
-                              <Badge className={status.color}>
-                                {status.label}
-                              </Badge>
-                            )} */}
 
                                 {examAttempt.finishedAt !== null && (
                                   <div className="flex items-center text-xs font-medium">

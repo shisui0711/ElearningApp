@@ -82,7 +82,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
     >
       {/* Blob 1 */}
       <div
-        ref={(el) => el && (blobsRef.current[0] = el)}
+        ref={(el) => { if (el) blobsRef.current[0] = el; }}
         className={cn(
           'absolute w-[40vw] h-[40vw] rounded-full filter blur-3xl',
           gradientClass,
@@ -93,7 +93,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
       
       {/* Blob 2 */}
       <div
-        ref={(el) => el && (blobsRef.current[1] = el)}
+        ref={(el) => { if (el) blobsRef.current[1] = el; }}
         className={cn(
           'absolute w-[35vw] h-[35vw] rounded-full filter blur-3xl',
           gradientClass,
@@ -104,7 +104,7 @@ const AnimatedBackground: React.FC<AnimatedBackgroundProps> = ({
       
       {/* Blob 3 */}
       <div
-        ref={(el) => el && (blobsRef.current[2] = el)}
+        ref={(el) => { if (el) blobsRef.current[2] = el; }}
         className={cn(
           'absolute w-[25vw] h-[25vw] rounded-full filter blur-3xl',
           gradientClass,

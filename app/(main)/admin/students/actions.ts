@@ -10,8 +10,7 @@ import {
 } from "@/lib/validation";
 import { Student, UserRole } from "@prisma/client";
 import { encryptSha256 } from "@/lib/utils";
-import * as XLSX from 'xlsx';
-import { studentFields } from "@/lib/excel";
+import * as XLSX from "xlsx";
 
 export async function createStudent(input: CreateStudentValues) {
   const { user } = await validateRequest();
@@ -190,7 +189,7 @@ export async function deleteStudent(id: string): Promise<Student> {
 
   const existingStudent = await prisma.student.findUnique({
     where: { id },
-    include: { user: true, enrolledCourses: true },
+    include: { user: true, enrollments: true },
   });
   
   if (!existingStudent) {
@@ -198,7 +197,7 @@ export async function deleteStudent(id: string): Promise<Student> {
   }
 
   // Check if student is enrolled in courses
-  if (existingStudent.enrolledCourses.length > 0) {
+  if (existingStudent.enrollments.length > 0) {
     throw new Error("Không thể xóa sinh viên đã đăng ký khóa học. Vui lòng hủy đăng ký các khóa học trước.");
   }
 

@@ -30,6 +30,14 @@ export const studentFields: ExcelField[] = [
   },
 ];
 
+// Available fields for teachers
+export const teacherFields: ExcelField[] = [
+  { key: "displayName", label: "Họ tên đầy đủ", required: true },
+  { key: "email", label: "Email", required: true },
+  { key: "username", label: "Tên đăng nhập", required: true },
+  { key: "password", label: "Mật khẩu", required: true }
+];
+
 // Export students to Excel
 export const exportToExcel = (
   data: any[],
@@ -163,5 +171,38 @@ export const mapExcelDataToStudents = (
     });
 
     return student;
+  });
+};
+
+// Map Excel data to teacher objects
+export const mapExcelDataToTeachers = (
+  data: any[],
+  fieldMapping: Record<string, string>
+) => {
+  return data.map((row) => {
+    const teacher: any = { user: {} };
+
+    // Map fields according to the provided mapping
+    Object.entries(fieldMapping).forEach(([excelField, modelField]) => {
+      const value = row[excelField];
+      if (value !== undefined) {
+        if (
+          [
+            "displayName",
+            "email",
+            "username",
+            "password"
+          ].includes(modelField)
+        ) {
+          // User fields go to user object
+          teacher.user[modelField] = value;
+        } else {
+          // Other fields go directly to teacher
+          teacher[modelField] = value;
+        }
+      }
+    });
+
+    return teacher;
   });
 };

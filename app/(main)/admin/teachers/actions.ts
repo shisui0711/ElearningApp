@@ -10,6 +10,8 @@ import {
 } from "@/lib/validation";
 import { Teacher, UserRole } from "@prisma/client";
 import { encryptSha256 } from "@/lib/utils";
+import * as XLSX from "xlsx";
+import { teacherFields } from "@/lib/excel";
 
 export async function createTeacher(input: CreateTeacherValues) {
   const { user } = await validateRequest();
@@ -174,4 +176,58 @@ export async function deleteTeacher(id: string): Promise<Teacher> {
   });
 
   return result;
+}
+
+// Create a teacher template Excel file
+export async function generateTeacherExcelTemplate(): Promise<Buffer> {
+  // Create worksheet with headers based on teacher fields
+  const headers = teacherFields.map(field => field.label);
+  
+  // Create empty rows for examples
+  const exampleRows = [
+    {
+      "Họ tên đầy đủ": "Nguyễn Văn A",
+      "Email": "nguyenvana@example.com",
+      "Tên đăng nhập": "nguyenvana",
+      "Mật khẩu": "Teacher@123"
+    },
+    {
+      "Họ tên đầy đủ": "Trần Thị B",
+      "Email": "tranthib@example.com",
+      "Tên đăng nhập": "tranthib",
+      "Mật khẩu": "Teacher@123"
+    }
+  ];
+  
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(exampleRows, {
+    header: headers,
+  });
+  
+  // Auto-fit column widths
+  const colWidths = headers.map(header => {
+    // Calculate the max width between header and example data
+    let maxLength = header.length;
+    
+    for (const row of exampleRows) {
+      const cellValue = row[header as keyof typeof row] || "";
+      const cellLength = cellValue.toString().length;
+      if (cellLength > maxLength) {
+        maxLength = cellLength;
+      }
+    }
+    
+    return { wch: maxLength + 2 }; // +2 for padding
+  });
+  
+  worksheet["!cols"] = colWidths;
+  
+  // Create workbook
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Giảng viên");
+  
+  // Create a buffer
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  
+  return buffer;
 } 

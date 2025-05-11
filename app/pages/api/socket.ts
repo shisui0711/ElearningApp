@@ -27,6 +27,16 @@ interface JoinCourseRoomData {
   userId: string;
 }
 
+interface NotificationData {
+  userId: string;
+  type: string;
+  message: string;
+  title?: string;
+  link?: string;
+  isRead?: boolean;
+  createdAt?: Date;
+}
+
 interface CommentData {
   lessonId: string;
   userId: string;
@@ -54,6 +64,11 @@ export async function GET(_req: NextApiRequest, res: NextApiResponseWithSocket) 
 
   io.on("connect", socket => {
     console.log("Socket connected:", socket.id)
+
+    socket.on("send_notification", (data: NotificationData) => {
+      console.log("Sending notification:", data)
+      io.to(data.userId).emit("notification_received", data)
+    })
 
     // Handle joining a lesson room
     socket.on("join_lesson", ({ lessonId }: JoinLessonRoomData) => {

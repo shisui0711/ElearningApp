@@ -53,7 +53,8 @@ export async function POST(req: Request) {
     const completedLesson = await prisma.completedLesson.create({
       data: {
         studentId: studentId,
-        lessonId: lessonId
+        lessonId: lessonId,
+        courseId: lesson.courseId,
       }
     });
 

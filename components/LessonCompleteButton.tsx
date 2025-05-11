@@ -8,7 +8,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { LessonWithDetails } from "@/types";
 import { useRouter } from "next/navigation";
-import { revalidatePath } from "next/cache";
 
 interface LessonCompleteButtonProps {
   courseId: string;
@@ -33,6 +32,7 @@ const LessonCompleteButton = ({
         {
           studentId,
           lessonId,
+          courseId,
         },
         {
           headers: {

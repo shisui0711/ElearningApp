@@ -5,7 +5,7 @@ import { updateSubjectSchema } from "@/lib/validation";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user } = await validateRequest();
   if (!user) {
@@ -15,7 +15,7 @@ export async function GET(
   }
 
   try {
-    const id = params.id;
+    const { id } = await params;
 
     const subject = await prisma.subject.findUnique({
       where: { id },
@@ -46,7 +46,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user } = await validateRequest();
   if (!user) {
@@ -56,7 +56,7 @@ export async function PUT(
   }
 
   try {
-    const id = params.id;
+    const { id } = await params;
     const body = await req.json();
     
     const { name, description, departmentId } = updateSubjectSchema.parse({
@@ -106,7 +106,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { user } = await validateRequest();
   if (!user) {
@@ -116,7 +116,7 @@ export async function DELETE(
   }
 
   try {
-    const id = params.id;
+    const { id } = await params;
 
     // Check if subject exists
     const existingSubject = await prisma.subject.findUnique({
