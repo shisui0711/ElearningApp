@@ -127,6 +127,16 @@ const Header = () => {
                   <span className="hidden md:block text-gradient-1">Khóa học của tôi</span>
                 </Link>
               )}
+              {user.teacher && (
+                <Link
+                  href="/manage-courses"
+                  prefetch={false}
+                  className="flex space-x-2 items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-300 md:border md:border-border md:rounded-md md:px-4 md:py-2 hover:bg-accent/50 hover:scale-105"
+                >
+                  <BookmarkIcon className="size-4" />
+                  <span className="hidden md:block text-gradient-1">Quản lý khóa học</span>
+                </Link>
+              )}
             <ThemeToggle />
             {user && <UserButton />}
           </div>
