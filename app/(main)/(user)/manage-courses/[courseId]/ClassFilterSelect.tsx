@@ -9,22 +9,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-interface ClassFilterSelectProps {
+export interface ClassFilterSelectProps {
   classes: { id: string; name: string }[];
-  onFilterChange: (classId: string) => void;
+  selectedClassId?: string;
+  paramName: string;
+  courseId: string;
 }
 
-export function ClassFilterSelect({
-  classes,
-  onFilterChange,
-}: ClassFilterSelectProps) {
+export function ClassFilterSelect({ classes, selectedClassId, paramName, courseId }: ClassFilterSelectProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
+  const handleClassChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (value === "all") {
+      params.delete(paramName);
+    } else {
+      params.set(paramName, value);
+    }
+    
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      <Filter className="h-4 w-4 text-muted-foreground" />
-      <Select defaultValue="all" onValueChange={onFilterChange}>
+    <div className="flex items-center">
+      <Select 
+        value={selectedClassId || "all"} 
+        onValueChange={handleClassChange}
+      >
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Lọc theo lớp" />
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <SelectValue placeholder="Lọc theo lớp" />
+          </div>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Tất cả các lớp</SelectItem>

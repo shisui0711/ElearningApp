@@ -1,17 +1,19 @@
 "use client"
 
 import { useSession } from '@/provider/SessionProvider';
+import { CourseWithDetails } from '@/types';
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useTransition } from 'react'
+import { toast } from 'sonner';
 
 interface EnrollButtonProps {
-  courseId: string;
+  course: CourseWithDetails;
   isEnrolled: boolean;
 }
 
-const EnrollButton = ({courseId, isEnrolled}:EnrollButtonProps) => {
+const EnrollButton = ({course, isEnrolled}:EnrollButtonProps) => {
   const { user } = useSession();
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -20,11 +22,20 @@ const EnrollButton = ({courseId, isEnrolled}:EnrollButtonProps) => {
       if(!user || !user.student) return;
       const studentId = user.student.id;
       startTransition(async () => {
-        await fetch("/api/courses/enroll", {
+       const response = await fetch("/api/courses/enroll", {
           method: "POST",
           body: JSON.stringify({ courseId, studentId}),
         });
-        router.push("/my-courses")
+        if(response.ok){
+          if(course.lessons.length > 0){
+            router.push(`/dashboard/courses/${courseId}/lessons/${course.lessons[0].id}`)
+          }else{
+            router.push(`/dashboard/courses/${courseId}`)
+          }
+          toast.success("Đăng ký khóa học thành công")
+        }else{
+          toast.error("Đăng ký khóa học thất bại")
+        }
       });
     }
 
@@ -35,7 +46,7 @@ const EnrollButton = ({courseId, isEnrolled}:EnrollButtonProps) => {
   )
 
   if(isEnrolled) return (
-    <Link href={`/dashboard/courses/${courseId}`} prefetch={false}
+    <Link href={`/dashboard/courses/${course.id}`} prefetch={false}
      className='w-full rounded-lg px-6 py-3 font-medium bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600
      hover:to-emerald-600 transition-all duration-300 h-12 flex items-center justify-center gap-2 group'
     >
@@ -45,7 +56,7 @@ const EnrollButton = ({courseId, isEnrolled}:EnrollButtonProps) => {
   )
 
   return (
-    <button onClick={()=> handleEnroll(courseId) }
+    <button onClick={()=> handleEnroll(course.id) }
       className={`w-full rounded-lg px-6 py-3 font-medium transition-all duration-300 ease-in-out relative h-12
         ${
           isPending || !user

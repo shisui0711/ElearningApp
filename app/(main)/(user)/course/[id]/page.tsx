@@ -174,7 +174,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
               </p>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 md:min-w-[300px]">
-              <EnrollButton courseId={course.id} isEnrolled={isEnrolled} />
+              <EnrollButton course={course} isEnrolled={isEnrolled} />
             </div>
           </div>
         </div>
