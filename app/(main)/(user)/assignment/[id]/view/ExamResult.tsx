@@ -366,7 +366,7 @@ const ExamResult = ({ examId }: { examId: string }) => {
                 gradientBorder
                 animationVariant="none"
               >
-                <CardContent className="p-6">
+                <CardContent className="p-6 bg-card">
                   <div className="flex justify-between items-start mb-6">
                     <div className="w-full">
                       <div className="flex justify-between items-center mb-3 bg-card/60 p-3 rounded-lg backdrop-blur-sm">

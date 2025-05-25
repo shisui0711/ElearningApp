@@ -5,7 +5,7 @@ import { validateRequest } from "@/auth";
 // Mark a notification as read
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { notificationId: string } }
+  { params }: { params: Promise<{ notificationId: string }> }
 ) {
   try {
     const { user } = await validateRequest();
@@ -14,7 +14,7 @@ export async function PATCH(
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { notificationId } = params;
+    const { notificationId } = await params;
 
     if (!notificationId) {
       return new NextResponse("Notification ID is required", { status: 400 });

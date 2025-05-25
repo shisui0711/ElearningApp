@@ -6,7 +6,12 @@ import { toast } from "sonner";
 import { Pencil, Search, Trash2, Users, FileText, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedButton } from "@/components/ui/animated-button";
-import { AnimatedCard, CardContent, CardHeader, CardTitle } from "@/components/ui/animated-card";
+import {
+  AnimatedCard,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/animated-card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +47,7 @@ export default function ExamsList() {
   useEffect(() => {
     if (!isReady || !examListRef.current) return;
 
-    const examCards = examListRef.current.querySelectorAll('.exam-card');
+    const examCards = examListRef.current.querySelectorAll(".exam-card");
 
     gsap.fromTo(
       examCards,
@@ -52,7 +57,7 @@ export default function ExamsList() {
         opacity: 1,
         duration: 0.5,
         stagger: 0.1,
-        ease: "power2.out"
+        ease: "power2.out",
       }
     );
 
@@ -76,7 +81,9 @@ export default function ExamsList() {
   if (error)
     return (
       <div className="bg-destructive/10 p-6 rounded-lg border border-destructive/20 text-center">
-        <p className="text-destructive font-medium mb-4">Có lỗi xảy ra khi tải dữ liệu</p>
+        <p className="text-destructive font-medium mb-4">
+          Có lỗi xảy ra khi tải dữ liệu
+        </p>
         <AnimatedButton
           variant="destructive"
           onClick={() => router.refresh()}
@@ -121,7 +128,10 @@ export default function ExamsList() {
 
   return (
     <div className="space-y-6">
-      <div ref={searchInputRef} className="flex justify-between items-center bg-card/60 p-4 rounded-lg backdrop-blur-sm border">
+      <div
+        ref={searchInputRef}
+        className="flex justify-between items-center bg-card/60 p-4 rounded-lg backdrop-blur-sm border"
+      >
         <div className="relative w-full max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -158,15 +168,25 @@ export default function ExamsList() {
               <CardHeader className="pb-2 bg-gradient-to-r from-blue-50/50 via-transparent to-transparent dark:from-blue-950/20 dark:via-transparent">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold">{exam.title}</CardTitle>
+                    <CardTitle className="text-xl font-bold">
+                      {exam.title}
+                    </CardTitle>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-100/50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                      >
                         {exam.questions.length} câu hỏi
                       </Badge>
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap sm:flex-nowrap justify-end">
-                    <AnimatedButton variant="outline" size="sm" asChild animationVariant="hover">
+                    <AnimatedButton
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      animationVariant="hover"
+                    >
                       <Link href={`/admin/exams/${exam.id}`}>
                         <Pencil className="h-4 w-4 mr-1" />
                         <span className="hidden md:block">Chỉnh sửa</span>
@@ -175,27 +195,37 @@ export default function ExamsList() {
                     <AssignExamButton examId={exam.id} examTitle={exam.title} />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <AnimatedButton variant="destructive" size="sm" animationVariant="hover">
+                        <AnimatedButton
+                          variant="destructive"
+                          size="sm"
+                          animationVariant="hover"
+                        >
                           <Trash2 className="h-4 w-4 mr-1" />
                           <span className="hidden md:block">Xóa</span>
                         </AnimatedButton>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-card/95 backdrop-blur-sm border-0 shadow-lg">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-xl text-gradient-3">Bạn có chắc chắn?</AlertDialogTitle>
+                          <AlertDialogTitle className="text-xl text-gradient-3">
+                            Bạn có chắc chắn?
+                          </AlertDialogTitle>
                           <AlertDialogDescription>
-                            Thao tác này sẽ xóa vĩnh viễn bài kiểm tra này và tất cả các câu hỏi liên quan. Không thể hoàn tác hành động này.
+                            Thao tác này sẽ xóa vĩnh viễn bài kiểm tra này và
+                            tất cả các câu hỏi liên quan. Không thể hoàn tác
+                            hành động này.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Hủy</AlertDialogCancel>
-                          <AnimatedButton
-                            variant="destructive"
-                            onClick={() => handleDelete(exam.id)}
-                            animationVariant="hover"
-                          >
-                            Xóa
-                          </AnimatedButton>
+                          <AlertDialogAction asChild>
+                            <AnimatedButton
+                              variant="destructive"
+                              onClick={() => handleDelete(exam.id)}
+                              animationVariant="hover"
+                            >
+                              Xóa
+                            </AnimatedButton>
+                          </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
@@ -207,7 +237,9 @@ export default function ExamsList() {
                   {exam.questions.length > 0 ? (
                     <p>Bài kiểm tra có {exam.questions.length} câu hỏi</p>
                   ) : (
-                    <p className="text-amber-600 dark:text-amber-400">Bài kiểm tra chưa có câu hỏi nào</p>
+                    <p className="text-amber-600 dark:text-amber-400">
+                      Bài kiểm tra chưa có câu hỏi nào
+                    </p>
                   )}
                 </div>
               </CardContent>

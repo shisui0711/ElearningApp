@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Layers, Library, PenLine, FileText, Plus, Filter, Hash } from "lucide-react";
+import { Layers, Library, PenLine, FileText, Plus, Filter, Hash, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import UserAvatar from "@/components/UserAvatar";
 import { CreateDocumentDialog } from "./CreateDocumentDialog";
@@ -27,6 +27,7 @@ interface PageProps {
   searchParams: Promise<{
     fileClassFilter?: string;
     examClassFilter?: string;
+    gradeClassFilter?: string;
   }>;
 }
 
@@ -87,6 +88,16 @@ async function getCourseDetails(courseId: string, userId: string) {
                 grade: true,
                 studentId: true,
                 submittedAt: true,
+                student: {
+                  include: {
+                    user: {
+                      select: {
+                        displayName: true,
+                      }
+                    },
+                    class: true
+                  }
+                }
               },
             },
             _count: {
@@ -144,7 +155,16 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
     },
     include: {
       class: true,
-      student: true,
+      student: {
+        include: {
+          user: {
+            select: {
+              displayName: true
+            }
+          },
+          class: true
+        }
+      },
     },
   });
 
@@ -290,6 +310,69 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
     };
   });
 
+  // Get all unique classes that have either file assignments or exams
+  const uniqueClassIds = new Set<string>();
+  
+  // Add classes from file assignments
+  course.assignments.forEach(assignment => {
+    if (assignment.classId) uniqueClassIds.add(assignment.classId);
+  });
+  
+  // Add classes from exam attempts
+  examAttempts.forEach(attempt => {
+    if (attempt.classId) uniqueClassIds.add(attempt.classId);
+  });
+  
+  // Get detailed class info for these classes
+  const classesWithAssignments = await prisma.class.findMany({
+    where: {
+      id: {
+        in: Array.from(uniqueClassIds)
+      }
+    },
+    orderBy: {
+      name: "asc"
+    }
+  });
+
+  // Filter grades by class if a filter is selected
+  const selectedGradeClass = data.gradeClassFilter || 
+    (classesWithAssignments.length > 0 ? classesWithAssignments[0].id : undefined);
+
+  // Get all students from the selected class
+  const classStudents = selectedGradeClass ? await prisma.student.findMany({
+    where: {
+      classId: selectedGradeClass,
+      enrollments: {
+        some: {
+          courseId: course.id
+        }
+      }
+    },
+    include: {
+      user: {
+        select: {
+          displayName: true
+        }
+      }
+    },
+    orderBy: {
+      user: {
+        displayName: 'asc'
+      }
+    }
+  }) : [];
+
+  // Get all exam names for the selected class
+  const classExamNames = selectedGradeClass ? Array.from(
+    new Set(
+      examAttempts
+        .filter(attempt => attempt.classId === selectedGradeClass)
+        .map(attempt => attempt.name)
+        .filter(Boolean) as string[]
+    )
+  ).sort() : [];
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Course header */}
@@ -372,10 +455,11 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
 
       {/* Course content management */}
       <Tabs defaultValue="lessons" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-8">
+        <TabsList className="grid w-full grid-cols-5 mb-8">
           <TabsTrigger value="lessons">Quản lý bài học</TabsTrigger>
           <TabsTrigger value="documents">Quản lý tài liệu</TabsTrigger>
           <TabsTrigger value="assignments">Quản lý bài tập</TabsTrigger>
+          <TabsTrigger value="grades">Quản lý điểm</TabsTrigger>
           <TabsTrigger value="prerequisites">Điều kiện tiên quyết</TabsTrigger>
         </TabsList>
 
@@ -781,6 +865,321 @@ export default async function ManageCourseDetail({ params, searchParams }: PageP
               )}
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="grades" className="border rounded-lg p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold flex items-center">
+              <GraduationCap className="mr-2 h-5 w-5" />
+              Quản lý điểm số
+            </h2>
+            {classesWithAssignments.length > 0 && (
+              <div className="flex items-center gap-3">
+                <ClassFilterSelect 
+                  classes={classesWithAssignments} 
+                  selectedClassId={selectedGradeClass}
+                  paramName="gradeClassFilter"
+                  courseId={course.id}
+                />
+              </div>
+            )}
+          </div>
+
+          {selectedGradeClass && classStudents.length > 0 ? (
+            <div className="space-y-6">
+              <Card className="border rounded-md p-4">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold">
+                    {classesWithAssignments.find(c => c.id === selectedGradeClass)?.name || "Lớp học"}
+                  </CardTitle>
+                </CardHeader>
+                
+                <CardContent className="pt-2 pb-0">
+                  {classExamNames.length > 0 ? (
+                    <div>
+                      <h3 className="text-md font-medium mb-3">Bảng điểm bài kiểm tra</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-muted">
+                              <th className="text-left p-2 border">Tên sinh viên</th>
+                              {classExamNames.map(examName => (
+                                <th key={examName} className="text-left p-2 border">
+                                  {examName}
+                                </th>
+                              ))}
+                              <th className="text-left p-2 border bg-blue-50">Điểm trung bình</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {classStudents.map(student => {
+                              // Find all attempts for this student
+                              const studentAttempts = examAttempts.filter(
+                                attempt => attempt.studentId === student.id
+                              );
+                              
+                              // Calculate average score of completed exams
+                              const completedAttempts = studentAttempts.filter(
+                                attempt => attempt.finishedAt && attempt.score !== null
+                              );
+                              
+                              const totalScore = completedAttempts.reduce(
+                                (sum, attempt) => sum + (attempt.score || 0), 
+                                0
+                              );
+                              
+                              const averageScore = completedAttempts.length > 0 
+                                ? (totalScore / completedAttempts.length).toFixed(2) 
+                                : "-";
+                              
+                              return (
+                                <tr key={student.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-2 border font-medium">
+                                    {student.user.displayName}
+                                  </td>
+                                  
+                                  {classExamNames.map(examName => {
+                                    const attempt = studentAttempts.find(
+                                      a => a.name === examName
+                                    );
+                                    
+                                    return (
+                                      <td key={examName} className="p-2 border text-center">
+                                        {attempt ? (
+                                          attempt.finishedAt ? (
+                                            <span className={attempt.score !== null ? (
+                                              attempt.score >= 5 ? "text-green-600 font-medium" : "text-red-600 font-medium"
+                                            ) : "text-muted-foreground"}>
+                                              {attempt.score !== null ? attempt.score : "Chưa có điểm"}
+                                            </span>
+                                          ) : attempt.startedAt ? (
+                                            <span className="text-yellow-500">Đang làm</span>
+                                          ) : (
+                                            <span className="text-muted-foreground">Chưa làm</span>
+                                          )
+                                        ) : (
+                                          <span className="text-muted-foreground">-</span>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                  
+                                  <td className="p-2 border text-center font-semibold bg-blue-50">
+                                    {averageScore !== "-" ? (
+                                      <span className={parseFloat(averageScore) >= 5 ? "text-green-600" : "text-red-600"}>
+                                        {averageScore}
+                                      </span>
+                                    ) : (
+                                      <span className="text-muted-foreground">-</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-muted/30 rounded-lg">
+                      <p className="text-muted-foreground">
+                        Không có bài kiểm tra nào cho lớp này
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <h3 className="text-xl font-medium mb-2">Chưa có dữ liệu điểm số</h3>
+              <p className="text-muted-foreground mb-6">
+                {selectedGradeClass 
+                  ? "Không có sinh viên nào trong lớp này hoặc sinh viên chưa tham gia bài kiểm tra" 
+                  : "Thêm bài tập hoặc bài kiểm tra cho lớp học để quản lý điểm số"}
+              </p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="old_grades" className="hidden">
+          {classesWithAssignments.length > 0 ? (
+            <div className="space-y-6">
+              {classesWithAssignments.map((classItem) => {
+                // Filter file assignments for this class
+                const fileAssignments = course.assignments.filter(
+                  (a) => a.type === "FILE_UPLOAD" && a.classId === classItem.id
+                );
+                
+                // Filter exam attempts for this class
+                const classExamAttempts = examAttempts.filter(
+                  (attempt) => attempt.classId === classItem.id
+                );
+                
+                // Group exam attempts by exam name
+                const examsByName = new Map<string, typeof examAttempts>();
+                classExamAttempts.forEach(attempt => {
+                  if (!attempt.name) return;
+                  
+                  if (!examsByName.has(attempt.name)) {
+                    examsByName.set(attempt.name, []);
+                  }
+                  examsByName.get(attempt.name)!.push(attempt);
+                });
+                
+                return (
+                  <Card key={classItem.id} className="border rounded-md p-4">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-semibold">{classItem.name}</CardTitle>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-2 pb-0">
+                      {(fileAssignments.length > 0 || examsByName.size > 0) ? (
+                        <div className="space-y-6">
+                          {fileAssignments.length > 0 && (
+                            <div>
+                              <h3 className="text-md font-medium mb-3">Bài tập nộp file</h3>
+                              <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                  <thead>
+                                    <tr className="bg-muted">
+                                      <th className="text-left p-2 border">Tên sinh viên</th>
+                                      {fileAssignments.map(assignment => (
+                                        <th key={assignment.id} className="text-left p-2 border">
+                                          {assignment.title}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {/* Get all unique students who have submitted any assignments */}
+                                    {Array.from(new Set(
+                                      fileAssignments.flatMap(a => 
+                                        a.submissions.map(s => s.student.id)
+                                      )
+                                    )).map(studentId => {
+                                      const studentInfo = fileAssignments
+                                        .flatMap(a => a.submissions)
+                                        .find(s => s.student.id === studentId)?.student;
+                                      
+                                      if (!studentInfo) return null;
+                                      
+                                      return (
+                                        <tr key={studentId} className="border-b hover:bg-muted/50">
+                                          <td className="p-2 border">
+                                            {studentInfo.user.displayName}
+                                          </td>
+                                          {fileAssignments.map(assignment => {
+                                            const submission = assignment.submissions.find(
+                                              s => s.studentId === studentId
+                                            );
+                                            
+                                            return (
+                                              <td key={assignment.id} className="p-2 border">
+                                                {submission ? (
+                                                  submission.grade !== null ? (
+                                                    <span>{submission.grade}</span>
+                                                  ) : (
+                                                    <span className="text-yellow-500">Chưa chấm</span>
+                                                  )
+                                                ) : (
+                                                  <span className="text-red-500">Chưa nộp</span>
+                                                )}
+                                              </td>
+                                            );
+                                          })}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {examsByName.size > 0 && (
+                            <div>
+                              <h3 className="text-md font-medium mb-3">Bài kiểm tra trắc nghiệm</h3>
+                              {Array.from(examsByName.entries()).map(([examName, attempts]) => (
+                                <div key={examName} className="mb-4">
+                                  <h4 className="font-medium mb-2">{examName}</h4>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse">
+                                      <thead>
+                                        <tr className="bg-muted">
+                                          <th className="text-left p-2 border">Tên sinh viên</th>
+                                          <th className="text-left p-2 border">Điểm số</th>
+                                          <th className="text-left p-2 border">Trạng thái</th>
+                                          <th className="text-left p-2 border">Thời gian hoàn thành</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {attempts.map(attempt => (
+                                          <tr key={attempt.id} className="border-b hover:bg-muted/50">
+                                            <td className="p-2 border">
+                                              {attempt.student?.user.displayName || "Không xác định"}
+                                            </td>
+                                            <td className="p-2 border">
+                                              {attempt.score !== null ? (
+                                                attempt.score
+                                              ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                              )}
+                                            </td>
+                                            <td className="p-2 border">
+                                              {attempt.finishedAt ? (
+                                                <Badge variant="outline" className="bg-green-100 text-green-800">
+                                                  Đã hoàn thành
+                                                </Badge>
+                                              ) : attempt.startedAt ? (
+                                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                                                  Đang làm
+                                                </Badge>
+                                              ) : (
+                                                <Badge variant="outline" className="bg-red-100 text-red-800">
+                                                  Chưa làm
+                                                </Badge>
+                                              )}
+                                            </td>
+                                            <td className="p-2 border">
+                                              {attempt.finishedAt ? (
+                                                format(new Date(attempt.finishedAt), "dd/MM/yyyy HH:mm", {
+                                                  locale: vi,
+                                                })
+                                              ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-muted/30 rounded-lg">
+                          <p className="text-muted-foreground">
+                            Không có bài tập hoặc bài kiểm tra nào cho lớp này
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-muted/30 rounded-lg">
+              <h3 className="text-xl font-medium mb-2">Chưa có dữ liệu điểm số</h3>
+              <p className="text-muted-foreground mb-6">
+                Thêm bài tập hoặc bài kiểm tra cho lớp học để quản lý điểm số
+              </p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="prerequisites" className="border rounded-lg p-6">

@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -25,45 +26,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DateRange } from "react-day-picker";
+import { CustomDateRangePicker } from "@/components/ui/custom-date-range-picker";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Example exam performance data
-const examData = [
-  {
-    id: 1,
-    name: "Midterm - Introduction to CS",
-    avgScore: 78,
-    attempts: 420,
-    passingRate: 92,
-  },
-  {
-    id: 2,
-    name: "Final - Business Analytics",
-    avgScore: 82,
-    attempts: 352,
-    passingRate: 95,
-  },
-  {
-    id: 3,
-    name: "Quiz 3 - Digital Marketing",
-    avgScore: 76,
-    attempts: 330,
-    passingRate: 88,
-  },
-  {
-    id: 4,
-    name: "Midterm - Data Structures",
-    avgScore: 72,
-    attempts: 298,
-    passingRate: 86,
-  },
-  {
-    id: 5,
-    name: "Quiz 2 - Machine Learning",
-    avgScore: 68,
-    attempts: 275,
-    passingRate: 82,
-  },
-];
+interface ExamResult {
+  id: string;
+  name: string;
+  avgScore: number;
+  attempts: number;
+  passingRate: number;
+}
+
+interface DifficultQuestion {
+  id: string;
+  question: string;
+  examName: string;
+  correctRate: number;
+  difficulty: string;
+}
+
+interface ExamStats {
+  avgScore: number;
+  totalAttempts: number;
+  avgPassingRate: number;
+  questionAccuracy: number;
+  growthRates: {
+    avgScore: string;
+    totalAttempts: string;
+    avgPassingRate: string;
+    questionAccuracy: string;
+  };
+  examResults: ExamResult[];
+  difficultQuestions: DifficultQuestion[];
+}
+
+interface ChartData {
+  barData?: { name: string; total: number }[];
+  lineData?: { name: string; completion: number }[];
+}
 
 const getScoreColor = (score: number) => {
   if (score >= 90) return "text-green-600";
@@ -78,16 +79,95 @@ const getPassingRateBadge = (rate: number) => {
   if (rate >= 80) return <Badge className="bg-emerald-500">Tốt</Badge>;
   if (rate >= 70) return <Badge className="bg-yellow-500">Trung bình</Badge>;
   if (rate >= 60) return <Badge className="bg-orange-500">Yếu</Badge>;
-  return <Badge className="bg-red-500">Poor</Badge>;
+  return <Badge className="bg-red-500">Kém</Badge>;
+};
+
+const getDifficultyBadge = (difficulty: string) => {
+  switch (difficulty.toLowerCase()) {
+    case 'easy':
+      return <Badge className="bg-green-500">Dễ</Badge>;
+    case 'medium':
+      return <Badge className="bg-orange-500">Trung bình</Badge>;
+    case 'hard':
+      return <Badge className="bg-red-500">Khó</Badge>;
+    default:
+      return <Badge>{difficulty}</Badge>;
+  }
 };
 
 const ExamPerformance = () => {
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(new Date().setDate(new Date().getDate() - 30)),
+    to: new Date(),
+  });
+  const [examStats, setExamStats] = useState<ExamStats | null>(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(true);
+
+  useEffect(() => {
+    fetchExamStats();
+    fetchChartData();
+  }, [departmentFilter, dateRange]);
+
+  const fetchExamStats = async () => {
+    setLoading(true);
+    try {
+      // Construct query params
+      const params = new URLSearchParams();
+      params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
+      
+      if (dateRange?.from && dateRange?.to) {
+        params.append('startDate', dateRange.from.toISOString());
+        params.append('endDate', dateRange.to.toISOString());
+      }
+      
+      const response = await axios.get(`/api/analytics/exams?${params.toString()}`);
+      setExamStats(response.data);
+    } catch (error) {
+      console.error("Failed to fetch exam stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchChartData = async () => {
+    setChartLoading(true);
+    try {
+      // Construct query params
+      const params = new URLSearchParams();
+      params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
+      params.append('chartType', 'exams');
+      
+      if (dateRange?.from && dateRange?.to) {
+        params.append('startDate', dateRange.from.toISOString());
+        params.append('endDate', dateRange.to.toISOString());
+      }
+      
+      const response = await axios.get(`/api/analytics/charts?${params.toString()}`);
+      setChartData(response.data);
+    } catch (error) {
+      console.error("Failed to fetch chart data:", error);
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
-        <h3 className="text-2xl font-bold">Phân tích hiệu suất bài this</h3>
-        <div className="flex gap-2">
-          <Select defaultValue="all">
+        <h3 className="text-2xl font-bold">Phân tích hiệu suất bài thi</h3>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <CustomDateRangePicker 
+            value={dateRange}
+            onChange={handleDateRangeChange}
+          />
+          <Select defaultValue="all" onValueChange={setDepartmentFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Department" />
             </SelectTrigger>
@@ -111,10 +191,16 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">76%</div>
-            <p className="text-xs text-muted-foreground">
-              +2.5% so với tháng trước
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{examStats?.avgScore || 0}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {examStats?.growthRates?.avgScore || '0%'} so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -124,10 +210,16 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,874</div>
-            <p className="text-xs text-muted-foreground">
-              +234 so với tháng trước
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{examStats?.totalAttempts || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {examStats?.growthRates?.totalAttempts || '0'} so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -137,10 +229,16 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89%</div>
-            <p className="text-xs text-muted-foreground">
-              +3.2% so với tháng trước
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{examStats?.avgPassingRate || 0}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {examStats?.growthRates?.avgPassingRate || '0%'} so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -150,10 +248,16 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">72%</div>
-            <p className="text-xs text-muted-foreground">
-              +1.8% so với tháng trước
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-20" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{examStats?.questionAccuracy || 0}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {examStats?.growthRates?.questionAccuracy || '0%'} so với tháng trước
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -165,7 +269,13 @@ const ExamPerformance = () => {
             <CardDescription>Tỉ lệ điểm thi</CardDescription>
           </CardHeader>
           <CardContent>
-            <BarChart />
+            {chartLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                <Skeleton className="h-[250px] w-full" />
+              </div>
+            ) : (
+              <BarChart customData={chartData?.barData} />
+            )}
           </CardContent>
         </Card>
         <Card className="col-span-1">
@@ -174,7 +284,13 @@ const ExamPerformance = () => {
             <CardDescription>Hiệu suất bài thi theo thời gian</CardDescription>
           </CardHeader>
           <CardContent>
-            <LineChart />
+            {chartLoading ? (
+              <div className="h-[300px] flex items-center justify-center">
+                <Skeleton className="h-[250px] w-full" />
+              </div>
+            ) : (
+              <LineChart customData={chartData?.lineData} />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -187,33 +303,46 @@ const ExamPerformance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bài thi</TableHead>
-                <TableHead>Số lượng làm bài</TableHead>
-                <TableHead>Điểm trung bình</TableHead>
-                <TableHead>Tỉ lệ vượt qua</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {examData.map((exam) => (
-                <TableRow key={exam.id}>
-                  <TableCell className="font-medium">{exam.name}</TableCell>
-                  <TableCell>{exam.attempts}</TableCell>
-                  <TableCell className={getScoreColor(exam.avgScore)}>
-                    {exam.avgScore}%
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <span>{exam.passingRate}%</span>
-                      {getPassingRateBadge(exam.passingRate)}
-                    </div>
-                  </TableCell>
-                </TableRow>
+          {loading ? (
+            <div>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex gap-4 py-3">
+                  <Skeleton className="h-5 w-full" />
+                </div>
               ))}
-            </TableBody>
-          </Table>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Bài thi</TableHead>
+                  <TableHead>Số lượng làm bài</TableHead>
+                  <TableHead>Điểm trung bình</TableHead>
+                  <TableHead>Tỉ lệ vượt qua</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.isArray(examStats?.examResults) 
+                  ? examStats.examResults.map((exam, index) => (
+                    <TableRow key={`exam-${index}-${exam.id || ''}`}>
+                      <TableCell className="font-medium">{exam?.name || 'Unknown'}</TableCell>
+                      <TableCell>{exam?.attempts || 0}</TableCell>
+                      <TableCell className={getScoreColor(exam?.avgScore || 0)}>
+                        {exam?.avgScore || 0}%
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span>{exam?.passingRate || 0}%</span>
+                          {getPassingRateBadge(exam?.passingRate || 0)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                  : <TableRow><TableCell colSpan={4}>No exam results available</TableCell></TableRow>
+                }
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 
@@ -225,48 +354,45 @@ const ExamPerformance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Câu hỏi</TableHead>
-                <TableHead>Bài thi</TableHead>
-                <TableHead>Tỉ lệ đúng</TableHead>
-                <TableHead>Độ khó</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">
-                  Explain the concept of polymorphism
-                </TableCell>
-                <TableCell>OOP Fundamentals</TableCell>
-                <TableCell className="text-red-600">42%</TableCell>
-                <TableCell>
-                  <Badge className="bg-red-500">Hard</Badge>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">
-                  Calculate the Time Complexity
-                </TableCell>
-                <TableCell>Data Structures</TableCell>
-                <TableCell className="text-orange-600">48%</TableCell>
-                <TableCell>
-                  <Badge className="bg-orange-500">Medium</Badge>
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">
-                  Market Segmentation Analysis
-                </TableCell>
-                <TableCell>Marketing Fundamentals</TableCell>
-                <TableCell className="text-orange-600">53%</TableCell>
-                <TableCell>
-                  <Badge className="bg-orange-500">Medium</Badge>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div>
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex gap-4 py-3">
+                  <Skeleton className="h-5 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Câu hỏi</TableHead>
+                  <TableHead>Bài thi</TableHead>
+                  <TableHead>Tỉ lệ đúng</TableHead>
+                  <TableHead>Độ khó</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.isArray(examStats?.difficultQuestions)
+                  ? examStats.difficultQuestions.map((question, index) => (
+                    <TableRow key={`question-${index}-${question.id || ''}`}>
+                      <TableCell className="font-medium">
+                        {question?.question || 'Unknown'}
+                      </TableCell>
+                      <TableCell>{question?.examName || 'Unknown'}</TableCell>
+                      <TableCell className={getScoreColor(question?.correctRate || 0)}>
+                        {question?.correctRate || 0}%
+                      </TableCell>
+                      <TableCell>
+                        {getDifficultyBadge(question?.difficulty || 'medium')}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                  : <TableRow><TableCell colSpan={4}>No difficult questions available</TableCell></TableRow>
+                }
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

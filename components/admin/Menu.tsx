@@ -38,7 +38,7 @@ const menuItems = [
       },
       {
         icon: Users,
-        label: "Học sinh",
+        label: "Sinh viên",
         href: "/admin/students"
       },
       {

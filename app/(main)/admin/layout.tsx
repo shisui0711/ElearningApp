@@ -3,12 +3,16 @@ import Navbar from "@/components/admin/Navbar";
 import AdminFooter from "@/components/admin/Footer";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { validateRequest } from "@/auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { user } = await validateRequest();
+  if (!user || user.role !== "ADMIN") return redirect("/");
   return (
     <div className="h-screen flex overflow-hidden">
       {/* LEFT */}
