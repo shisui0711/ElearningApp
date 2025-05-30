@@ -33,6 +33,7 @@ import { ExamWithDetail, PaginationResponse } from "@/types";
 import CreateExamButton from "./CreateExamButton";
 import { useRouter } from "next/navigation";
 import { useAnimation } from "@/provider/AnimationProvider";
+import { useDeleteExamMutation } from "./mutations";
 
 export default function ExamsList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -42,6 +43,7 @@ export default function ExamsList() {
   const { gsap, isReady } = useAnimation();
   const searchInputRef = useRef<HTMLDivElement>(null);
   const examListRef = useRef<HTMLDivElement>(null);
+  const deleteExamMutation = useDeleteExamMutation();
 
   // Animation for the list when it loads
   useEffect(() => {
@@ -111,19 +113,7 @@ export default function ExamsList() {
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      const res = await fetch(`/api/exams/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) throw new Error("Không thể xóa bài kiểm tra");
-
-      toast.success("Đã xóa thành công bài kiểm tra");
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      toast.error("Không thể xóa bài kiểm tra");
-    }
+    deleteExamMutation.mutate(id);
   };
 
   return (

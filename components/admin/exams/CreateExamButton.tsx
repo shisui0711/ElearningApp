@@ -18,16 +18,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAnimation } from "@/provider/AnimationProvider";
+import { useCreateExamMutation } from "./mutations";
 
 export default function CreateExamButton() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [duration, setDuration] = useState(60);
-  const [loading, setLoading] = useState(false);
   const { gsap, isReady } = useAnimation();
   const formRef = useRef<HTMLFormElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const createExamMutation = useCreateExamMutation();
 
   // Animation for form elements when dialog opens
   useEffect(() => {
@@ -60,31 +60,11 @@ export default function CreateExamButton() {
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await fetch("/api/exams", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title, duration }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create exam");
+    createExamMutation.mutate(title, {
+      onSuccess: () => {
+        setOpen(false);
       }
-
-      const data = await response.json();
-      toast.success("Bài kiểm tra đã được tạo thành công.");
-      setOpen(false);
-      router.push(`/admin/exams/${data.id}`);
-      router.refresh();
-    } catch (error) {
-      console.error(error);
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
@@ -117,24 +97,8 @@ export default function CreateExamButton() {
                 placeholder="Nhập tiêu đề bài kiểm tra"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                disabled={loading}
+                disabled={createExamMutation.isPending}
                 className="border-input/60 bg-background/60 focus:border-primary"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="duration" className="text-foreground flex items-center gap-1">
-                <Clock className="h-4 w-4" />
-                Thời gian làm bài &#40;phút&#41;
-              </Label>
-              <Input
-                id="duration"
-                type="number"
-                min={1}
-                value={duration}
-                onChange={(e) => setDuration(parseInt(e.target.value) || 1)}
-                disabled={loading}
-                className="w-full sm:w-32 border-input/60 bg-background/60 focus:border-primary"
               />
             </div>
           </div>
@@ -143,18 +107,18 @@ export default function CreateExamButton() {
             <Button
               variant="outline"
               onClick={() => setOpen(false)}
-              disabled={loading}
+              disabled={createExamMutation.isPending}
               type="button"
             >
               Hủy
             </Button>
             <AnimatedButton
               type="submit"
-              disabled={loading}
+              disabled={createExamMutation.isPending}
               gradientVariant="gradient2"
               animationVariant="hover"
             >
-              {loading ? "Đang tạo..." : "Tạo bài kiểm tra"}
+              {createExamMutation.isPending ? "Đang tạo..." : "Tạo bài kiểm tra"}
             </AnimatedButton>
           </DialogFooter>
         </form>

@@ -22,6 +22,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import DepartmentCombobox from "@/components/DepartmentCombobox";
+import { Button } from "@/components/ui/button";
 
 interface Subject {
   id: string;
@@ -162,7 +163,7 @@ export default function SubjectsPage() {
       </div>
 
       {/* Search and filter section */}
-      <div ref={searchRef} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 glass rounded-lg">
+      <div ref={searchRef} className="flex gap-4 p-4 glass rounded-lg">
         <div className="relative">
           <Input
             placeholder="Tìm theo tên môn học"
@@ -173,6 +174,12 @@ export default function SubjectsPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
         </div>
         <DepartmentCombobox onSelect={setDepartmentId} />
+        <Button variant="outline" onClick={() => {
+          setSearchQuery("");
+          setDepartmentId("");
+        }}>
+          Đặt lại
+        </Button>
       </div>
 
       {isLoading ? (

@@ -33,6 +33,7 @@ import EditCourseDialog from "./EditCourseDialog";
 import DeleteCourseDialog from "./DeleteCourseDialog";
 import DepartmentCombobox from "@/components/DepartmentCombobox";
 import TeacherCombobox from "@/components/TeacherCombobox";
+import { Button } from "@/components/ui/button";
 
 export default function CoursesPage() {
   const [pageNumber, setPageNumber] = useState(1);
@@ -167,7 +168,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Search and filter section */}
-      <div ref={searchRef} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 glass rounded-lg">
+      <div ref={searchRef} className="flex gap-4 p-4 glass rounded-lg">
         <div className="relative">
           <Input
             placeholder="Tìm theo tên khóa học"
@@ -187,6 +188,13 @@ export default function CoursesPage() {
           <GraduationCap className="h-4 w-4 text-primary" />
           <TeacherCombobox onSelect={setTeacherId} />
         </div>
+        <Button variant="outline" onClick={() => {
+          setName("");
+          setDepartmentId("");
+          setTeacherId("");
+        }}>
+          Đặt lại
+        </Button>
       </div>
 
       {isLoading ? (

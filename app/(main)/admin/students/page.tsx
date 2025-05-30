@@ -35,6 +35,7 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 import { Input } from "@/components/ui/input";
 import ClassCombobox from "@/components/ClassCombobox";
+import { Button } from "@/components/ui/button";
 
 export default function StudentsPage() {
   const [pageNumber, setPageNumber] = useState(1);
@@ -193,7 +194,7 @@ export default function StudentsPage() {
       </div>
 
       {/* Search and filter section */}
-      <div ref={searchRef} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 glass rounded-lg">
+      <div ref={searchRef} className="flex gap-4 p-4 glass rounded-lg">
         <div className="relative">
           <Input
             placeholder="Tìm theo tên sinh viên"
@@ -204,6 +205,12 @@ export default function StudentsPage() {
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-primary" />
         </div>
         <ClassCombobox onSelect={setClassId} />
+        <Button variant="outline" onClick={() => {
+          setSearchQuery("");
+          setClassId("");
+        }}>
+          Đặt lại
+        </Button>
       </div>
 
       {isLoading ? (

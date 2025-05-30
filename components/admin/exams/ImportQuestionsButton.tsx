@@ -76,6 +76,7 @@ export default function ImportQuestionsButton({
   }, []);
 
   const parseText = (text: string): Question[] => {
+    console.log(text);
     const questions: Question[] = [];
 
     // Remove excessive newlines to normalize the text, but keep paragraph structure

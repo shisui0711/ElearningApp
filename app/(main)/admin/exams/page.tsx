@@ -60,7 +60,7 @@ export default function ExamsManagementPage() {
         <div className="flex justify-between items-center mb-8 bg-card/60 p-6 rounded-xl backdrop-blur-sm border">
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gradient-2 flex items-center gap-2">
-              <FileText className="h-8 w-8" />
+              <FileText className="h-8 w-8 text-primary" />
               Quản lý bài kiểm tra
             </h1>
             <p className="text-muted-foreground">
