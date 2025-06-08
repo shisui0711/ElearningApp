@@ -9,7 +9,11 @@ async function getProfileData(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      student: true,
+      student: {
+        include: {
+          class: true
+        }
+      },
       teacher: {
         include: {
           courses: {

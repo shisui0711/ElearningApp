@@ -8,7 +8,9 @@ import {
   Lesson,
   Prisma,
   Question,
+  Student,
   Teacher,
+  User,
 } from "@prisma/client";
 
 export interface SubmissionWithDetails extends AssignmentSubmission {

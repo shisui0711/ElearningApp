@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useRef } from 'react';
-import { CalendarDays, Mail, MapPin, Pencil, User, BookOpen, GraduationCap, School, UserCog } from 'lucide-react';
+import { CalendarDays, Mail, MapPin, Pencil, User2, BookOpen, GraduationCap, School, UserCog } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import UserAvatar from '@/components/UserAvatar';
@@ -99,6 +99,9 @@ export default function ProfileClient({
               <div>
                 <h1 className="text-2xl font-bold text-gradient-1">{user.displayName}</h1>
                 <p className="text-muted-foreground">{user.username}</p>
+                {user?.student?.class && (
+                  <p className="text-muted-foreground">Lớp {user.student.class.name}</p>
+                )}
               </div>
 
               {isOwnProfile && (
@@ -158,7 +161,7 @@ export default function ProfileClient({
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <div className="flex-center size-8 rounded-full bg-primary/10">
-                    <User size={18} className="text-primary" />
+                    <User2 size={18} className="text-primary" />
                   </div>
                   <span className="text-foreground">Vai trò</span>
                 </CardTitle>
@@ -253,7 +256,7 @@ export default function ProfileClient({
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <div className="flex-center size-8 rounded-full bg-primary/10">
-                    <User size={18} className="text-primary" />
+                    <User2 size={18} className="text-primary" />
                   </div>
                   <span className="text-foreground">Giới thiệu</span>
                 </CardTitle>

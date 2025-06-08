@@ -8,12 +8,13 @@ import CourseCard from "@/components/CourseCard";
 import PaginationControls from "@/components/PaginationControls";
 import { CourseWithDetails, PaginationResponse } from "@/types";
 
-const SearchPage = async ({ searchParams }: { searchParams: { query?: string, departmentId?: string, teacherId?: string, page?: string, pageSize?: string } }) => {
-  const query = searchParams.query || "";
-  const departmentId = searchParams.departmentId || "";
-  const teacherId = searchParams.teacherId || "";
-  const page = parseInt(searchParams.page || "1");
-  const pageSize = parseInt(searchParams.pageSize || "8");
+const SearchPage = async ({ searchParams }: { searchParams: Promise<{ query?: string, departmentId?: string, teacherId?: string, page?: string, pageSize?: string }> }) => {
+  const search = await searchParams;
+  const query = search.query || "";
+  const departmentId = search.departmentId || "";
+  const teacherId = search.teacherId || "";
+  const page = parseInt(search.page || "1");
+  const pageSize = parseInt(search.pageSize || "8");
 
   // Build query params for API call
   const queryParams = new URLSearchParams();
@@ -142,7 +143,7 @@ const SearchPage = async ({ searchParams }: { searchParams: { query?: string, de
                 <Select 
                   defaultValue={pageSize.toString()}
                   onValueChange={(value) => {
-                    const params = new URLSearchParams(searchParams as Record<string, string>);
+                    const params = new URLSearchParams(search as Record<string, string>);
                     params.set("pageSize", value);
                     params.set("page", "1");
                     window.location.href = `/search?${params.toString()}`;
@@ -170,12 +171,12 @@ const SearchPage = async ({ searchParams }: { searchParams: { query?: string, de
                 <PaginationControls 
                   pagination={pagination}
                   onPageChange={(newPage) => {
-                    const params = new URLSearchParams(searchParams as Record<string, string>);
+                    const params = new URLSearchParams(search as Record<string, string>);
                     params.set("page", newPage.toString());
                     window.location.href = `/search?${params.toString()}`;
                   }}
                   onPageSizeChange={(newSize) => {
-                    const params = new URLSearchParams(searchParams as Record<string, string>);
+                    const params = new URLSearchParams(search as Record<string, string>);
                     params.set("pageSize", newSize.toString());
                     params.set("page", "1");
                     window.location.href = `/search?${params.toString()}`;

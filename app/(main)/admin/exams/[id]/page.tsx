@@ -49,7 +49,7 @@ export default function ExamDetailPage({ params }: ExamDetailPageProps) {
       );
     } catch (error) {
       console.error("Error loading exam:", error);
-      return <div className="text-destructive">Failed to load exam details</div>;
+      return <div className="text-destructive">Lỗi khi tải đề thi</div>;
     }
   };
 
