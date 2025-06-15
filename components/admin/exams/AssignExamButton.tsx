@@ -32,37 +32,15 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import axios from "axios";
+import { PaginationResponse, StudentWithDetail } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import { Class, Course, Department } from "@prisma/client";
 
 interface AssignExamButtonProps {
   examId: string;
   examTitle: string;
 }
-
-type DepartmentData = {
-  id: string;
-  name: string;
-};
-
-type ClassData = {
-  id: string;
-  name: string;
-  departmentId: string;
-};
-
-type CourseData = {
-  id: string;
-  name: string;
-  departmentId: string;
-};
-
-type StudentData = {
-  id: string;
-  user: {
-    id: string;
-    displayName: string;
-  };
-  classId: string | null;
-};
 
 type DifficultyConfig = {
   easy: number;
@@ -84,13 +62,9 @@ export default function AssignExamButton({
   const [activeTab, setActiveTab] = useState("department");
   const [loading, setLoading] = useState(false);
 
-  const [departments, setDepartments] = useState<DepartmentData[]>([]);
-  const [classes, setClasses] = useState<ClassData[]>([]);
-  const [filteredClasses, setFilteredClasses] = useState<ClassData[]>([]);
-  const [courses, setCourses] = useState<CourseData[]>([]);
-  const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [filteredStudents, setFilteredStudents] = useState<StudentData[]>([]);
+  const [filteredClasses, setFilteredClasses] = useState<Class[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<StudentWithDetail[]>([]);
   const [questions, setQuestions] = useState<ExamQuestion[]>([]);
   const [totalQuestions, setTotalQuestions] = useState({
     easy: 0,
@@ -115,25 +89,63 @@ export default function AssignExamButton({
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
+  const { data: departments } = useQuery<
+    PaginationResponse<Department>
+  >({
+    queryKey: ["departments-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/departments", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
+  const { data: classes } = useQuery<PaginationResponse<Class>>({
+    queryKey: ["classes-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/classes", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
+  const { data: courses } = useQuery<PaginationResponse<Course>>({
+    queryKey: ["courses-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/courses", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
+  const { data: students } = useQuery<PaginationResponse<StudentWithDetail>>({
+    queryKey: ["students-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/students", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const depResponse = await fetch("/api/departments");
-        const depData = await depResponse.json();
-        setDepartments(depData.data || []);
-
-        const classResponse = await fetch("/api/classes");
-        const classData = await classResponse.json();
-        setClasses(classData.data || []);
-
-        const courseResponse = await fetch("/api/courses");
-        const courseData = await courseResponse.json();
-        setCourses(courseData.data || []);
-
-        const studentResponse = await fetch("/api/students");
-        const studentData = await studentResponse.json();
-        setStudents(studentData.data || []);
-
         const questionsResponse = await fetch(`/api/exams/${examId}/questions`);
         const questionsData = await questionsResponse.json();
         setQuestions(questionsData || []);
@@ -168,10 +180,10 @@ export default function AssignExamButton({
 
   useEffect(() => {
     if (selectedDepartmentId) {
-      const filtered = classes.filter(
+      const filtered = classes?.data.filter(
         (c) => c.departmentId === selectedDepartmentId
       );
-      setFilteredClasses(filtered);
+      setFilteredClasses(filtered || []);
     } else {
       setFilteredClasses([]);
     }
@@ -179,10 +191,10 @@ export default function AssignExamButton({
 
   useEffect(() => {
     if (selectedDepartmentId) {
-      const filtered = courses.filter(
+      const filtered = courses?.data.filter(
         (c) => c.departmentId === selectedDepartmentId
       );
-      setFilteredCourses(filtered);
+      setFilteredCourses(filtered || []);
     } else {
       setFilteredCourses([]);
     }
@@ -190,8 +202,10 @@ export default function AssignExamButton({
 
   useEffect(() => {
     if (selectedClassId) {
-      const filtered = students.filter((s) => s.classId === selectedClassId);
-      setFilteredStudents(filtered);
+      const filtered = students?.data.filter(
+        (s) => s.classId === selectedClassId
+      );
+      setFilteredStudents(filtered || []);
     } else {
       setFilteredStudents([]);
     }
@@ -442,7 +456,6 @@ export default function AssignExamButton({
     });
   };
 
-  // Calculate total questions to be included in the exam
   const totalSelectedQuestions =
     difficultyConfig.easy + difficultyConfig.medium + difficultyConfig.hard;
 
@@ -454,7 +467,7 @@ export default function AssignExamButton({
           <span className="hidden md:block">Giao bài</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Giao bài kiểm tra: {examTitle}</DialogTitle>
         </DialogHeader>
@@ -614,7 +627,7 @@ export default function AssignExamButton({
                   <SelectValue placeholder="Chọn khoa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map((department) => (
+                  {departments?.data.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
                       {department.name}
                     </SelectItem>
@@ -635,7 +648,7 @@ export default function AssignExamButton({
                   <SelectValue placeholder="Chọn khoa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map((department) => (
+                  {departments?.data.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
                       {department.name}
                     </SelectItem>
@@ -685,7 +698,7 @@ export default function AssignExamButton({
                   <SelectValue placeholder="Chọn khoa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {departments.map((department) => (
+                  {departments?.data.map((department) => (
                     <SelectItem key={department.id} value={department.id}>
                       {department.name}
                     </SelectItem>
@@ -734,8 +747,7 @@ export default function AssignExamButton({
                   <SelectValue placeholder="Chọn lớp" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.isArray(classes) &&
-                    classes.map((classItem) => (
+                  {classes?.data.map((classItem) => (
                       <SelectItem key={classItem.id} value={classItem.id}>
                         {classItem.name}
                       </SelectItem>

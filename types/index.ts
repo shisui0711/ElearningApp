@@ -44,6 +44,20 @@ export interface TeacherWithDetail extends Teacher {
   };
 }
 
+export interface StudentWithDetail extends Student {
+  class: {
+    id: string;
+    name: string;
+  };
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    firstName: string;
+    lastName: string;
+  };
+}
+
 export interface ExamWithDetail extends Exam {
   questions: Question[];
 }
