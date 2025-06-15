@@ -684,6 +684,13 @@ async function main() {
     const examCount = await prisma.exam.count();
     
     if (examCount < 30) {
+      // Clear existing exams for clean reseeding
+      await prisma.examAttempt.deleteMany({});
+      await prisma.examQuestion.deleteMany({});
+      await prisma.studentAnswer.deleteMany({});
+      await prisma.markedQuestion.deleteMany({});
+      await prisma.exam.deleteMany({});
+      
       const examTitles = [
         "Midterm Examination",
         "Final Examination",
@@ -700,6 +707,7 @@ async function main() {
         await prisma.exam.create({
           data: {
             title: `${examTitles[titleIndex]}: ${subjects[subjectIndex].name}`,
+            // Only include supported fields based on your schema
             createdAt: randomDate(new Date(2023, 0, 1), new Date(2023, 11, 31)),
           },
         });
@@ -715,6 +723,10 @@ async function main() {
     const questionCount = await prisma.question.count();
     
     if (questionCount < 300) {
+      // Clear existing questions for clean reseeding
+      await prisma.answer.deleteMany({});
+      await prisma.question.deleteMany({});
+      
       const questionPrefixes = [
         "What is the definition of",
         "Explain the concept of",
@@ -755,12 +767,15 @@ async function main() {
           const topicIndex = Math.floor(Math.random() * questionTopics.length);
           const content = `${questionPrefixes[prefixIndex]} ${questionTopics[topicIndex]}?`;
           
-          // Create question
+          // Create question with more varied difficulty
+          const difficultyOptions = ["EASY", "MEDIUM", "HARD"];
+          const difficulty = difficultyOptions[Math.floor(Math.random() * 3)];
+          
           const question = await prisma.question.create({
             data: {
               content,
               points: Math.floor(Math.random() * 5) + 1, // 1-5 points
-              difficulty: ["EASY", "MEDIUM", "HARD"][Math.floor(Math.random() * 3)],
+              difficulty,
               imageUrl: Math.random() > 0.7 ? `https://picsum.photos/seed/q${exam.id}${i}/400/300` : null,
               createdAt: randomDate(new Date(2023, 0, 1), new Date(2023, 11, 31)),
             },
@@ -776,10 +791,6 @@ async function main() {
           });
           
           // Create 4 answers for the question (1 correct, 3 incorrect)
-          const correctAnswerIndex = Math.floor(Math.random() * 4);
-          
-          for (let j = 0; j < 4; j++) {
-            // Create 4 answers for the question (1 correct, 3 incorrect)
           const correctAnswerIndex = Math.floor(Math.random() * 4);
           
           for (let j = 0; j < 4; j++) {
@@ -810,10 +821,19 @@ async function main() {
     console.log("Creating exam attempts...");
     const examAttemptCount = await prisma.examAttempt.count();
     
-    if (examAttemptCount < 500) {
+    if (examAttemptCount < 1500) {
+      // Clear existing exam attempts for clean reseeding
+      await prisma.examAttemptQuestion.deleteMany({});
+      await prisma.studentAnswer.deleteMany({});
+      await prisma.markedQuestion.deleteMany({});
+      await prisma.examAttempt.deleteMany({});
+      
+      // Create attempts spread over the whole year to generate meaningful trend data
+      const months = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]; // Jan-Dec
+      
       for (const student of students) {
-        // Each student attempts 2-3 exams
-        const numAttempts = Math.floor(Math.random() * 2) + 2;
+        // Each student attempts 5-8 exams throughout the year
+        const numAttempts = Math.floor(Math.random() * 4) + 5;
         const selectedExams = pickRandom(exams, numAttempts);
         
         // Get student's class
@@ -823,7 +843,12 @@ async function main() {
         
         if (!studentClass) continue;
         
-        for (const exam of selectedExams) {
+        // Create attempts distributed across months
+        for (let i = 0; i < selectedExams.length; i++) {
+          const exam = selectedExams[i];
+          // Choose month ensuring distribution across the year
+          const month = months[Math.floor(i * (months.length / selectedExams.length))];
+          
           // Get exam questions
           const examQuestions = await prisma.examQuestion.findMany({
             where: { examId: exam.id },
@@ -832,7 +857,10 @@ async function main() {
           
           if (examQuestions.length === 0) continue;
           
-          const startDate = randomDate(new Date(2023, 0, 1), new Date(2023, 11, 31));
+          const startDate = randomDate(
+            new Date(2023, month, 1),
+            new Date(2023, month, 28)
+          );
           const duration = Math.floor(Math.random() * 30) + 30; // 30-60 minutes
           const finishDate = new Date(startDate.getTime() + duration * 60 * 1000);
           
@@ -887,8 +915,19 @@ async function main() {
             
             if (answers.length === 0) continue;
             
-            // 70% chance to select the correct answer, 30% chance to select a random answer
-            const selectCorrect = Math.random() < 0.7;
+            // Create more varied answer patterns based on question difficulty
+            let correctChance = 0.7; // Base 70% chance to select correct answer
+            
+            // Adjust by difficulty
+            if (question.difficulty === "EASY") correctChance = 0.85;
+            else if (question.difficulty === "MEDIUM") correctChance = 0.7;
+            else if (question.difficulty === "HARD") correctChance = 0.55;
+            
+            // Early attempts in the year have lower correct chance
+            if (month < 3) correctChance -= 0.1; // First quarter performance is worse
+            else if (month > 8) correctChance += 0.1; // Last quarter performance is better
+            
+            const selectCorrect = Math.random() < correctChance;
             let selectedAnswer;
             
             if (selectCorrect) {
@@ -924,15 +963,23 @@ async function main() {
             }
           }
           
-          // Calculate and update score
-          const score = Math.round((correctAnswers / totalQuestions) * 100);
+          // Calculate and update score - ensure we have a range of scores
+          // with gradual improvement over the year
+          let baseScore = (correctAnswers / totalQuestions) * 100;
+          
+          // Month effect: scores tend to improve as the year progresses
+          const monthBonus = month * 0.5; // 0-5.5% bonus based on month
+          
+          // Finalize score with some randomness
+          let finalScore = Math.min(100, Math.max(30, Math.round(baseScore + monthBonus)));
+          
           await prisma.examAttempt.update({
             where: { id: attempt.id },
-            data: { score },
+            data: { score: finalScore },
           });
         }
       }
-      console.log("Exam attempts created");
+      console.log("Exam attempts created with improved data distribution");
     }
 
     // ==================== Create Assignments ====================
@@ -1168,7 +1215,6 @@ async function main() {
       }
       console.log("Course comments created");
     }
-  }
 
     console.log("Database seeding completed successfully!");
   } catch (error) {
