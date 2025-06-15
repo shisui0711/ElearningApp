@@ -122,6 +122,13 @@ const CoursePage = async ({ params }: CoursePageProps) => {
       ],
       courseId: course?.id,
     },
+    include: {
+      examAttemptQuestions: {
+        include: {
+          question: true,
+        }
+      }
+    }
   });
 
   if (!course) {
@@ -213,6 +220,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                 ) : (
                   <div className="space-y-4">
                     {examAttempts.map((examAttempt) => {
+                      const totalScore = examAttempt.examAttemptQuestions.reduce((acc, question) => acc + (question.question.points ?? 0), 0);
                       return (
                         <div
                           key={examAttempt.id}
@@ -270,7 +278,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
                                       variant="outline"
                                       className="bg-green-100 text-green-700"
                                     >
-                                      {examAttempt.score} điểm //TODO: Điểm số
+                                      {examAttempt.score ? parseFloat(((examAttempt.score / totalScore) * 10).toFixed(1)) : 0}/10 điểm
                                     </Badge>
                                   </div>
                                 )}
