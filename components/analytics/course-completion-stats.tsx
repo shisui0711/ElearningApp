@@ -29,7 +29,9 @@ import {
 import { DateRange } from "react-day-picker";
 import { CustomDateRangePicker } from "@/components/ui/custom-date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { useQuery } from "@tanstack/react-query";
+import { PaginationResponse } from "@/types";
+import { Department } from "@prisma/client";
 interface CourseCompletion {
   id: string;
   name: string;
@@ -68,6 +70,19 @@ const CourseCompletionStats = () => {
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(true);
 
+  const { data: departments } = useQuery<PaginationResponse<Department>>({
+    queryKey: ["departments-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/departments", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
   useEffect(() => {
     fetchCompletionStats();
     fetchChartData();
@@ -76,7 +91,6 @@ const CourseCompletionStats = () => {
   const fetchCompletionStats = async () => {
     setLoading(true);
     try {
-      // Construct query params
       const params = new URLSearchParams();
       params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
       
@@ -97,7 +111,6 @@ const CourseCompletionStats = () => {
   const fetchChartData = async () => {
     setChartLoading(true);
     try {
-      // Construct query params
       const params = new URLSearchParams();
       params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
       params.append('chartType', 'completion');
@@ -136,12 +149,12 @@ const CourseCompletionStats = () => {
               <SelectValue placeholder="Department" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Toàn bộ khoa</SelectItem>
-              <SelectItem value="cs">Computer Science</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-              <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="arts">Arts</SelectItem>
-              <SelectItem value="medicine">Medicine</SelectItem>
+              <SelectItem value="all">Toàn trường</SelectItem>
+              {departments?.data.map((department) => (
+                <SelectItem key={department.id} value={department.id}>
+                  {department.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

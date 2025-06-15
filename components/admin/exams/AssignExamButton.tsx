@@ -84,7 +84,6 @@ export default function AssignExamButton({
   const [activeTab, setActiveTab] = useState("department");
   const [loading, setLoading] = useState(false);
 
-  // Data for selection options
   const [departments, setDepartments] = useState<DepartmentData[]>([]);
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [filteredClasses, setFilteredClasses] = useState<ClassData[]>([]);
@@ -99,7 +98,6 @@ export default function AssignExamButton({
     hard: 0,
   });
 
-  // Exam configuration
   const [difficultyConfig, setDifficultyConfig] = useState<DifficultyConfig>({
     easy: 0,
     medium: 0,
@@ -109,44 +107,37 @@ export default function AssignExamButton({
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
   const [dueDate, setDueDate] = useState<Date>(
     new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  ); // Default 30 days from now
+  );
   const [examName, setExamName] = useState("");
-  // Selected values
+
   const [selectedDepartmentId, setSelectedDepartmentId] = useState("");
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
-  // Fetch all data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch departments
         const depResponse = await fetch("/api/departments");
         const depData = await depResponse.json();
         setDepartments(depData.data || []);
 
-        // Fetch classes
         const classResponse = await fetch("/api/classes");
         const classData = await classResponse.json();
         setClasses(classData.data || []);
 
-        // Fetch courses
         const courseResponse = await fetch("/api/courses");
         const courseData = await courseResponse.json();
         setCourses(courseData.data || []);
 
-        // Fetch students
         const studentResponse = await fetch("/api/students");
         const studentData = await studentResponse.json();
         setStudents(studentData.data || []);
 
-        // Fetch exam questions to get difficulty counts
         const questionsResponse = await fetch(`/api/exams/${examId}/questions`);
         const questionsData = await questionsResponse.json();
         setQuestions(questionsData || []);
 
-        // Count questions by difficulty
         const counts = {
           easy: 0,
           medium: 0,
@@ -161,7 +152,6 @@ export default function AssignExamButton({
 
         setTotalQuestions(counts);
 
-        // Set default difficulty config to use all available questions
         setDifficultyConfig({
           easy: counts.easy,
           medium: counts.medium,
@@ -176,7 +166,6 @@ export default function AssignExamButton({
     fetchData();
   }, [examId]);
 
-  // Filter classes by department
   useEffect(() => {
     if (selectedDepartmentId) {
       const filtered = classes.filter(
@@ -188,7 +177,6 @@ export default function AssignExamButton({
     }
   }, [selectedDepartmentId, classes]);
 
-  // Filter courses by department
   useEffect(() => {
     if (selectedDepartmentId) {
       const filtered = courses.filter(
@@ -200,7 +188,6 @@ export default function AssignExamButton({
     }
   }, [selectedDepartmentId, courses]);
 
-  // Filter students by class
   useEffect(() => {
     if (selectedClassId) {
       const filtered = students.filter((s) => s.classId === selectedClassId);
