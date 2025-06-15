@@ -34,6 +34,7 @@ import CreateExamButton from "./CreateExamButton";
 import { useRouter } from "next/navigation";
 import { useAnimation } from "@/provider/AnimationProvider";
 import { useDeleteExamMutation } from "./mutations";
+import { Card } from "@/components/ui/card";
 
 export default function ExamsList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -149,11 +150,9 @@ export default function ExamsList() {
       ) : (
         <div ref={examListRef} className="space-y-4">
           {exams.map((exam) => (
-            <AnimatedCard
+            <Card
               key={exam.id}
               className="exam-card border hover:border-primary/50 transition-colors duration-300"
-              animationVariant="none"
-              gradientBorder={false}
             >
               <CardHeader className="pb-2 bg-gradient-to-r from-blue-50/50 via-transparent to-transparent dark:from-blue-950/20 dark:via-transparent">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -171,17 +170,16 @@ export default function ExamsList() {
                     </div>
                   </div>
                   <div className="flex gap-2 flex-wrap sm:flex-nowrap justify-end">
-                    <AnimatedButton
+                    <Button
                       variant="outline"
                       size="sm"
                       asChild
-                      animationVariant="hover"
                     >
-                      <Link href={`/admin/exams/${exam.id}`}>
+                      <Link href={`/admin/exams/${exam.id}`} prefetch={false}>
                         <Pencil className="h-4 w-4 mr-1" />
                         <span className="hidden md:block">Chỉnh sửa</span>
                       </Link>
-                    </AnimatedButton>
+                    </Button>
                     <AssignExamButton examId={exam.id} examTitle={exam.title} />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -233,7 +231,7 @@ export default function ExamsList() {
                   )}
                 </div>
               </CardContent>
-            </AnimatedCard>
+            </Card>
           ))}
 
           <div className="mt-8 bg-card/60 p-4 rounded-lg backdrop-blur-sm border">

@@ -36,7 +36,6 @@ const AiAssistant = ({
   const [textToSummarize, setTextToSummarize] = useState("");
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // Clean up controller on unmount
   useEffect(() => {
     return () => {
       if (controller) {
@@ -59,30 +58,24 @@ const AiAssistant = ({
   };
 
   const generateContent = async () => {
-    // For summarize mode, check if there's text to summarize
     if (activeMode === "summarize" && !textToSummarize.trim()) {
       return;
     }
     
-    // For other modes, check if there's a prompt
     if (activeMode !== "summarize" && !prompt.trim()) {
       return;
     }
 
-    // Reset content
     setGeneratedContent("");
     setIsGenerating(true);
 
-    // Create a new abort controller
     const abortController = new AbortController();
     setController(abortController);
 
     try {
-      // Determine which text to use based on the active mode
       const inputText = activeMode === "summarize" ? textToSummarize : prompt;
       const systemPrompt = generateSystemPrompt();
 
-      // Streaming implementation
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",
         {
@@ -136,13 +129,11 @@ const AiAssistant = ({
           if (line.startsWith("data: ")) {
             const jsonData = line.replace("data: ", "");
             
-            // Skip "[DONE]" message
             if (jsonData === "[DONE]") continue;
             
             try {
               const parsedLine = JSON.parse(jsonData);
               
-              // Extract content from the OpenRouter format
               if (parsedLine.choices && 
                   parsedLine.choices[0]?.delta?.content) {
                 const content = parsedLine.choices[0].delta.content;
@@ -150,7 +141,6 @@ const AiAssistant = ({
                 setGeneratedContent(accumulatedContent);
               }
               
-              // Check if this is the last message
               if (parsedLine.choices && 
                   parsedLine.choices[0]?.finish_reason !== null) {
                 break;
@@ -167,7 +157,7 @@ const AiAssistant = ({
       } else {
         console.error("Failed to generate content:", error);
         setGeneratedContent(
-          "Failed to generate content. Please check your API key and connection."
+          "Lỗi khi tạo nội dung. Vui lòng kiểm tra lại API key và kết nối."
         );
       }
     } finally {

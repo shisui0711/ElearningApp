@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AnimatedCard } from "@/components/ui/animated-card";
-import { Pencil, Plus, Save, Trash2, ArrowLeft } from "lucide-react";
+import { Pencil, Plus, Save, Trash2, ArrowLeft, Loader2, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import QuestionForm from "./QuestionForm";
 import ImportQuestionsButton from "./ImportQuestionsButton";
+import QuestionGeneratorButton from "./QuestionGeneratorButton";
 
 interface Answer {
   id: string;
@@ -64,6 +65,7 @@ export default function ExamEditor({ examId, onAddQuestion, onEditQuestion }: Ex
   const [title, setTitle] = useState("");
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchExam();
@@ -159,8 +161,18 @@ export default function ExamEditor({ examId, onAddQuestion, onEditQuestion }: Ex
     fetchExam();
   };
 
+  // Filter questions based on search term
+  const filteredQuestions = exam?.questions.filter(({ question }) => 
+    question.content.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
   if (loading) {
-    return <p>Đang tải...</p>;
+    return (
+      <div className="flex flex-col justify-center items-center h-60 bg-card/60 rounded-lg backdrop-blur-sm border p-6">
+        <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground">Đang tải dữ liệu bài kiểm tra...</p>
+      </div>
+    );
   }
 
   if (error) {
@@ -253,6 +265,10 @@ export default function ExamEditor({ examId, onAddQuestion, onEditQuestion }: Ex
                 examId={examId}
                 onImportComplete={fetchExam}
               />
+              <QuestionGeneratorButton
+                examId={examId}
+                onQuestionsGenerated={fetchExam}
+              />
               <Button
                 onClick={handleAddQuestion}
                 className="bg-gradient-to-r from-[hsl(var(--gradient-2-start))] to-[hsl(var(--gradient-2-end))] hover:opacity-90 text-white border-0"
@@ -263,16 +279,28 @@ export default function ExamEditor({ examId, onAddQuestion, onEditQuestion }: Ex
             </div>
           </div>
 
-          {exam?.questions.length === 0 ? (
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Tìm kiếm câu hỏi..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+
+          {filteredQuestions.length === 0 ? (
             <div className="text-center py-10 border rounded-lg bg-card/60 backdrop-blur-sm">
               <p className="text-muted-foreground">
-                Chưa có câu hỏi nào được thêm vào. Thêm câu hỏi đầu tiên của
-                bạn.
+                {exam?.questions.length === 0 
+                  ? "Chưa có câu hỏi nào được thêm vào. Thêm câu hỏi đầu tiên của bạn."
+                  : "Không tìm thấy câu hỏi nào phù hợp."}
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {exam?.questions.map(({ question, id: examQuestionId }) => (
+              {filteredQuestions.map(({ question, id: examQuestionId }) => (
                 <AnimatedCard
                   key={examQuestionId}
                   className="overflow-hidden bg-card/60 backdrop-blur-sm border-0 shadow-lg"
