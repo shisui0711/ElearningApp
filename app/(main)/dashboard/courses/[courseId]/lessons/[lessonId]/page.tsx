@@ -15,7 +15,6 @@ const LessonPage = async ({ params }: LessonPageProps) => {
   const { user } = await validateRequest();
 
   if (!user) redirect("/sign-in");
-  if (!user.student) redirect("/");
   const { courseId, lessonId } = await params;
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
@@ -25,7 +24,7 @@ const LessonPage = async ({ params }: LessonPageProps) => {
   });
   if (!lesson) redirect(`/dashboard/courses/${courseId}`);
   return (
-    <LessonDisplay lesson={lesson} studentId={user.student.id} />
+    <LessonDisplay lesson={lesson} studentId={user.student?.id} />
   );
 };
 

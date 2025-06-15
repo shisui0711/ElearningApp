@@ -221,8 +221,6 @@ export default function EditClassDialog({
     return () => clearTimeout(timer);
   }, [isReady, gsap, isSuccess, onClose]);
 
-  // We're using the departments array directly in the JSX
-
   const onSubmit = async (values: UpdateClassValues) => {
     mutate(values, {
       onSuccess: () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,57 +18,113 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
+import { Loader2 } from "lucide-react";
 
-// Example department data
-const departmentData = [
-  {
-    id: 1,
-    name: "Computer Science",
-    students: 850,
-    courses: 42,
-    avgCompletion: 72,
-    avgScore: 80,
-    growth: "+12%",
-  },
-  {
-    id: 2,
-    name: "Business",
-    students: 720,
-    courses: 38,
-    avgCompletion: 68,
-    avgScore: 76,
-    growth: "+8%",
-  },
-  {
-    id: 3,
-    name: "Engineering",
-    students: 620,
-    courses: 35,
-    avgCompletion: 65,
-    avgScore: 78,
-    growth: "+6%",
-  },
-  {
-    id: 4,
-    name: "Arts",
-    students: 480,
-    courses: 30,
-    avgCompletion: 70,
-    avgScore: 82,
-    growth: "+5%",
-  },
-  {
-    id: 5,
-    name: "Medicine",
-    students: 380,
-    courses: 28,
-    avgCompletion: 75,
-    avgScore: 85,
-    growth: "+4%",
-  },
-];
+// Define types for our data
+interface Department {
+  id: number;
+  name: string;
+  students: number;
+  courses: number;
+  avgCompletion: number;
+  avgScore: number;
+  growth: string;
+}
+
+interface TopCourse {
+  department: string;
+  courseName: string;
+  score: number;
+}
+
+interface DepartmentStatsData {
+  departments: Department[];
+  topCourses: TopCourse[];
+  lowCourses: TopCourse[];
+  totalDepartments: number;
+  avgCoursesPerDepartment: number;
+  avgStudentsPerDepartment: number;
+  highestScoringDepartment: {
+    name: string;
+    score: number;
+  };
+}
 
 const DepartmentStats = () => {
+  const [data, setData] = useState<DepartmentStatsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDepartmentStats = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/analytics/departments');
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Đã xảy ra lỗi khi tải dữ liệu');
+        console.error('Error fetching department stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDepartmentStats();
+  }, []);
+
+  // Convert department data for charts
+  const preparePieChartData = () => {
+    if (!data) return [];
+    return data.departments.map(dept => ({
+      name: dept.name,
+      value: dept.students
+    }));
+  };
+
+  const prepareBarChartData = () => {
+    if (!data) return [];
+    return data.departments.map(dept => ({
+      name: dept.name,
+      total: dept.courses
+    }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">Đang tải dữ liệu phân tích...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-red-600 mb-2">Lỗi tải dữ liệu</h3>
+          <p>{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+            onClick={() => window.location.reload()}
+          >
+            Thử lại
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 mb-4">
@@ -81,7 +137,7 @@ const DepartmentStats = () => {
             <CardTitle className="text-sm font-medium">Tổng số khoa</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{data.totalDepartments}</div>
           </CardContent>
         </Card>
         <Card>
@@ -91,7 +147,7 @@ const DepartmentStats = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">34.6</div>
+            <div className="text-2xl font-bold">{data.avgCoursesPerDepartment}</div>
           </CardContent>
         </Card>
         <Card>
@@ -101,7 +157,7 @@ const DepartmentStats = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">610</div>
+            <div className="text-2xl font-bold">{data.avgStudentsPerDepartment}</div>
           </CardContent>
         </Card>
         <Card>
@@ -111,8 +167,8 @@ const DepartmentStats = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Medicine</div>
-            <p className="text-xs text-muted-foreground">85% trung bình điểm</p>
+            <div className="text-2xl font-bold">{data.highestScoringDepartment.name}</div>
+            <p className="text-xs text-muted-foreground">{data.highestScoringDepartment.score}% trung bình điểm</p>
           </CardContent>
         </Card>
       </div>
@@ -124,7 +180,7 @@ const DepartmentStats = () => {
             <CardDescription>Sinh viên theo khoa</CardDescription>
           </CardHeader>
           <CardContent>
-            <PieChart />
+            <PieChart customData={preparePieChartData()} />
           </CardContent>
         </Card>
         <Card className="col-span-1">
@@ -135,7 +191,7 @@ const DepartmentStats = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BarChart />
+            <BarChart customData={prepareBarChartData()} />
           </CardContent>
         </Card>
       </div>
@@ -158,7 +214,7 @@ const DepartmentStats = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {departmentData.map((dept) => (
+              {data.departments.map((dept) => (
                 <TableRow key={dept.id}>
                   <TableCell className="font-medium">{dept.name}</TableCell>
                   <TableCell>{dept.students}</TableCell>
@@ -203,21 +259,13 @@ const DepartmentStats = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell>Medicine</TableCell>
-                  <TableCell>Human Anatomy</TableCell>
-                  <TableCell>92%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Computer Science</TableCell>
-                  <TableCell>Data Structures</TableCell>
-                  <TableCell>88%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Arts</TableCell>
-                  <TableCell>Art History</TableCell>
-                  <TableCell>86%</TableCell>
-                </TableRow>
+                {data.topCourses.map((course, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{course.department}</TableCell>
+                    <TableCell>{course.courseName}</TableCell>
+                    <TableCell>{course.score}%</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -237,21 +285,13 @@ const DepartmentStats = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell>Engineering</TableCell>
-                  <TableCell>Advanced Calculus</TableCell>
-                  <TableCell>62%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Business</TableCell>
-                  <TableCell>Financial Accounting</TableCell>
-                  <TableCell>65%</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Computer Science</TableCell>
-                  <TableCell>Machine Learning</TableCell>
-                  <TableCell>68%</TableCell>
-                </TableRow>
+                {data.lowCourses.map((course, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>{course.department}</TableCell>
+                    <TableCell>{course.courseName}</TableCell>
+                    <TableCell>{course.score}%</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>

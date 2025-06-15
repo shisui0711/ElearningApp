@@ -12,16 +12,12 @@ import CommentList from "@/components/CommentList";
 
 interface LessonDisplayProps {
   lesson: LessonWithDetails;
-  studentId: string;
+  studentId?: string;
 }
 
 const LessonDisplay = ({ lesson, studentId }: LessonDisplayProps) => {
   const [progress, setProgress] = useState(0);
-  const {
-    data: isCompleted,
-    isError,
-    isPending,
-  } = useQuery({
+  const { data: isCompleted } = useQuery({
     queryKey: ["lessonCompleted", lesson.id, studentId],
     queryFn: async () => {
       const response = await axios.get(
@@ -67,7 +63,8 @@ const LessonDisplay = ({ lesson, studentId }: LessonDisplayProps) => {
             {/* Comments Section */}
             <CommentList lessonId={lesson.id} />
 
-            <div className="flex justify-end">
+            {studentId && (
+              <div className="flex justify-end">
               <LessonCompleteButton
                 courseId={lesson.courseId}
                 lessonId={lesson.id}
@@ -76,6 +73,7 @@ const LessonDisplay = ({ lesson, studentId }: LessonDisplayProps) => {
                 isCompleted={!!isCompleted}
               />
             </div>
+            )}
           </div>
         </div>
       </div>

@@ -17,12 +17,12 @@ const VideoPlayer = ({ url, onPlay, onProgress, controls}:VideoPlayerProps) => {
       <ReactPlayer
         onPlay={onPlay}
         onProgress={onProgress}
-        progressInterval={5000}
+        progressInterval={1000}
         url={url}
         width="100%"
         height="100%"
         playing={false}
-        controls={controls}
+        controls
       />
     </div>
   )

@@ -8,6 +8,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { LessonWithDetails } from "@/types";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 interface LessonCompleteButtonProps {
   courseId: string;
@@ -25,7 +26,7 @@ const LessonCompleteButton = ({
   isCompleted,
 }: LessonCompleteButtonProps) => {
   const router = useRouter();
-  const { isPending, isError , mutate } = useMutation({
+  const { isPending, error , mutate } = useMutation({
     mutationFn: async () => {
       await axios.post(
         `/api/lessons/completed`,
@@ -48,12 +49,22 @@ const LessonCompleteButton = ({
     queryFn: async () => {
       const response = await axios.get(`/api/lessons/${lessonId}/next`)
       return response.data as LessonWithDetails;
-    }
+    },
+    retry: false,
   })
 
   const handleCompletedButton = () => {
-    mutate();
-    if(isError || !nextLesson) return;
+    mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Bài học đã được hoàn thành");
+      },
+      onError: (error) => {
+        toast.error(error?.message || "Có lỗi xảy ra khi hoàn thành bài học");
+      },
+    });
+    if(error || !nextLesson) {
+      return;
+    };
     router.push(`/dashboard/courses/${courseId}/lessons/${nextLesson.id}`)
     router.refresh()
   }

@@ -17,11 +17,11 @@ export default async function MainLayout({
 
   return (
     <SessionProvider value={session}>
-      <SocketProvider>
+      {/* <SocketProvider> */}
         <NotificationProvider>
           {children}
         </NotificationProvider>
-        </SocketProvider>
+        {/* </SocketProvider> */}
         <AiAssistant className="fixed bottom-4 right-4 z-50" />
     </SessionProvider>
   );

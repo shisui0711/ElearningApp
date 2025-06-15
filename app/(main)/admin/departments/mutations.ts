@@ -1,4 +1,4 @@
-import { Department } from "@prisma/client";
+
 import {
   InfiniteData,
   QueryFilters,
@@ -13,7 +13,6 @@ import {
 } from "./actions";
 import { DepartmentsPage } from "@/types";
 import { toast } from "sonner";
-import { useSession } from "@/provider/SessionProvider";
 
 export function useDeleteDepartmentMutation() {
   const queryClient = useQueryClient();
@@ -63,7 +62,6 @@ export function useDeleteDepartmentMutation() {
 
 export function useCreateDepartmentMutation() {
   const queryClient = useQueryClient();
-  const { user } = useSession();
 
   const mutation = useMutation({
     mutationFn: createDepartment,
@@ -106,7 +104,6 @@ export function useCreateDepartmentMutation() {
     onError: (error: any) => {
       console.log(error);
       toast.error(error.message)
-      // toast.error("Có lỗi xảy ra. Vui lòng thử lại");
     },
   });
 
@@ -115,7 +112,6 @@ export function useCreateDepartmentMutation() {
 
 export function useUpdateDepartmentMutation() {
   const queryClient = useQueryClient();
-  const { user } = useSession();
 
   const mutation = useMutation({
     mutationFn: updateDepartment,
@@ -152,8 +148,7 @@ export function useUpdateDepartmentMutation() {
     },
     onError: (error) => {
       console.log(error);
-      // toast.error("Có lỗi xảy ra. Vui lòng thử lại");
-      toast.error(error.message)
+      toast.error(error.message);
     },
   });
 

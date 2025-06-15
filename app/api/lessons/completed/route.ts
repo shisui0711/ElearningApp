@@ -50,6 +50,24 @@ export async function POST(req: Request) {
       return new NextResponse("Lesson not found", { status: 404 });
     }
 
+    const previousLesson = await prisma.lesson.findFirst({
+      where: {
+        courseId: lesson.courseId,
+        position: {lt: lesson.position}
+      }
+    });
+    if(previousLesson){
+      const previousLessonCompleted = await prisma.completedLesson.findFirst({
+        where: {
+          lessonId: previousLesson.id,
+          studentId: studentId,
+        },
+      });
+      if(!previousLessonCompleted){
+        return new NextResponse("Previous lesson not completed", { status: 400 });
+      }
+    }
+
     const checkLessonCompleted = await prisma.completedLesson.findFirst({
       where: {
         lessonId: lessonId,

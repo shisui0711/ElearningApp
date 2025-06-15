@@ -81,7 +81,7 @@ const Sidebar = ({ course, completedLessons }: SidebarProps) => {
               value={openLessons}
               onValueChange={setOpenLessons}
             >
-              {course.lessons?.map((lesson, lessonIndex) => {
+              {course.lessons?.sort((a,b)=>a.position - b.position).map((lesson, lessonIndex) => {
                 const isActive = pathname === `/dashboard/courses/${course.id}/lessons/${lesson.id}`
                 const isCompleted = completedLessons.some((completion) => completion.id === lesson.id);
                 return <Link href={`/dashboard/courses/${course.id}/lessons/${lesson.id}`}
