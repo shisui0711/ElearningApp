@@ -20,7 +20,7 @@ const CourseProgress = ({ progress, variant = "default", size = "default", showP
         {label && <span className='text-muted-foreground'>{label}</span>}
         {showPercentage && (
           <span className='text-muted-foreground font-medium'>
-            {progress}%
+            {progress || 0}%
           </span>
         )}
       </div>

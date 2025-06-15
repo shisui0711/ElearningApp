@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { Progress } from "./ui/progress";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { LessonWithDetails } from "@/types";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -59,7 +59,11 @@ const LessonCompleteButton = ({
         toast.success("Bài học đã được hoàn thành");
       },
       onError: (error) => {
-        toast.error(error?.message || "Có lỗi xảy ra khi hoàn thành bài học");
+        if(error instanceof AxiosError && error.status === 400) {
+          toast.error("Bạn phải hoàn thành tất cả các bài học trước khi đi đến bài học này");
+        } else {
+          toast.error(error?.message || "Có lỗi xảy ra khi hoàn thành bài học");
+        }
       },
     });
     if(error || !nextLesson) {

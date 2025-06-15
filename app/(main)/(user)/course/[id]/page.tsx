@@ -135,7 +135,6 @@ const CoursePage = async ({ params }: CoursePageProps) => {
     return notFound();
   }
 
-  // Kiểm tra người dùng đã đăng ký khóa học chưa
   const enrollment = await prisma.enrollment.findFirst({
     where: {
       courseId: course.id,
@@ -146,6 +145,7 @@ const CoursePage = async ({ params }: CoursePageProps) => {
   const isEnrolled = !!enrollment;
   const isTeacher = course.teacherId === user.teacher?.id;
   const isAdmin = user.role === "ADMIN";
+
   return (
     <div className="min-h-screen bg-background">
       <div className="relative h-[60vh] w-full">

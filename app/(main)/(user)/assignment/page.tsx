@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Eye, FileCheck, TimerIcon } from "lucide-react";
+import { CalendarClock, Clock, Eye, FileCheck, TimerIcon } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,7 @@ interface ExamAttempt {
   score: number | null;
   duration: number;
   showCorrectAfter: boolean;
+  createdAt: string;
   exam: {
     id: string;
     title: string;
@@ -146,6 +147,12 @@ export default function AssignmentPage() {
                         {assignment.startedAt
                           ? `Đã bắt đầu ${formatTimeAgo(new Date(assignment.startedAt))}`
                           : "Chưa bắt đầu"}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-sm">
+                      <Clock className="mr-2 h-4 w-4" />
+                      <span className="text-muted-foreground">
+                        Đã giao {formatTimeAgo(new Date(assignment.createdAt))}
                       </span>
                     </div>
                     <div className="flex items-center text-sm">

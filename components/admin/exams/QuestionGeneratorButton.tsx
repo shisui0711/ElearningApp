@@ -19,6 +19,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Answer {
   content: string;
@@ -55,6 +62,9 @@ export default function QuestionGeneratorButton({
   >([]);
   const [showPreview, setShowPreview] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [language, setLanguage] = useState("vi");
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 3;
 
   useEffect(() => {
     return () => {
@@ -82,6 +92,7 @@ export default function QuestionGeneratorButton({
     setShowPreview(false);
     setActiveTab("all");
     setGenerationProgress(0);
+    setRetryCount(0);
   };
 
   const handleDialogClose = (isOpen: boolean) => {
@@ -93,29 +104,37 @@ export default function QuestionGeneratorButton({
     }
   };
 
-  const generateQuestions = async () => {
-    if (!subject.trim()) {
-      toast.error("Vui lòng nhập tên môn học");
-      return;
-    }
+  const generateQuestions = async (shouldRetry = false) => {
+    if (!shouldRetry) {
+      if (!subject.trim()) {
+        toast.error("Vui lòng nhập tên môn học");
+        return;
+      }
 
-    const totalQuestions = easyCount + mediumCount + hardCount;
-    if (totalQuestions <= 0) {
-      toast.error("Vui lòng nhập số lượng câu hỏi");
-      return;
-    }
+      const totalQuestions = easyCount + mediumCount + hardCount;
+      if (totalQuestions <= 0) {
+        toast.error("Vui lòng nhập số lượng câu hỏi");
+        return;
+      }
 
-    setIsGenerating(true);
-    setGenerationProgress(0);
-    setGeneratedQuestions([]);
+      setIsGenerating(true);
+      setGenerationProgress(0);
+      setGeneratedQuestions([]);
+    }
+    
     const abortController = new AbortController();
     setController(abortController);
 
     try {
-      const prompt = `Generate ${totalQuestions} multiple-choice questions for a ${subject} exam with the following distribution:
-- ${easyCount} easy questions
-- ${mediumCount} medium difficulty questions
-- ${hardCount} hard questions
+      const languageText = language === "vi" ? "in Vietnamese" : "in English";
+      const difficultyEasy = "easy";
+      const difficultyMedium = "medium";
+      const difficultyHard = "hard";
+
+      const prompt = `Generate ${easyCount + mediumCount + hardCount} multiple-choice questions for a ${subject} exam ${languageText} with the following distribution:
+- ${easyCount} ${difficultyEasy} questions
+- ${mediumCount} ${difficultyMedium} difficulty questions
+- ${hardCount} ${difficultyHard} questions
 
 For each question:
 1. Create a clear question
@@ -128,7 +147,7 @@ Format the output as a valid JSON array of question objects with this structure:
   {
     "content": "Question text here",
     "points": 1,
-    "difficulty": "EASY",
+    "difficulty": ""EASY"",
     "answers": [
       {"content": "Answer A", "isCorrect": false},
       {"content": "Answer B", "isCorrect": true},
@@ -136,7 +155,9 @@ Format the output as a valid JSON array of question objects with this structure:
       {"content": "Answer D", "isCorrect": false}
     ]
   }
-]`;
+]
+
+IMPORTANT: Ensure your response is ONLY the valid JSON array with no additional text before or after.`;
 
       const response = await fetch(
         "https://openrouter.ai/api/v1/chat/completions",
@@ -147,8 +168,8 @@ Format the output as a valid JSON array of question objects with this structure:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "deepseek/deepseek-chat-v3-0324:free",
-            models: ["deepseek/deepseek-r1:free","google/gemma-3n-e4b-it:free"],
+            model: "google/gemini-2.0-flash-exp:free",
+            models: ["deepseek/deepseek-chat-v3-0324:free","deepseek/deepseek-r1:free","google/gemma-3n-e4b-it:free"],
             messages: [
               {
                 role: "system",
@@ -228,9 +249,18 @@ Format the output as a valid JSON array of question objects with this structure:
         setGeneratedQuestions(questions);
         setShowPreview(true);
         setGenerationProgress(100);
+        setRetryCount(0);
       } catch (error) {
         console.error("Failed to parse generated questions:", error);
-        toast.error("Không thể xử lý câu hỏi đã tạo. Vui lòng thử lại.");
+        
+        if (retryCount < MAX_RETRIES) {
+          const newRetryCount = retryCount + 1;
+          setRetryCount(newRetryCount);
+          toast.info(`Đang tạo lại câu hỏi (lần thử ${newRetryCount}/${MAX_RETRIES})...`);
+          await generateQuestions(true);
+        } else {
+          toast.error(`Không thể xử lý câu hỏi sau ${MAX_RETRIES} lần thử. Vui lòng thử lại sau.`);
+        }
       }
     } catch (error) {
       if ((error as Error).name === "AbortError") {
@@ -242,8 +272,10 @@ Format the output as a valid JSON array of question objects with this structure:
         );
       }
     } finally {
-      setIsGenerating(false);
-      setController(null);
+      if (!shouldRetry || retryCount >= MAX_RETRIES) {
+        setIsGenerating(false);
+        setController(null);
+      }
     }
   };
 
@@ -357,6 +389,23 @@ Format the output as a valid JSON array of question objects with this structure:
                 />
               </div>
 
+              <div className="grid gap-2">
+                <Label htmlFor="language">Ngôn ngữ câu hỏi</Label>
+                <Select
+                  value={language}
+                  onValueChange={setLanguage}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger id="language">
+                    <SelectValue placeholder="Chọn ngôn ngữ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="vi">Tiếng Việt</SelectItem>
+                    <SelectItem value="en">Tiếng Anh</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="easyCount">Câu hỏi dễ</Label>
@@ -405,7 +454,7 @@ Format the output as a valid JSON array of question objects with this structure:
               {isGenerating && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Đang tạo câu hỏi...</span>
+                    <span>Đang tạo câu hỏi{retryCount > 0 ? ` (lần thử ${retryCount}/${MAX_RETRIES})` : ''}...</span>
                     <span>{Math.round(generationProgress)}%</span>
                   </div>
                   <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
@@ -544,7 +593,7 @@ Format the output as a valid JSON array of question objects with this structure:
                   Hủy
                 </Button>
                 <Button
-                  onClick={generateQuestions}
+                  onClick={() => generateQuestions()}
                   disabled={isGenerating}
                   className="bg-gradient-to-r from-[hsl(var(--gradient-2-start))] to-[hsl(var(--gradient-2-end))] hover:opacity-90 text-white border-0"
                 >
