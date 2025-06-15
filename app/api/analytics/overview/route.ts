@@ -1,103 +1,29 @@
-import { NextRequest, NextResponse } from "next/server";
-import { UserRole } from "@prisma/client";
-import { validateRequest } from "@/auth";
-import prisma from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getOverviewData } from "@/lib/analytics/overview";
 
-export async function GET(req: NextRequest) {
-  const { user } = await validateRequest();
-
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
-  // Only admin users can access analytics
-  if (user.role !== UserRole.ADMIN) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
-
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const timeRange = searchParams.get('timeRange') || 'month';
+  const startDateStr = searchParams.get('startDate');
+  const endDateStr = searchParams.get('endDate');
+  
+  // Parse date strings to Date objects if provided
+  const startDate = startDateStr ? new Date(startDateStr) : undefined;
+  const endDate = endDateStr ? new Date(endDateStr) : undefined;
+  
   try {
-    // Get total students, courses, completed rate, average score
-    const totalStudents = await prisma.student.count();
-    const totalCourses = await prisma.course.count();
+    const overviewData = await getOverviewData(
+      timeRange as string, 
+      startDate,
+      endDate
+    );
     
-    // Calculate completion rate
-    const totalLessons = await prisma.lesson.count();
-    const totalCompletedLessons = await prisma.completedLesson.count();
-    const completionRate = totalLessons > 0 
-      ? Math.round((totalCompletedLessons / (totalLessons * totalStudents)) * 100) 
-      : 0;
-    
-    // Calculate average exam score
-    const examScores = await prisma.examAttempt.aggregate({
-      _avg: {
-        score: true
-      }
-    });
-    const averageScore = Math.round(examScores._avg.score || 0);
-
-    // Get monthly changes
-    const previousMonth = new Date();
-    previousMonth.setMonth(previousMonth.getMonth() - 1);
-    
-    // Student change
-    const previousMonthStudents = await prisma.student.count({
-      where: {
-        createdAt: {
-          lt: previousMonth
-        }
-      }
-    });
-    const studentChange = totalStudents - previousMonthStudents;
-    
-    // Course change
-    const previousMonthCourses = await prisma.course.count({
-      where: {
-        createdAt: {
-          lt: previousMonth
-        }
-      }
-    });
-    const courseChange = totalCourses - previousMonthCourses;
-    
-    // Completion rate change (approximation)
-    const previousMonthCompletedLessons = await prisma.completedLesson.count({
-      where: {
-        createdAt: {
-          lt: previousMonth
-        }
-      }
-    });
-    const previousCompletionRate = totalLessons > 0 && previousMonthStudents > 0
-      ? Math.round((previousMonthCompletedLessons / (totalLessons * previousMonthStudents)) * 100)
-      : 0;
-    const completionRateChange = completionRate - previousCompletionRate;
-    
-    // Average score change (approximation)
-    const previousMonthScores = await prisma.examAttempt.aggregate({
-      _avg: {
-        score: true
-      },
-      where: {
-        createdAt: {
-          lt: previousMonth
-        }
-      }
-    });
-    const previousAverageScore = Math.round(previousMonthScores._avg.score || 0);
-    const scoreChange = averageScore - previousAverageScore;
-
-    return NextResponse.json({
-      totalStudents,
-      totalCourses,
-      completionRate,
-      averageScore,
-      studentChange,
-      courseChange,
-      completionRateChange,
-      scoreChange
-    });
+    return NextResponse.json(overviewData);
   } catch (error) {
-    console.error("[ANALYTICS_OVERVIEW_GET]", error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("Error fetching overview data:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch overview data" },
+      { status: 500 }
+    );
   }
 } 

@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card } from '@/components/ui/card'
 import {
   Bar,
@@ -17,6 +17,9 @@ import {
   XAxis,
   YAxis
 } from 'recharts'
+import { DateRange } from 'react-day-picker'
+import axios from 'axios'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // Dữ liệu mẫu mặc định - sẽ được sử dụng nếu không có dữ liệu từ API
 const defaultBarData = [
@@ -59,11 +62,54 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8']
 
 interface BarChartProps {
   customData?: { name: string; total: number }[];
+  timeRange?: string;
+  dateRange?: DateRange;
 }
 
-export const BarChart = ({ customData }: BarChartProps) => {
-  const data = customData || defaultBarData;
+export const BarChart = ({ customData, timeRange, dateRange }: BarChartProps) => {
+  const [data, setData] = useState<{ name: string; total: number }[]>(customData || defaultBarData);
+  const [loading, setLoading] = useState<boolean>(customData ? false : true);
+
+  useEffect(() => {
+    // If customData is provided directly, use it
+    if (customData) {
+      setData(customData);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise, fetch data based on timeRange and dateRange
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Construct query params
+        const params = new URLSearchParams();
+        if (timeRange) params.append('timeRange', timeRange);
+        if (dateRange?.from && dateRange?.to) {
+          params.append('startDate', dateRange.from.toISOString());
+          params.append('endDate', dateRange.to.toISOString());
+        }
+        params.append('chartType', 'bar');
+        
+        const response = await axios.get(`/api/analytics/charts?${params.toString()}`);
+        if (response.data && response.data.barData) {
+          setData(response.data.barData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch bar chart data:", error);
+        setData(defaultBarData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [customData, timeRange, dateRange]);
   
+  if (loading) {
+    return <Skeleton className="w-full h-[350px]" />;
+  }
+
   return (
     <ResponsiveContainer width="100%" height={350}>
       <RechartsBarChart data={data}>
@@ -102,10 +148,53 @@ export const BarChart = ({ customData }: BarChartProps) => {
 
 interface LineChartProps {
   customData?: { name: string; completion: number }[];
+  timeRange?: string;
+  dateRange?: DateRange;
 }
 
-export const LineChart = ({ customData }: LineChartProps) => {
-  const data = customData || defaultLineData;
+export const LineChart = ({ customData, timeRange, dateRange }: LineChartProps) => {
+  const [data, setData] = useState<{ name: string; completion: number }[]>(customData || defaultLineData);
+  const [loading, setLoading] = useState<boolean>(customData ? false : true);
+
+  useEffect(() => {
+    // If customData is provided directly, use it
+    if (customData) {
+      setData(customData);
+      setLoading(false);
+      return;
+    }
+
+    // Otherwise, fetch data based on timeRange and dateRange
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Construct query params
+        const params = new URLSearchParams();
+        if (timeRange) params.append('timeRange', timeRange);
+        if (dateRange?.from && dateRange?.to) {
+          params.append('startDate', dateRange.from.toISOString());
+          params.append('endDate', dateRange.to.toISOString());
+        }
+        params.append('chartType', 'line');
+        
+        const response = await axios.get(`/api/analytics/charts?${params.toString()}`);
+        if (response.data && response.data.lineData) {
+          setData(response.data.lineData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch line chart data:", error);
+        setData(defaultLineData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [customData, timeRange, dateRange]);
+
+  if (loading) {
+    return <Skeleton className="w-full h-[350px]" />;
+  }
   
   return (
     <ResponsiveContainer width="100%" height={350}>

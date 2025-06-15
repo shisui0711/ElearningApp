@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -29,6 +28,10 @@ import {
 import { DateRange } from "react-day-picker";
 import { CustomDateRangePicker } from "@/components/ui/custom-date-range-picker";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { Department } from "@prisma/client";
+import { PaginationResponse } from "@/types";
 
 interface ExamResult {
   id: string;
@@ -39,26 +42,30 @@ interface ExamResult {
 }
 
 interface DifficultQuestion {
-  id: string;
-  question: string;
-  examName: string;
+  questionId: string;
+  exam: string;
+  text: string;
   correctRate: number;
   difficulty: string;
+  total: number;
 }
 
 interface ExamStats {
-  avgScore: number;
-  totalAttempts: number;
-  avgPassingRate: number;
-  questionAccuracy: number;
-  growthRates: {
-    avgScore: string;
-    totalAttempts: string;
-    avgPassingRate: string;
-    questionAccuracy: string;
+  overview: {
+    avgScore: number;
+    totalExams: number;
+    totalAttempts: number;
+    passingRate: number;
+    avgScoreChange: number;
+    attemptsChange: number;
+    passingRateChange: number;
+    questionAccuracy: number;
+    questionAccuracyChange: number;
   };
-  examResults: ExamResult[];
+  examDetails: ExamResult[];
+  scoreDistribution: { range: string; count: number }[];
   difficultQuestions: DifficultQuestion[];
+  performanceTrend: { name: string; completion: number }[];
 }
 
 interface ChartData {
@@ -101,58 +108,59 @@ const ExamPerformance = () => {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
-  const [examStats, setExamStats] = useState<ExamStats | null>(null);
-  const [chartData, setChartData] = useState<ChartData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [chartLoading, setChartLoading] = useState(true);
 
-  useEffect(() => {
-    fetchExamStats();
-    fetchChartData();
-  }, [departmentFilter, dateRange]);
-
-  const fetchExamStats = async () => {
-    setLoading(true);
-    try {
-      // Construct query params
-      const params = new URLSearchParams();
-      params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
-      
-      if (dateRange?.from && dateRange?.to) {
-        params.append('startDate', dateRange.from.toISOString());
-        params.append('endDate', dateRange.to.toISOString());
-      }
-      
-      const response = await axios.get(`/api/analytics/exams?${params.toString()}`);
-      setExamStats(response.data);
-    } catch (error) {
-      console.error("Failed to fetch exam stats:", error);
-    } finally {
-      setLoading(false);
+  const getQueryParams = () => {
+    const params = new URLSearchParams();
+    if (departmentFilter !== "all") {
+      params.append('departmentId', departmentFilter);
     }
+    
+    if (dateRange?.from && dateRange?.to) {
+      params.append('startDate', dateRange.from.toISOString());
+      params.append('endDate', dateRange.to.toISOString());
+    }
+    
+    return params.toString();
   };
 
-  const fetchChartData = async () => {
-    setChartLoading(true);
-    try {
-      // Construct query params
-      const params = new URLSearchParams();
-      params.append('departmentId', departmentFilter !== "all" ? departmentFilter : "");
+  const { data: departments } = useQuery<
+    PaginationResponse<Department>
+  >({
+    queryKey: ["departments-all"],
+    queryFn: async () => {
+      const response = await axios.get("/api/departments", {
+        params: {
+          pageSize: 100,
+          pageNumber: 1,
+        },
+      });
+      return response.data;
+    },
+  });
+
+  const { 
+    data: examStats, 
+    isLoading: statsLoading 
+  } = useQuery<ExamStats>({
+    queryKey: ['examStats', departmentFilter, dateRange],
+    queryFn: async () => {
+      const response = await axios.get(`/api/analytics/exams?${getQueryParams()}`);
+      return response.data;
+    }
+  });
+
+  const { 
+    data: chartData, 
+    isLoading: chartLoading 
+  } = useQuery<ChartData>({
+    queryKey: ['examCharts', departmentFilter, dateRange],
+    queryFn: async () => {
+      const params = new URLSearchParams(getQueryParams());
       params.append('chartType', 'exams');
-      
-      if (dateRange?.from && dateRange?.to) {
-        params.append('startDate', dateRange.from.toISOString());
-        params.append('endDate', dateRange.to.toISOString());
-      }
-      
       const response = await axios.get(`/api/analytics/charts?${params.toString()}`);
-      setChartData(response.data);
-    } catch (error) {
-      console.error("Failed to fetch chart data:", error);
-    } finally {
-      setChartLoading(false);
+      return response.data;
     }
-  };
+  });
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
@@ -173,11 +181,11 @@ const ExamPerformance = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Toàn trường</SelectItem>
-              <SelectItem value="cs">Computer Science</SelectItem>
-              <SelectItem value="business">Business</SelectItem>
-              <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="arts">Arts</SelectItem>
-              <SelectItem value="medicine">Medicine</SelectItem>
+              {departments?.data.map((department) => (
+                <SelectItem key={department.id} value={department.id}>
+                  {department.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -191,13 +199,13 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{examStats?.avgScore || 0}%</div>
+                <div className="text-2xl font-bold">{examStats?.overview.avgScore || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {examStats?.growthRates?.avgScore || '0%'} so với tháng trước
+                  {examStats?.overview.avgScoreChange || '0%'} so với tháng trước
                 </p>
               </>
             )}
@@ -210,13 +218,13 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{examStats?.totalAttempts || 0}</div>
+                <div className="text-2xl font-bold">{examStats?.overview.totalAttempts || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {examStats?.growthRates?.totalAttempts || '0'} so với tháng trước
+                  {examStats?.overview.attemptsChange || '0'} so với tháng trước
                 </p>
               </>
             )}
@@ -229,13 +237,13 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{examStats?.avgPassingRate || 0}%</div>
+                <div className="text-2xl font-bold">{examStats?.overview.passingRate || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {examStats?.growthRates?.avgPassingRate || '0%'} so với tháng trước
+                  {examStats?.overview.passingRateChange || '0%'} so với tháng trước
                 </p>
               </>
             )}
@@ -248,13 +256,13 @@ const ExamPerformance = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {statsLoading ? (
               <Skeleton className="h-8 w-20" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{examStats?.questionAccuracy || 0}%</div>
+                <div className="text-2xl font-bold">{examStats?.overview.questionAccuracy || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {examStats?.growthRates?.questionAccuracy || '0%'} so với tháng trước
+                  {examStats?.overview.questionAccuracyChange || '0%'} so với tháng trước
                 </p>
               </>
             )}
@@ -303,7 +311,7 @@ const ExamPerformance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {statsLoading ? (
             <div>
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="flex gap-4 py-3">
@@ -322,8 +330,8 @@ const ExamPerformance = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Array.isArray(examStats?.examResults) 
-                  ? examStats.examResults.map((exam, index) => (
+                {Array.isArray(examStats?.examDetails) 
+                  ? examStats.examDetails.map((exam, index) => (
                     <TableRow key={`exam-${index}-${exam.id || ''}`}>
                       <TableCell className="font-medium">{exam?.name || 'Unknown'}</TableCell>
                       <TableCell>{exam?.attempts || 0}</TableCell>
@@ -338,7 +346,7 @@ const ExamPerformance = () => {
                       </TableCell>
                     </TableRow>
                   ))
-                  : <TableRow><TableCell colSpan={4}>No exam results available</TableCell></TableRow>
+                  : <TableRow><TableCell colSpan={4}>Không có kết quả thi</TableCell></TableRow>
                 }
               </TableBody>
             </Table>
@@ -354,7 +362,7 @@ const ExamPerformance = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {statsLoading ? (
             <div>
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="flex gap-4 py-3">
@@ -375,20 +383,20 @@ const ExamPerformance = () => {
               <TableBody>
                 {Array.isArray(examStats?.difficultQuestions)
                   ? examStats.difficultQuestions.map((question, index) => (
-                    <TableRow key={`question-${index}-${question.id || ''}`}>
+                    <TableRow key={`question-${index}-${question.questionId || ''}`}>
                       <TableCell className="font-medium">
-                        {question?.question || 'Unknown'}
+                        {question?.text || 'Không xác định'}
                       </TableCell>
-                      <TableCell>{question?.examName || 'Unknown'}</TableCell>
+                      <TableCell>{question?.exam || 'Không xác định'}</TableCell>
                       <TableCell className={getScoreColor(question?.correctRate || 0)}>
                         {question?.correctRate || 0}%
                       </TableCell>
                       <TableCell>
-                        {getDifficultyBadge(question?.difficulty || 'medium')}
+                        {getDifficultyBadge(question?.difficulty || "medium")}
                       </TableCell>
                     </TableRow>
                   ))
-                  : <TableRow><TableCell colSpan={4}>No difficult questions available</TableCell></TableRow>
+                  : <TableRow><TableCell colSpan={4}>Không có câu hỏi khó</TableCell></TableRow>
                 }
               </TableBody>
             </Table>

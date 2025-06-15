@@ -12,6 +12,8 @@ import {
   YAxis,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import axios from "axios";
+import { DateRange } from "react-day-picker";
 
 type UserGrowthData = {
   month: string;
@@ -35,25 +37,31 @@ const fallbackData = [
   { month: "Dec", students: 450, teachers: 28 },
 ];
 
-const UserGrowth = () => {
+interface UserGrowthProps {
+  timeRange?: string;
+  dateRange?: DateRange;
+}
+
+const UserGrowth = ({ timeRange, dateRange }: UserGrowthProps) => {
   const [growthData, setGrowthData] = useState<UserGrowthData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchUserGrowthData() {
+      setLoading(true);
       try {
-        const response = await fetch("/api/analytics/user-growth", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
+        // Construct query params
+        const params = new URLSearchParams();
+        if (timeRange) params.append('timeRange', timeRange);
+        if (dateRange?.from && dateRange?.to) {
+          params.append('startDate', dateRange.from.toISOString());
+          params.append('endDate', dateRange.to.toISOString());
+        }
 
-        if (response.ok) {
-          const data = await response.json();
-          setGrowthData(data);
+        const response = await axios.get(`/api/analytics/user-growth?${params.toString()}`);
+        if (response.data) {
+          setGrowthData(response.data);
         } else {
-          console.error("Failed to fetch user growth data");
           setGrowthData(fallbackData);
         }
       } catch (error) {
@@ -65,7 +73,7 @@ const UserGrowth = () => {
     }
 
     fetchUserGrowthData();
-  }, []);
+  }, [timeRange, dateRange]);
 
   if (loading) {
     return <Skeleton className="w-full h-[350px]" />;

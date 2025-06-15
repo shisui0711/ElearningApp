@@ -13,6 +13,14 @@ export function formatRole(role:string){
   else return "Không xác định";
 }
 
+export function formatTimeRange(timeRange:string){
+  if(timeRange === "week") return "tuần";
+  else if(timeRange === "month") return "tháng";
+  else if(timeRange === "quarter") return "quý";
+  else if(timeRange === "year") return "năm";
+  else return "thời gian";
+}
+
 export function formatDateToString(date:Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');

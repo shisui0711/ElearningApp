@@ -28,6 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatTimeRange } from "@/lib/utils";
 
 interface TopCourse {
   id: number;
@@ -157,7 +158,7 @@ const EnrollmentStats = () => {
               <>
                 <div className="text-2xl font-bold">+{enrollmentData?.newEnrollments || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {enrollmentData?.growthRates.newEnrollments || '0%'} so với {timeRange} trước
+                  {enrollmentData?.growthRates.newEnrollments || '0%'} so với {formatTimeRange(timeRange)} trước
                 </p>
               </>
             )}
@@ -174,7 +175,7 @@ const EnrollmentStats = () => {
               <>
                 <div className="text-2xl font-bold">{enrollmentData?.enrollmentRate || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {enrollmentData?.growthRates.enrollmentRate || '0%'} so với {timeRange} trước
+                  {enrollmentData?.growthRates.enrollmentRate || '0%'} so với {formatTimeRange(timeRange)} trước
                 </p>
               </>
             )}
@@ -193,7 +194,7 @@ const EnrollmentStats = () => {
               <>
                 <div className="text-2xl font-bold">{enrollmentData?.averagePerStudent || 0}</div>
                 <p className="text-xs text-muted-foreground">
-                  {enrollmentData?.growthRates.averagePerStudent || '0'} so với {timeRange} trước
+                  {enrollmentData?.growthRates.averagePerStudent || '0'} so với {formatTimeRange(timeRange)} trước
                 </p>
               </>
             )}
@@ -202,7 +203,7 @@ const EnrollmentStats = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Enrollment Retention
+              Tỉ lệ giữ chân sinh viên
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -212,7 +213,7 @@ const EnrollmentStats = () => {
               <>
                 <div className="text-2xl font-bold">{enrollmentData?.retentionRate || 0}%</div>
                 <p className="text-xs text-muted-foreground">
-                  {enrollmentData?.growthRates.retentionRate || '0%'} so với {timeRange} trước
+                  {enrollmentData?.growthRates.retentionRate || '0%'} so với {formatTimeRange(timeRange)} trước
                 </p>
               </>
             )}
