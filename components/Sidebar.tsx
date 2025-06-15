@@ -19,6 +19,7 @@ import CourseProgress from "./CourseProgress";
 import { Accordion } from "./ui/accordion";
 import { CourseManageWithDetails, CourseWithDetails } from "@/types";
 import { CompletedLesson } from "@prisma/client";
+import { useSession } from "@/provider/SessionProvider";
 
 interface SidebarProps {
   course: CourseManageWithDetails;
@@ -26,6 +27,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ course, completedLessons }: SidebarProps) => {
+  const { user } = useSession();
   const pathname = usePathname();
   const { isOpen, toggle, close } = useSidebar();
   const [openLessons, setOpenLessons] = useState<string[]>([]);
@@ -70,7 +72,9 @@ const Sidebar = ({ course, completedLessons }: SidebarProps) => {
           </div>
           <div className="space-y-4">
             <h1 className="font-semibold text-2xl">{course.name}</h1>
-            <CourseProgress progress={progress} variant="success" label="Tiến độ" />
+            {user.student && (
+              <CourseProgress progress={progress} variant="success" label="Tiến độ" />
+            )}
           </div>
         </div>
         <ScrollArea className="flex-1 pb-16">
